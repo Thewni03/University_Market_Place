@@ -69,6 +69,6 @@ export const protectRoute = async (req, res, next) => {
   }
 };
 
-const userAuth = protectRoute;
+export const protect = protectRoute;
 
-export default userAuth;
+
