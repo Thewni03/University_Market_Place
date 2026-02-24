@@ -58,7 +58,12 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "15mb" }));
 app.use(parseCookies);
-app.use("/uploads", express.static(path.resolve(__dirname, "./uploads")));
+//app.use("/uploads", express.static(path.resolve(__dirname, "./uploads")));
+
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "src/uploads"))
+);
 app.use("/", predictionRoutes);
 app.use("/", resetRoutes);
 app.use("/api/services", serviceRoutes);
