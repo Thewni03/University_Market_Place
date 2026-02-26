@@ -1,0 +1,35 @@
+
+.navbarHr {
+    background-color: white; /* White background */
+    padding: 10px 20px; /* Add some spacing */
+    border-bottom: 4px solid #92e699; /* Gold underline */
+    display: flex; /* Use flexbox */
+    justify-content: center; /* Center nav items horizontally */
+    align-items: center; /* Center vertically */
+  }
+  
+  /* Remove default list styles and spacing */
+  .HrNav2 {
+    list-style: none; /* Remove bullets */
+    display: flex; /* Horizontal layout */
+    gap: 20px; /* Space between links */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+  }
+  
+  /* Style for each link */
+  .nav-linkHr {
+    text-decoration: none; /* Remove underline */
+    color: black; /* Black text */
+    padding: 8px 15px; /* Add padding to make clickable area bigger */
+    border-radius: 5px; /* Rounded corners for hover effect */
+    font-weight: 500; /* Slightly bold */
+    transition: background 0.3s, color 0.3s; /* Smooth hover effect */
+  }
+  
+  /* Hover effect for links */
+  .nav-linkHr:hover {
+    background-color: #EBDFB3; /* Button color on hover */
+    color: black; /* Keep text black */
+  }
+  
