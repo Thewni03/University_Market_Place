@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './Booking.css';
 
 const Booking = () => {
   const [selectedService, setSelectedService] = useState('Advanced Python Programming');
@@ -68,74 +67,106 @@ const Booking = () => {
   ];
 
   return (
-    <div className="unimarket-container">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1120] via-[#1a2942] to-[#0f1a2f] p-5 md:p-10 text-white relative">
       {/* Navigation */}
-      <nav className="navbar">
-        <div className="nav-brand">UniMarket</div>
-        <div className="nav-links">
-          <a href="#">Browse</a>
-          <a href="#">My Learning</a>
-          <a href="#">Inbox</a>
-          <div className="nav-profile">👤</div>
+      <nav className="flex justify-between items-center py-5 border-b border-white/10 mb-8">
+        <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent shadow-[0_0_20px_rgba(96,165,250,0.3)]">
+          UniMarket
+        </div>
+        <div className="flex gap-8 items-center">
+          <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">Browse</a>
+          <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">My Learning</a>
+          <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">Inbox</a>
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+            👤
+          </div>
         </div>
       </nav>
 
       {/* Header Profile */}
-      <div className="profile-header">
-        <div className="profile-avatar">
-          <div className="avatar-placeholder">👩‍🏫</div>
+      <div className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl p-6 mb-8 flex gap-6 items-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:flex-row flex-col text-center md:text-left">
+        <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-5xl shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+          👩‍🏫
         </div>
         <div className="profile-info">
-          <h1>Dr. Sarah Johnson</h1>
-          <div className="profile-badges">
-            <span className="badge top-rated">⭐ Top Rated Provider</span>
-            <span className="badge trust">Trust Score: 96%</span>
+          <h1 className="text-2xl md:text-3xl mb-3 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+            Dr. Sarah Johnson
+          </h1>
+          <div className="flex gap-3 mb-3 flex-wrap justify-center md:justify-start">
+            <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-amber-500/20 border border-amber-500 text-amber-500">
+              ⭐ Top Rated Provider
+            </span>
+            <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-emerald-500/20 border border-emerald-500 text-emerald-500">
+              Trust Score: 96%
+            </span>
           </div>
-          <div className="profile-stats">
-            <span>⭐ 4.7 (342 reviews)</span>
-            <span>📈 156 Completed Jobs</span>
-            <span>🏛️ University of Colombo</span>
-            <span>💻 Computer Science</span>
+          <div className="flex gap-5 text-slate-400 flex-wrap justify-center md:justify-start">
+            <span className="flex items-center gap-1">⭐ 4.7 (342 reviews)</span>
+            <span className="flex items-center gap-1">📈 156 Completed Jobs</span>
+            <span className="flex items-center gap-1">🏛️ University of Colombo</span>
+            <span className="flex items-center gap-1">💻 Computer Science</span>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="search-section">
-        <div className="search-bar">
-          <input type="text" placeholder="Search services" />
-          <select className="category-select">
+      <div className="mb-8">
+        <div className="flex gap-3 mb-4 flex-col md:flex-row">
+          <input 
+            type="text" 
+            placeholder="Search services" 
+            className="flex-1 p-3.5 bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl text-white text-base focus:outline-none focus:border-blue-500 focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all"
+          />
+          <select className="p-3.5 bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl text-white cursor-pointer">
             <option>All Categories</option>
           </select>
-          <select className="sort-select">
+          <select className="p-3.5 bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl text-white cursor-pointer">
             <option>Sort by: Popular</option>
           </select>
         </div>
-        <div className="filter-buttons">
-          <button className="filter-btn glow">4+ Stars</button>
-          <button className="filter-btn glow">Quick Delivery</button>
-          <button className="filter-btn glow">Price Range</button>
+        <div className="flex gap-3 flex-wrap">
+          <button className="px-5 py-2.5 bg-slate-900/60 backdrop-blur border border-white/10 rounded-full text-white hover:border-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] hover:-translate-y-0.5 transition-all">
+            4+ Stars
+          </button>
+          <button className="px-5 py-2.5 bg-slate-900/60 backdrop-blur border border-white/10 rounded-full text-white hover:border-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] hover:-translate-y-0.5 transition-all">
+            Quick Delivery
+          </button>
+          <button className="px-5 py-2.5 bg-slate-900/60 backdrop-blur border border-white/10 rounded-full text-white hover:border-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] hover:-translate-y-0.5 transition-all">
+            Price Range
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="main-content">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
         {/* Left Side - Service Grid */}
-        <div className="services-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {services.map((service, index) => (
-            <div key={index} className="service-card" onClick={() => setSelectedService(service.title)}>
-              <div className="service-image">{service.image}</div>
-              <div className="service-content">
-                <h3>{service.title}</h3>
-                <p>{service.description}</p>
-                <div className="service-meta">
-                  <span className="rating">⭐ {service.rating}</span>
-                  <span className="duration">{service.modules}</span>
+            <div 
+              key={index} 
+              className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl overflow-hidden hover:-translate-y-1 hover:border-blue-400 hover:shadow-[0_10px_30px_rgba(96,165,250,0.2)] transition-all cursor-pointer"
+              onClick={() => setSelectedService(service.title)}
+            >
+              <div className="h-35 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-5xl border-b border-white/10">
+                {service.image}
+              </div>
+              <div className="p-5">
+                <h3 className="text-lg mb-2 text-white">{service.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-3">{service.description}</p>
+                <div className="flex gap-3 mb-3">
+                  <span className="text-amber-400 text-sm">⭐ {service.rating}</span>
+                  <span className="text-slate-400 text-sm">{service.modules}</span>
                 </div>
-                <div className="service-price">LKR {service.price.toLocaleString()}</div>
-                <div className="service-actions">
-                  <button className="btn-outline">Select</button>
-                  <button className="btn-gradient">Book</button>
+                <div className="text-xl font-semibold text-blue-400 mb-4">
+                  LKR {service.price.toLocaleString()}
+                </div>
+                <div className="flex gap-3">
+                  <button className="flex-1 py-2.5 bg-transparent border border-blue-400 rounded-xl text-blue-400 hover:bg-blue-400/10 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] transition-all">
+                    Select
+                  </button>
+                  <button className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 border-none rounded-xl text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(59,130,246,0.5)] transition-all shadow-[0_4px_15px_rgba(59,130,246,0.4)]">
+                    Book
+                  </button>
                 </div>
               </div>
             </div>
@@ -143,43 +174,54 @@ const Booking = () => {
         </div>
 
         {/* Right Side - Booking Summary */}
-        <div className="booking-summary">
-          <h2>Booking Summary</h2>
+        <div className="bg-slate-900/80 backdrop-blur border border-white/10 rounded-2xl p-6 h-fit lg:sticky lg:top-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <h2 className="text-xl mb-6 text-white">Booking Summary</h2>
           
-          <div className="summary-item">
+          <div className="flex justify-between mb-4 text-slate-400">
             <span>Selected Service</span>
-            <span className="service-name">{selectedService}</span>
+            <span className="text-blue-400 font-medium">{selectedService}</span>
           </div>
           
-          <div className="summary-item">
+          <div className="flex justify-between mb-4 text-slate-400">
             <span>Service Price</span>
             <span>LKR {serviceData[selectedService].price.toLocaleString()}</span>
           </div>
           
-          <div className="summary-item">
+          <div className="flex justify-between mb-4 text-slate-400">
             <span>Platform Fee (5%)</span>
             <span>LKR {platformFee.toLocaleString()}</span>
           </div>
           
-          <div className="summary-item total">
+          <div className="flex justify-between mt-5 pt-5 border-t border-white/10 text-lg font-semibold text-white">
             <span>Total Amount</span>
-            <span className="total-amount">LKR {totalAmount.toLocaleString()}</span>
+            <span className="text-blue-400 text-2xl shadow-[0_0_20px_rgba(96,165,250,0.5)]">
+              LKR {totalAmount.toLocaleString()}
+            </span>
           </div>
           
-          <div className="completion-badge">
+          <div className="bg-emerald-500/10 border border-emerald-500 rounded-full p-3 text-center my-6 text-emerald-500">
             ⏱️ Estimated Completion: {serviceData[selectedService].duration}
           </div>
           
-          <button className="proceed-btn">Proceed to Booking</button>
-          <button className="save-btn">Save for Later</button>
+          <button className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 border-none rounded-2xl text-white font-semibold hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(59,130,246,0.5)] transition-all mb-3 shadow-[0_4px_15px_rgba(59,130,246,0.4)]">
+            Proceed to Booking
+          </button>
           
-          <div className="secure-note">
+          <button className="w-full py-4 bg-transparent border border-blue-400 rounded-2xl text-blue-400 font-semibold hover:bg-blue-400/10 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] transition-all mb-6">
+            Save for Later
+          </button>
+          
+          <div className="text-center text-slate-400 text-sm mb-6 pb-6 border-b border-white/10">
             🔒 Secure payment - 256-bit SSL encrypted
           </div>
           
-          <div className="help-section">
-            <button className="help-btn">💬 Chat with Provider</button>
-            <button className="help-btn">📞 Contact Support</button>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="p-3 bg-slate-900/60 backdrop-blur border border-white/10 rounded-xl text-slate-400 hover:border-blue-400 hover:text-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.2)] transition-all">
+              💬 Chat with Provider
+            </button>
+            <button className="p-3 bg-slate-900/60 backdrop-blur border border-white/10 rounded-xl text-slate-400 hover:border-blue-400 hover:text-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.2)] transition-all">
+              📞 Contact Support
+            </button>
           </div>
         </div>
       </div>
