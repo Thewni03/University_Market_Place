@@ -1,0 +1,251 @@
+export const mockServices = [
+  {
+    id: "1",
+    title: "Advanced Calculus Tutoring",
+    category: "Tutoring",
+    provider: { name: "Sarah Chen", avatar: "", university: "MIT", verified: true },
+    rating: 4.9,
+    reviewCount: 47,
+    bookingsCount: 132,
+    price: 35,
+    location: "online",
+    rankingScore: 94,
+    description:
+      "Expert calculus tutoring covering limits, derivatives, integrals, and series. I graduated summa cum laude and have 3 years of TA experience.",
+    views: 1840,
+    clicks: 420,
+    gallery: [],
+    availableSlots: [
+      { day: "Mon", times: ["9:00 AM", "11:00 AM", "2:00 PM"] },
+      { day: "Wed", times: ["10:00 AM", "1:00 PM", "4:00 PM"] },
+      { day: "Fri", times: ["9:00 AM", "3:00 PM"] },
+    ],
+  },
+  {
+    id: "2",
+    title: "Logo & Brand Identity Design",
+    category: "Design",
+    provider: { name: "Marcus Lee", avatar: "", university: "RISD", verified: true },
+    rating: 4.8,
+    reviewCount: 31,
+    bookingsCount: 89,
+    price: 50,
+    location: "online",
+    rankingScore: 91,
+    description:
+      "Professional logo design and branding packages. Portfolio includes 50+ brand identities for student orgs and startups.",
+    views: 1560,
+    clicks: 380,
+    gallery: [],
+    availableSlots: [
+      { day: "Tue", times: ["10:00 AM", "2:00 PM"] },
+      { day: "Thu", times: ["11:00 AM", "3:00 PM", "5:00 PM"] },
+    ],
+  },
+  {
+    id: "3",
+    title: "React & TypeScript Development",
+    category: "Development",
+    provider: { name: "Aisha Patel", avatar: "", university: "Stanford", verified: true },
+    rating: 5.0,
+    reviewCount: 22,
+    bookingsCount: 64,
+    price: 60,
+    location: "online",
+    rankingScore: 89,
+    description:
+      "Full-stack web development with React, TypeScript, and Node.js. I can help with projects, assignments, or building your startup MVP.",
+    views: 1200,
+    clicks: 310,
+    gallery: [],
+    availableSlots: [
+      { day: "Mon", times: ["1:00 PM", "3:00 PM"] },
+      { day: "Wed", times: ["10:00 AM", "4:00 PM"] },
+      { day: "Sat", times: ["10:00 AM", "12:00 PM", "2:00 PM"] },
+    ],
+  },
+  {
+    id: "4",
+    title: "Essay Proofreading & Editing",
+    category: "Writing",
+    provider: { name: "James Wright", avatar: "", university: "Columbia", verified: true },
+    rating: 4.7,
+    reviewCount: 56,
+    bookingsCount: 178,
+    price: 20,
+    location: "online",
+    rankingScore: 87,
+    description:
+      "Professional proofreading and editing for essays, research papers, and applications. English literature major with editorial experience.",
+    views: 2100,
+    clicks: 520,
+    gallery: [],
+    availableSlots: [
+      { day: "Mon", times: ["8:00 AM", "10:00 AM", "6:00 PM"] },
+      { day: "Tue", times: ["9:00 AM", "11:00 AM"] },
+      { day: "Thu", times: ["2:00 PM", "4:00 PM", "7:00 PM"] },
+    ],
+  },
+  {
+    id: "5",
+    title: "Photography for Events",
+    category: "Photography",
+    provider: { name: "Luna Kim", avatar: "", university: "NYU", verified: true },
+    rating: 4.9,
+    reviewCount: 18,
+    bookingsCount: 42,
+    price: 75,
+    location: "on-campus",
+    rankingScore: 82,
+    description:
+      "Event photography for campus events, club gatherings, and portraits. Professional equipment and fast turnaround.",
+    views: 980,
+    clicks: 210,
+    gallery: [],
+    availableSlots: [
+      { day: "Fri", times: ["4:00 PM", "6:00 PM"] },
+      { day: "Sat", times: ["10:00 AM", "1:00 PM", "4:00 PM"] },
+      { day: "Sun", times: ["11:00 AM", "2:00 PM"] },
+    ],
+  },
+  {
+    id: "6",
+    title: "Music Composition & Production",
+    category: "Music",
+    provider: { name: "David Torres", avatar: "", university: "Berklee", verified: true },
+    rating: 4.6,
+    reviewCount: 14,
+    bookingsCount: 35,
+    price: 45,
+    location: "on-campus",
+    rankingScore: 78,
+    description:
+      "Custom music composition, arrangement, and production. From film scores to podcast intros.",
+    views: 750,
+    clicks: 160,
+    gallery: [],
+    availableSlots: [
+      { day: "Wed", times: ["2:00 PM", "5:00 PM"] },
+      { day: "Sat", times: ["11:00 AM", "3:00 PM"] },
+    ],
+  },
+];
+
+export const mockRequests = [
+  {
+    id: "r1",
+    title: "Need a Website for Student Club",
+    description:
+      "Looking for a developer to build a simple website for our debate club. Should have a members page, events calendar, and contact form.",
+    budget: 200,
+    deadline: "2026-03-15",
+    category: "Development",
+    postedBy: { name: "Emily Park", avatar: "" },
+    expired: false,
+  },
+  {
+    id: "r2",
+    title: "Physics Lab Report Help",
+    description:
+      "Need help writing up results and analysis for my physics 201 lab experiments. Must understand error analysis.",
+    budget: 40,
+    deadline: "2026-03-05",
+    category: "Tutoring",
+    postedBy: { name: "Ryan Brooks", avatar: "" },
+    expired: false,
+  },
+  {
+    id: "r3",
+    title: "Poster Design for Charity Event",
+    description:
+      "We need an eye-catching poster for our annual charity gala. Theme is 'Stars of Tomorrow'. Print-ready A3 format.",
+    budget: 60,
+    deadline: "2026-03-10",
+    category: "Design",
+    postedBy: { name: "Zara Hussain", avatar: "" },
+    expired: false,
+  },
+  {
+    id: "r4",
+    title: "Spanish Conversation Partner",
+    description:
+      "Looking for a native Spanish speaker for weekly conversation practice. Intermediate level, preparing for study abroad.",
+    budget: 25,
+    deadline: "2026-02-20",
+    category: "Tutoring",
+    postedBy: { name: "Chris Yang", avatar: "" },
+    expired: true,
+  },
+];
+
+export const mockReviews = [
+  {
+    id: "rv1",
+    author: "Alex Johnson",
+    avatar: "",
+    rating: 5,
+    comment:
+      "Sarah is an incredible tutor! She made complex calculus concepts so easy to understand. Highly recommend!",
+    date: "2026-02-15",
+  },
+  {
+    id: "rv2",
+    author: "Priya Sharma",
+    avatar: "",
+    rating: 5,
+    comment:
+      "Best tutoring experience I've had. Very patient and thorough with explanations.",
+    date: "2026-02-10",
+  },
+  {
+    id: "rv3",
+    author: "Mike Chen",
+    avatar: "",
+    rating: 4,
+    comment:
+      "Great session, helped me prepare for my midterm. Would book again.",
+    date: "2026-01-28",
+  },
+];
+
+export const mockPendingStudents = [
+  {
+    id: "s1",
+    name: "Jordan Williams",
+    email: "jwilliams@berkeley.edu",
+    university: "UC Berkeley",
+    studentIdUrl: "",
+    submittedAt: "2026-02-25",
+    status: "pending",
+  },
+  {
+    id: "s2",
+    name: "Fatima Al-Rashid",
+    email: "falrashid@umich.edu",
+    university: "U of Michigan",
+    studentIdUrl: "",
+    submittedAt: "2026-02-24",
+    status: "pending",
+  },
+  {
+    id: "s3",
+    name: "Tom Nakamura",
+    email: "tnakamura@gatech.edu",
+    university: "Georgia Tech",
+    studentIdUrl: "",
+    submittedAt: "2026-02-23",
+    status: "pending",
+  },
+];
+
+export const categories = [
+  "All",
+  "Tutoring",
+  "Design",
+  "Development",
+  "Writing",
+  "Photography",
+  "Music",
+  "Marketing",
+  "Fitness",
+];
