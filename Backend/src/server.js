@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import serviceRoutes from './routes/serviceRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 import './config/db.js';
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 
 app.use('/api/services', serviceRoutes);
+app.use('/api/profile', profileRoutes);
 
 
 app.listen(PORT, () => {
