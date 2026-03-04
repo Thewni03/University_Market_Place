@@ -5,6 +5,7 @@ import Home from "./pages/Home/Home";
 import Booking from "./pages/Booking/Booking";
 import BookingForm from "./pages/BookingForm/BookingForm";
 import Payment from "./pages/payment/payment";
+import Profile from "./pages/profile/profile";
 
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
     <Navbar />
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/profile" element={<Profile />} />
       <Route path="/booking" element={<Booking />} />
       <Route path="/booking-form" element={<BookingForm />} />
       <Route path="/payment" element={<Payment />} /> {/* Add Payment route */}
