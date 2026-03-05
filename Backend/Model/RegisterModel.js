@@ -40,7 +40,7 @@ const userSchema = new Schema({
   },
 
   graduate_year: {
-    type: Number, // e.g., 2026
+    type: Number, 
     required: true
   },
 

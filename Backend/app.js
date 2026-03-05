@@ -1,5 +1,5 @@
 
-//pass = tirTlOeVnj45eucd
+//pass = hLqCW3XFmnFTbzj8
 
 const express  = require ("express");
 const mongoose = require ("mongoose");
@@ -13,8 +13,8 @@ app.use(express.json());
 //middelware
 app.use(cors());
 app.use("/users",router);
-
-mongoose.connect("mongodb+srv://admin:tirTlOeVnj45eucd@cluster0.c2joljo.mongodb.net/")
+app.use("/uploads", express.static("uploads"));
+mongoose.connect("mongodb+srv://admin:hLqCW3XFmnFTbzj8@cluster0.c2joljo.mongodb.net/?appName=Cluster0")
 .then(()=> console.log("connected to mongo DB "))
 .then(()=> {
     app.listen(5000);
