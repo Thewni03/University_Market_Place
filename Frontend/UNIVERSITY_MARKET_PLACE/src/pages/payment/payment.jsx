@@ -165,7 +165,7 @@ const Payment = () => {
                 </div>
                 
                 {/* Subtotal */}
-                <div className="flex justify-between items-center py-3 border-t border-[#21262D] border-b border-[#21262D] mt-1">
+                <div className="flex justify-between items-center py-3 border-t border-[#21262D] border-b  mt-1">
                   <span className="text-sm text-[#A0A0A0]">Subtotal</span>
                   <span className="text-sm font-semibold text-white">$11800.18</span>
                 </div>
