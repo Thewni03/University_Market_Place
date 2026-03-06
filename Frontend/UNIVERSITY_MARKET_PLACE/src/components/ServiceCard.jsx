@@ -63,7 +63,7 @@ export default function ServiceCard({ service }) {
           </div>
           <div className="text-right">
             <span className="text-lg font-bold text-foreground">
-              ${service.price}
+              LKR {service.price}
             </span>
             <span className="text-xs text-muted-foreground">/hr</span>
           </div>

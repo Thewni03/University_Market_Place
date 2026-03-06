@@ -6,7 +6,7 @@ const Dashboard = () => {
     {
       name: "Gloria White",
       avatar: "GW",
-      amount: "$150.00",
+      amount: "LKR 150.00",
       date: "11/10/24",
       type: "E-commerce",
       status: "Paid",
@@ -15,7 +15,7 @@ const Dashboard = () => {
     {
       name: "Markus Reines",
       avatar: "MR",
-      amount: "$49.99",
+      amount: "LKR 49.99",
       date: "09/10/24",
       type: "Phone credit",
       status: "Pending",
@@ -24,7 +24,7 @@ const Dashboard = () => {
     {
       name: "Olesya R.",
       avatar: "OR",
-      amount: "$1890.00",
+      amount: "LKR 1890.00",
       date: "04/10/24",
       type: "Freelancing",
       status: "Paid",
@@ -77,21 +77,21 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
           <SummaryCard
             title="Weekly totals"
-            value="$989.80"
+            value="LKR 989.80"
             badge="14%"
             badgeColor="green"
             icon="📆"
           />
           <SummaryCard
             title="Monthly totals"
-            value="$4,245.29"
+            value="LKR 4,245.29"
             badge="-2.3%"
             badgeColor="red"
             icon="📅"
           />
           <SummaryCard
             title="Annual totals"
-            value="$25,289.29"
+            value="LKR 25,289.29"
             badge="+8.1%"
             badgeColor="yellow"
             icon="📈"
@@ -148,7 +148,7 @@ const Dashboard = () => {
             
             <div className="flex justify-between text-sm text-[#d1d5db] mt-2">
               <span>⬆️ +33% vs last week</span>
-              <span className="text-[#a5b4fc]">$37,432.77 total</span>
+              <span className="text-[#a5b4fc]">LKR 37,432.77 total</span>
             </div>
           </div>
 
@@ -204,8 +204,8 @@ const Dashboard = () => {
             {/* Mini stats below cards */}
             <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row justify-between gap-3 bg-[rgba(20,24,44,0.4)] backdrop-blur p-4 rounded-xl border border-white/5 text-sm text-[#d1d5db]">
               <span>💰 Transaction <span className="font-bold text-white ml-1">19</span></span>
-              <span>📋 Statement <span className="font-bold text-white ml-1">$2000</span></span>
-              <span>💸 Payment <span className="font-bold text-white ml-1">$1000</span></span>
+              <span>📋 Statement <span className="font-bold text-white ml-1">LKR 2000</span></span>
+              <span>💸 Payment <span className="font-bold text-white ml-1">LKR 1000</span></span>
             </div>
           </div>
         </div>

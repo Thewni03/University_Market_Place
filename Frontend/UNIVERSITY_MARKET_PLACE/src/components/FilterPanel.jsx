@@ -1,13 +1,17 @@
 import { categories } from "../data/mockData.js";
 import { SlidersHorizontal, X } from "lucide-react";
-import { useState } from "react";
 import { Slider } from "./ui/slider";
 
-function FilterContent({ selectedCategory, onCategoryChange }) {
-  const [priceRange, setPriceRange] = useState([0, 100]);
-  const [rating, setRating] = useState(0);
-  const [location, setLocation] = useState("all"); // "all" | "online" | "on-campus"
-
+function FilterContent({
+  selectedCategory,
+  onCategoryChange,
+  priceRange,
+  onPriceRangeChange,
+  rating,
+  onRatingChange,
+  location,
+  onLocationChange,
+}) {
   return (
     <>
       {/* Category */}
@@ -40,14 +44,15 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
         </p>
         <Slider
           value={priceRange}
-          onValueChange={setPriceRange}
-          max={200}
-          step={5}
+          onValueChange={onPriceRangeChange}
+          min={0}
+          max={10000}
+          step={100}
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>${priceRange[0]}</span>
-          <span>${priceRange[1]}+</span>
+          <span>LKR {priceRange[0]}</span>
+          <span>LKR {priceRange[1]}{priceRange[1] === 10000 ? "+" : ""}</span>
         </div>
       </div>
 
@@ -61,7 +66,7 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
             <button
               key={r}
               type="button"
-              onClick={() => setRating(r)}
+              onClick={() => onRatingChange(r)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                 rating === r
                   ? "gradient-primary text-primary-foreground"
@@ -84,7 +89,7 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
             <button
               key={l}
               type="button"
-              onClick={() => setLocation(l)}
+              onClick={() => onLocationChange(l)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
                 location === l
                   ? "gradient-primary text-primary-foreground"
@@ -105,6 +110,12 @@ export default function FilterPanel({
   onClose,
   selectedCategory,
   onCategoryChange,
+  priceRange,
+  onPriceRangeChange,
+  rating,
+  onRatingChange,
+  location,
+  onLocationChange,
   isDesktop,
 }) {
   if (isDesktop) {
@@ -120,6 +131,12 @@ export default function FilterPanel({
         <FilterContent
           selectedCategory={selectedCategory}
           onCategoryChange={onCategoryChange}
+          priceRange={priceRange}
+          onPriceRangeChange={onPriceRangeChange}
+          rating={rating}
+          onRatingChange={onRatingChange}
+          location={location}
+          onLocationChange={onLocationChange}
         />
       </div>
     );
@@ -160,6 +177,12 @@ export default function FilterPanel({
           <FilterContent
             selectedCategory={selectedCategory}
             onCategoryChange={onCategoryChange}
+            priceRange={priceRange}
+            onPriceRangeChange={onPriceRangeChange}
+            rating={rating}
+            onRatingChange={onRatingChange}
+            location={location}
+            onLocationChange={onLocationChange}
           />
         </div>
       </div>

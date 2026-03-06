@@ -10,6 +10,12 @@ const getLoggedInUserId = (req) => {
   return req.user?._id || req.user?.id || req.params?.userId || req.body?.user_id || req.body?.userId;
 };
 
+const normalizeSampleWork = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+};
+
 /**
  * CREATE profile (only for logged-in user)
  * - 1 profile per user
@@ -43,7 +49,7 @@ export const createMyProfile = async (req, res) => {
       user_id: userId,
       bio: bio ?? null,
       portfolio_url: portfolio_url ?? null,
-      sample_work: sample_work ?? null,
+      sample_work: normalizeSampleWork(sample_work),
       linkedin_url: linkedin_url ?? null,
       profile_picture: profile_picture ?? null,
       skills: Array.isArray(skills) ? skills : []
@@ -76,7 +82,11 @@ export const getMyProfile = async (req, res) => {
     const profile = await query;
 
     if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: "Profile not found"
+      });
     }
 
     return res.json({ success: true, data: profile });
@@ -109,6 +119,10 @@ export const updateMyProfile = async (req, res) => {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
 
+    if (updates.sample_work !== undefined) {
+      updates.sample_work = normalizeSampleWork(updates.sample_work);
+    }
+
     // OPTIONAL: enforce minimum skills count (ex: at least 2)
     if (updates.skills) {
       if (!Array.isArray(updates.skills)) {
@@ -122,7 +136,7 @@ export const updateMyProfile = async (req, res) => {
     const updatedProfile = await Profile.findOneAndUpdate(
       { user_id: userId },
       { $set: updates },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
 
     if (!updatedProfile) {

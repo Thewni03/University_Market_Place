@@ -25,7 +25,7 @@ export default function Navbar() {
 
   return (
     <nav className=" sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
-      <div className="container flex h-16 items-center justify-between gap-4">
+      <div className="page-container flex h-16 items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
@@ -95,7 +95,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-card animate-fade-in">
-          <div className="container py-3 space-y-1">
+          <div className="page-container py-3 space-y-1">
             {/* Mobile search */}
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -20,10 +20,11 @@ const profileSchema = new mongoose.Schema(
         default: null
     },
 
-    sample_work: {
-        type: String,
-        default: null
-    },
+    sample_work: [
+        {
+            type: String
+        }
+    ],
 
     linkedin_url: {
         type: String,

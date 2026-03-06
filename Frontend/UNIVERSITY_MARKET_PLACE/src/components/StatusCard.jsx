@@ -1,8 +1,15 @@
-export default function StatsCard({ icon, label, value, change, positive }) {
+export default function StatsCard({
+  icon,
+  label,
+  value,
+  change,
+  positive,
+  iconToneClass = "bg-primary/10 text-primary",
+}) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 card-hover">
       <div className="flex items-center gap-3 mb-3">
-        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${iconToneClass}`}>
           {icon}
         </div>
         <span className="text-sm text-muted-foreground">{label}</span>

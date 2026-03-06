@@ -28,7 +28,7 @@ export default function RequestCard({ request }) {
       <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
         <div className="flex items-center gap-1">
           <DollarSign className="h-3.5 w-3.5" />
-          <span className="font-medium text-foreground">${request.budget}</span>
+          <span className="font-medium text-foreground">LKR {request.budget}</span>
           <span>budget</span>
         </div>
 
