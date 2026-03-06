@@ -1,9 +1,9 @@
 const User = require("../Model/RegisterModel");
 const bcrypt = require("bcryptjs");
-
+const jwt = require('jsonwebtoken');
 
 // get all
-const getAllUsers = async (req, res,next) => {
+const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find();
 
@@ -20,28 +20,23 @@ const getAllUsers = async (req, res,next) => {
 };
 
 // add users
-const addUsers = async (req, res,next) => {
-
+const addUsers = async (req, res, next) => {
   const {
     email,
     password,
     fullname,
     student_id,
-    student_id_pic,
     university_name,
     graduate_year,
     phone
   } = req.body;
 
   try {
-
-    // check existing email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = new User({
@@ -49,7 +44,7 @@ const addUsers = async (req, res,next) => {
       password: hashedPassword,
       fullname,
       student_id,
-      student_id_pic,
+      student_id_pic: req.file ? req.file.path : "", // ✅ from multer
       university_name,
       graduate_year,
       phone
@@ -69,114 +64,136 @@ const addUsers = async (req, res,next) => {
   }
 };
 
+// get by email
+const getByEmail = async (req, res, next) => {
+  const email = req.params.email;
 
-//get by email
-const getByEmail = async (req, res,next) => {
-    const email = req.params.email;
-  
-    try {
-      const user = await User.findOne({ email: email });
-  
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+  try {
+    const user = await User.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
+
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// update user
+const updateUser = async (req, res) => {
+  const userEmail = req.params.email;
+  const {
+    password,
+    fullname,
+    student_id,
+    university_name,
+    graduate_year,
+    phone,
+    verification_status
+  } = req.body;
+
+  try {
+    const user = await User.findOne({ email: userEmail });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+    if (fullname) user.fullname = fullname;
+    if (student_id) user.student_id = student_id;
+    if (req.file) user.student_id_pic = req.file.path; // ✅ from multer
+    if (university_name) user.university_name = university_name;
+    if (graduate_year) user.graduate_year = graduate_year;
+    if (phone) user.phone = phone;
+
+    if (verification_status) {
+      const allowedStatus = ["pending", "verified", "rejected", "suspended"];
+      if (!allowedStatus.includes(verification_status)) {
+        return res.status(400).json({ message: "Invalid verification status" });
       }
-  
-      return res.status(200).json(user);
-  
-    } catch (err) {
+      user.verification_status = verification_status;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user
+    });
+
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// delete user
+const deleteUser = async (req, res) => {
+  const userEmail = req.params.email;
+
+  try {
+    const user = await User.findOne({ email: userEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await user.deleteOne();
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${userEmail} deleted successfully`
+    });
+
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+      const user = await User.findOne({ email });
+      if (!user) {
+          return res.status(404).json({ message: "User not found" });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+          return res.status(400).json({ message: "Invalid password" });
+      }
+
+      const token = jwt.sign(
+          { id: user._id, email: user.email },
+          process.env.JWT_SECRET || "your_secret_key",
+          { expiresIn: '1d' }
+      );
+
+      return res.status(200).json({ token, user });
+
+  } catch (err) {
       console.log(err);
       return res.status(500).json({ message: "Server error" });
-    }
-  };
+  }
+}
 
-  //update user
-  
-  const updateUser = async (req, res) => {
-    const userEmail = req.params.email;   
-    const {
-      password,
-      fullname,
-      student_id,
-      student_id_pic,
-      university_name,
-      graduate_year,
-      phone,
-      verification_status // admin only
-    } = req.body;
-  
-    try {
-      // Find the user by email
-      const user = await User.findOne({ email: userEmail });
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-  
-      // =for users
-      if (password) {
-        // hash password before saving
-        user.password = await bcrypt.hash(password, 10);
-      }
-      if (fullname) user.fullname = fullname;
-      if (student_id) user.student_id = student_id;
-      if (student_id_pic) user.student_id_pic = student_id_pic;
-      if (university_name) user.university_name = university_name;
-      if (graduate_year) user.graduate_year = graduate_year;
-      if (phone) user.phone = phone;
-  
-      // admin can update
-      if (verification_status) {
-        const allowedStatus = ["pending", "verified", "rejected", "suspended"];
-        if (!allowedStatus.includes(verification_status)) {
-          return res.status(400).json({ message: "Invalid verification status" });
-        }
-  
-        user.verification_status = verification_status;
-      }
-  
-      // Save changes
-      await user.save();
-  
-      return res.status(200).json({
-        success: true,
-        message: "User updated successfully",
-        user
-      });
-  
-    } catch (err) {
-      console.log(err);
-      return res.status(500).json({ message: "Server error" });
-    }
-  };
 
-  // delete user
-  const deleteUser = async (req, res) => {
-    const userEmail = req.params.email;
-  
-    try {
-      //Find user by email
-      const user = await User.findOne({ email: userEmail });
-  
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      await user.deleteOne(); // or user.remove() in older versions
-  
-      return res.status(200).json({
-        success: true,
-        message: `User ${userEmail} deleted successfully`
-      });
-  
-    } catch (err) {
-      console.log(err);
-      return res.status(500).json({ message: "Server error" });
-    }
-  };
-  
 module.exports = {
   getAllUsers,
   addUsers,
   getByEmail,
-  updateUser ,
-  deleteUser
+  updateUser,
+  deleteUser,
+  loginUser
 };

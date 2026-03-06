@@ -1,4 +1,4 @@
-import { categories } from "../data/mockData.js";
+import { categories } from "../../../../University_Market_Place-keerthi_Frontend/University_Market_Place/Frontend/UNIVERSITY_MARKET_PLACE/src/data/mockData.js";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { Slider } from "./ui/slider";
