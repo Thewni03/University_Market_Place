@@ -8,4 +8,8 @@ function hello() {
   )
 }
 
+//git add .
+//git commit -m "db connection"
+//git push -u origin Dulaj-Backend
+
 export default hello
