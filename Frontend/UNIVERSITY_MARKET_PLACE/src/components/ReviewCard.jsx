@@ -5,8 +5,16 @@ export default function ReviewCard({ review }) {
     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-            {(review?.author || "U").split(" ").map((n) => n[0]).join("")}
+          <div className="h-8 w-8 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-xs font-semibold text-primary">
+            {review?.avatar ? (
+              <img
+                src={review.avatar}
+                alt={review?.author || "User"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              (review?.author || "U").split(" ").map((n) => n[0]).join("")
+            )}
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">{review?.author || "Unknown"}</p>

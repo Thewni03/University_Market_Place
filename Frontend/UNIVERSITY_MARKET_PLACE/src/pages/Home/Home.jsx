@@ -8,6 +8,19 @@ import { Button } from "../../components/ui/button";
 
 export default function Index() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+  const toImageSrc = (value) => {
+    if (!value || typeof value !== "string") return "";
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("data:image/") ||
+      value.startsWith("blob:")
+    ) {
+      return value;
+    }
+    if (value.startsWith("/")) return `${API_BASE_URL}${value}`;
+    return "";
+  };
   const [tab, setTab] = useState("services"); // "services" | "requests"
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -45,7 +58,11 @@ export default function Index() {
         id: s._id,
         title: s.title,
         category: s.category,
-        provider: { name: "Service Provider", verified: true },
+        provider: {
+          name: s?.ownerId?.fullname || "Service Provider",
+          verified: s?.ownerId?.verification_status === "verified",
+          avatar: toImageSrc(s?.ownerProfilePicture),
+        },
         rating:
           (Array.isArray(s.reviews) && s.reviews.length > 0
             ? s.reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / s.reviews.length
@@ -59,7 +76,7 @@ export default function Index() {
         clicks: 0,
         createdAt: s.createdAt,
       })),
-    [services]
+    [services, API_BASE_URL]
   );
 
   const filteredServices = useMemo(

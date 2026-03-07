@@ -1,4 +1,6 @@
 import Profile from "../models/profile.js";
+import "../models/RegisterModel.js";
+import User from "../models/RegisterModel.js";
 import mongoose from "mongoose";
 
 /**
@@ -80,13 +82,32 @@ export const getMyProfile = async (req, res) => {
     }
 
     const profile = await query;
+    const user = await User.findById(userId)
+      .select(
+        "fullname email student_id university_name graduate_year verification_status phone"
+      )
+      .lean();
 
     if (!profile) {
-      return res.status(200).json({
+      return res.json({
         success: true,
-        data: null,
+        data: {
+          user_id: user || null,
+          bio: null,
+          portfolio_url: null,
+          sample_work: [],
+          linkedin_url: null,
+          avg_rating: 0,
+          profile_picture: null,
+          total_reviews: 0,
+          skills: [],
+        },
         message: "Profile not found"
       });
+    }
+
+    if (!profile.user_id && user) {
+      profile.user_id = user;
     }
 
     return res.json({ success: true, data: profile });
@@ -135,13 +156,9 @@ export const updateMyProfile = async (req, res) => {
 
     const updatedProfile = await Profile.findOneAndUpdate(
       { user_id: userId },
-      { $set: updates },
-      { returnDocument: "after", runValidators: true }
+      { $set: updates, $setOnInsert: { user_id: userId } },
+      { returnDocument: "after", runValidators: true, upsert: true }
     );
-
-    if (!updatedProfile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
 
     return res.json({ success: true, data: updatedProfile });
   } catch (error) {

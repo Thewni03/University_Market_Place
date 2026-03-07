@@ -22,8 +22,17 @@ import StatsCard from "../../components/StatusCard";
 
 export default function Profile() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })();
   const profileUserId =
     localStorage.getItem("userId") ||
+    localStorage.getItem("ownerId") ||
+    storedUser?._id ||
     import.meta.env.VITE_PROFILE_USER_ID ||
     "69a7cbb4f893c9e5eb3f479b";
 

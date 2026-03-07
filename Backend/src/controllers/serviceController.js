@@ -1,5 +1,6 @@
 // controllers/serviceController.js
 import Service, { DAYS, TIMES } from "../models/service.js";
+import Profile from "../models/profile.js";
 import mongoose from "mongoose";
 
 const toUtcDateKey = (date = new Date()) => date.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -96,16 +97,58 @@ export const getAllServices = async (req, res) => {
     if (category) filter.category = category;
     if (locationMode) filter.locationMode = locationMode;
 
-    let query = Service.find(filter).sort({ publishedAt: -1, createdAt: -1 });
+    let query = Service.find(filter)
+      .populate({
+        path: "ownerId",
+        model: "User",
+        select: "fullname university_name verification_status",
+      })
+      .sort({ publishedAt: -1, createdAt: -1 });
 
-    if (q) query = Service.find({ ...filter, $text: { $search: q } });
+    if (q) {
+      query = Service.find({ ...filter, $text: { $search: q } })
+        .populate({
+          path: "ownerId",
+          model: "User",
+          select: "fullname university_name verification_status",
+        })
+        .sort({ publishedAt: -1, createdAt: -1 });
+    }
 
     const services = await query.exec();
+    const ownerIds = services
+      .map((s) => s?.ownerId?._id || s?.ownerId)
+      .filter(Boolean)
+      .map((id) => String(id));
+
+    let ownerPictureMap = new Map();
+    if (ownerIds.length > 0) {
+      const ownerProfiles = await Profile.find({
+        user_id: { $in: ownerIds },
+      })
+        .select("user_id profile_picture")
+        .lean();
+
+      ownerPictureMap = new Map(
+        ownerProfiles.map((p) => [String(p.user_id), p.profile_picture || null])
+      );
+    }
+
+    const data = services.map((s) => {
+      const obj = typeof s.toObject === "function" ? s.toObject() : s;
+      const ownerKey = obj?.ownerId?._id || obj?.ownerId;
+      return {
+        ...obj,
+        ownerProfilePicture: ownerKey
+          ? ownerPictureMap.get(String(ownerKey)) || null
+          : null,
+      };
+    });
 
     return res.json({
       success: true,
-      count: services.length,
-      data: services,
+      count: data.length,
+      data,
     });
   } catch (error) {
     return res.status(500).json({
@@ -344,7 +387,34 @@ export const getServiceById = async (req, res) => {
     }
     await doc.save();
 
-    return res.json({ success: true, data: doc });
+    const data = doc.toObject();
+    const ownerProfile = await Profile.findOne({ user_id: data.ownerId })
+      .select("profile_picture")
+      .lean();
+
+    const reviewerIds = (data.reviews || [])
+      .map((r) => r?.reviewerId)
+      .filter(Boolean)
+      .map((id) => String(id));
+    const reviewerProfiles =
+      reviewerIds.length > 0
+        ? await Profile.find({ user_id: { $in: reviewerIds } })
+            .select("user_id profile_picture")
+            .lean()
+        : [];
+    const reviewerPictureMap = new Map(
+      reviewerProfiles.map((p) => [String(p.user_id), p.profile_picture || null])
+    );
+
+    data.ownerProfilePicture = ownerProfile?.profile_picture || null;
+    data.reviews = (data.reviews || []).map((r) => ({
+      ...r,
+      reviewerPicture: r?.reviewerId
+        ? reviewerPictureMap.get(String(r.reviewerId)) || null
+        : null,
+    }));
+
+    return res.json({ success: true, data });
   } catch (error) {
     return res.status(400).json({ success: false, error: error.message });
   }
@@ -398,11 +468,31 @@ export const addServiceReview = async (req, res) => {
     doc.reviewCount = doc.reviews.length;
 
     const saved = await doc.save();
+    const data = saved.toObject();
+    const reviewerIds = (data.reviews || [])
+      .map((r) => r?.reviewerId)
+      .filter(Boolean)
+      .map((id) => String(id));
+    const reviewerProfiles =
+      reviewerIds.length > 0
+        ? await Profile.find({ user_id: { $in: reviewerIds } })
+            .select("user_id profile_picture")
+            .lean()
+        : [];
+    const reviewerPictureMap = new Map(
+      reviewerProfiles.map((p) => [String(p.user_id), p.profile_picture || null])
+    );
+    data.reviews = (data.reviews || []).map((r) => ({
+      ...r,
+      reviewerPicture: r?.reviewerId
+        ? reviewerPictureMap.get(String(r.reviewerId)) || null
+        : null,
+    }));
 
     return res.status(201).json({
       success: true,
       message: "Review added",
-      data: saved,
+      data,
     });
   } catch (error) {
     return res.status(400).json({ success: false, error: error.message });

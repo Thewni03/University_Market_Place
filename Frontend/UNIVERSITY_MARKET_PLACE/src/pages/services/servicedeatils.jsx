@@ -27,6 +27,20 @@ export default function ServiceDetail() {
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
+  const toImageSrc = (value) => {
+    if (!value || typeof value !== "string") return "";
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("data:image/") ||
+      value.startsWith("blob:")
+    ) {
+      return value;
+    }
+    if (value.startsWith("/")) return `${API_BASE_URL}${value}`;
+    return "";
+  };
+
   const loadService = async () => {
     setLoading(true);
     setError("");
@@ -69,12 +83,13 @@ export default function ServiceDetail() {
       .map((r) => ({
         id: r._id,
         author: r.reviewerName || "Student",
+        avatar: toImageSrc(r.reviewerPicture),
         date: r.createdAt,
         rating: r.rating,
         comment: r.comment,
       }))
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-  }, [service]);
+  }, [service, API_BASE_URL]);
 
   const isOwner = service?.ownerId && String(service.ownerId) === String(currentUserId);
 

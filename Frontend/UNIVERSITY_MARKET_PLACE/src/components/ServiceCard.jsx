@@ -24,11 +24,19 @@ export default function ServiceCard({ service }) {
 
         {/* Provider */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-            {(service.provider?.name || "U")
-              .split(" ")
-              .map((n) => n?.[0] || "")
-              .join("")}
+          <div className="h-7 w-7 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-xs font-semibold text-primary">
+            {service.provider?.avatar ? (
+              <img
+                src={service.provider.avatar}
+                alt={service.provider?.name || "Provider"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              (service.provider?.name || "U")
+                .split(" ")
+                .map((n) => n?.[0] || "")
+                .join("")
+            )}
           </div>
 
           <div className="flex items-center gap-1">
