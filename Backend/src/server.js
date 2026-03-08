@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import serviceRoutes from './routes/serviceRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import registerRoutes from "./routes/RegisterRoutes.js";
+import predictionRoutes from "./routes/predictionRoutes.js";
 import './config/db.js';
 dotenv.config();
 
@@ -17,7 +18,7 @@ app.use(express.json({ limit: "15mb" }));
 
 // Routes
 const PORT = process.env.PORT || 5000;
-
+app.use("/", predictionRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/profile', profileRoutes);
 app.use("/users", registerRoutes);

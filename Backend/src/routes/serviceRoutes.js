@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createService,
   getAllServices,
+  getRankedServices,
   getServiceById,
   updateService,
   deleteService,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 // Routes
 router.get('/', getAllServices);
+router.get('/ranked', getRankedServices);
 router.get('/meta', getServiceMeta);
 router.get('/analytics/views', getOwnerViewsAnalytics);
 router.post('/', createService);

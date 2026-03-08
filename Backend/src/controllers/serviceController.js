@@ -50,6 +50,24 @@ const resolveReviewerName = async (reviewerId, fallbackName) => {
   }
 };
 
+const toNumber = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const averageRatingFromReviews = (reviews = []) => {
+  if (!Array.isArray(reviews) || reviews.length === 0) return 0;
+  const total = reviews.reduce((sum, item) => sum + toNumber(item?.rating, 0), 0);
+  return total / reviews.length;
+};
+
+const normalizeLocation = (locationMode = "") => {
+  const value = String(locationMode || "").toLowerCase();
+  if (value === "online") return "online";
+  if (value === "on-campus" || value === "on campus") return "on-campus";
+  return "online";
+};
+
 /* ================= META ================= */
 export const getServiceMeta = async (_req, res) => {
   return res.json({
@@ -153,6 +171,141 @@ export const getAllServices = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
+      error: error.message,
+    });
+  }
+};
+
+/* ================= RANKED ================= */
+export const getRankedServices = async (req, res) => {
+  try {
+    const { category, location, minRating, minPrice, maxPrice } = req.query;
+
+    const filter = { isPublished: true };
+    if (category && category !== "All") filter.category = category;
+    if (location && location !== "all") {
+      filter.locationMode = location === "on-campus" ? "On-Campus" : "Online";
+    }
+    if (minPrice || maxPrice) {
+      filter.pricePerHour = {};
+      if (minPrice !== undefined && minPrice !== "") filter.pricePerHour.$gte = toNumber(minPrice, 0);
+      if (maxPrice !== undefined && maxPrice !== "") filter.pricePerHour.$lte = toNumber(maxPrice, 10000);
+    }
+
+    let services = await Service.find(filter)
+      .populate({
+        path: "ownerId",
+        model: "User",
+        select: "fullname university_name verification_status",
+      })
+      .lean();
+
+    if (minRating !== undefined && minRating !== "") {
+      const threshold = toNumber(minRating, 0);
+      services = services.filter((svc) => {
+        const avg = toNumber(svc.average_rating, averageRatingFromReviews(svc.reviews || []));
+        return avg >= threshold;
+      });
+    }
+
+    const ownerIds = services
+      .map((s) => s?.ownerId?._id || s?.ownerId)
+      .filter(Boolean)
+      .map((id) => String(id));
+
+    let ownerPictureMap = new Map();
+    if (ownerIds.length > 0) {
+      const ownerProfiles = await Profile.find({ user_id: { $in: ownerIds } })
+        .select("user_id profile_picture")
+        .lean();
+      ownerPictureMap = new Map(
+        ownerProfiles.map((p) => [String(p.user_id), p.profile_picture || null])
+      );
+    }
+
+    const mlBase = String(process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+    const defaultResponseTimeMin = toNumber(process.env.DEFAULT_RESPONSE_TIME_MIN, 1440);
+    const defaultCompletionRate = toNumber(process.env.DEFAULT_COMPLETION_RATE, 0.8);
+
+    const scored = await Promise.all(
+      services.map(async (service) => {
+        const reviews = Array.isArray(service.reviews) ? service.reviews : [];
+        const features = {
+          average_rating: toNumber(
+            service.average_rating ?? service.averageRating,
+            averageRatingFromReviews(reviews)
+          ),
+          review_count: toNumber(service.reviewCount ?? reviews.length, 0),
+          view_count: toNumber(service.viewCount, 0),
+          price_per_hour: toNumber(service.pricePerHour, 0),
+          category: String(service.category || "Tutoring"),
+          location: normalizeLocation(service.locationMode),
+          booking_count: toNumber(service.bookingCount, 0),
+          response_time_min: toNumber(service.responseTimeMin, defaultResponseTimeMin),
+          completion_rate: toNumber(service.completionRate, defaultCompletionRate),
+        };
+
+        let rawPrediction = 0;
+        try {
+          const response = await fetch(`${mlBase}/predict`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(features),
+          });
+          const json = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(json?.detail || "Predict failed");
+          rawPrediction = toNumber(json?.prediction, 0);
+        } catch {
+          rawPrediction =
+            features.average_rating * 30 +
+            Math.min(features.review_count, 100) * 1.2 +
+            Math.min(features.view_count, 5000) * 0.03 +
+            Math.min(features.booking_count, 500) * 0.5 +
+            features.completion_rate * 40 -
+            Math.min(features.price_per_hour, 10000) * 0.002 -
+            Math.min(features.response_time_min, 2880) * 0.005;
+        }
+
+        const ownerKey = service?.ownerId?._id || service?.ownerId;
+        return {
+          ...service,
+          rawPrediction,
+          ownerProfilePicture: ownerKey
+            ? ownerPictureMap.get(String(ownerKey)) || null
+            : null,
+        };
+      })
+    );
+
+    const rawValues = scored.map((s) => toNumber(s.rawPrediction, 0));
+    const minRaw = rawValues.length ? Math.min(...rawValues) : 0;
+    const maxRaw = rawValues.length ? Math.max(...rawValues) : 0;
+    const range = maxRaw - minRaw;
+
+    const normalized = scored.map((item) => {
+      const raw = toNumber(item.rawPrediction, 0);
+      const score =
+        range === 0
+          ? 50
+          : ((raw - minRaw) / range) * 100;
+
+      return {
+        ...item,
+        rankingScore: Number(Math.max(0, Math.min(100, score)).toFixed(2)),
+      };
+    });
+
+    normalized.sort((a, b) => toNumber(b.rankingScore, 0) - toNumber(a.rankingScore, 0));
+
+    return res.json({
+      success: true,
+      count: normalized.length,
+      data: normalized,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch ranked services",
       error: error.message,
     });
   }
