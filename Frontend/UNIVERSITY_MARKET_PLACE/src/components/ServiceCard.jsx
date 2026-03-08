@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Star, MapPin, Eye, TrendingUp, BadgeCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "./ui/badge";
@@ -14,7 +15,9 @@ export default function ServiceCard({ service }) {
 
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <TrendingUp className="h-3.5 w-3.5 text-primary" />
-            <span className="font-semibold text-primary">{service.rankingScore}</span>
+            <span className="font-semibold text-primary">
+              {Number(service.rankingScore || 0).toFixed(2)}
+            </span>
           </div>
         </div>
 
@@ -113,69 +116,71 @@ function WhyShownLink({ service }) {
         Why shown?
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(false);
-          }}
-        >
+      {open &&
+        createPortal(
           <div
-            className="bg-card rounded-2xl border border-border p-6 w-full max-w-sm mx-4 animate-scale-in shadow-lg"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-foreground/20 backdrop-blur-sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(false);
+            }}
           >
-            <h3 className="font-display text-lg font-bold text-foreground mb-4">
-              Ranking Insight
-            </h3>
-
-            <div className="space-y-3">
-              {factors.map((f) => (
-                <div key={f.label}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">{f.label}</span>
-                    <span className="font-medium text-foreground">
-                      {f.value}
-                      {f.suffix}
-                    </span>
-                  </div>
-
-                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{
-                        width: `${Math.min((f.value / f.max) * 100, 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 pt-4 border-t border-border flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Final Ranking Score
-              </span>
-              <span className="text-2xl font-display font-bold text-primary">
-                {service.rankingScore}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setOpen(false);
-              }}
-              className="mt-4 w-full py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
+            <div
+              className="bg-card rounded-2xl border border-border p-6 w-full max-w-sm mx-4 animate-scale-in shadow-lg"
+              onClick={(e) => e.stopPropagation()}
             >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+              <h3 className="font-display text-lg font-bold text-foreground mb-4">
+                Ranking Insight
+              </h3>
+
+              <div className="space-y-3">
+                {factors.map((f) => (
+                  <div key={f.label}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">{f.label}</span>
+                      <span className="font-medium text-foreground">
+                        {f.value}
+                        {f.suffix}
+                      </span>
+                    </div>
+
+                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{
+                          width: `${Math.min((f.value / f.max) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Final Ranking Score
+                </span>
+                <span className="text-2xl font-display font-bold text-primary">
+                  {Number(service.rankingScore || 0).toFixed(2)}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setOpen(false);
+                }}
+                className="mt-4 w-full py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }

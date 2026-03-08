@@ -755,7 +755,11 @@ export default function Profile() {
 
                     return (
                       <>
-                        <svg viewBox="0 0 100 100" className="w-full h-64">
+                        <svg
+                          viewBox="0 0 100 100"
+                          className="w-full h-64"
+                          onMouseLeave={() => setSelectedChartIndex(null)}
+                        >
                           <path d={viewsArea} fill="rgba(124,58,237,0.25)" />
                           <path d={bookingsArea} fill="rgba(34,197,94,0.20)" />
                           <path
@@ -779,7 +783,7 @@ export default function Profile() {
                                 r="1"
                                 fill="rgb(124,58,237)"
                                 className="cursor-pointer"
-                                onClick={() => setSelectedChartIndex(i)}
+                                onMouseEnter={() => setSelectedChartIndex(i)}
                               />
                               <circle
                                 cx={getX(i)}
@@ -787,7 +791,7 @@ export default function Profile() {
                                 r="1"
                                 fill="rgb(34,197,94)"
                                 className="cursor-pointer"
-                                onClick={() => setSelectedChartIndex(i)}
+                                onMouseEnter={() => setSelectedChartIndex(i)}
                               />
                             </g>
                           ))}
@@ -904,7 +908,11 @@ export default function Profile() {
 
                     return (
                       <>
-                        <svg viewBox="0 0 100 100" className="w-full h-64">
+                        <svg
+                          viewBox="0 0 100 100"
+                          className="w-full h-64"
+                          onMouseLeave={() => setSelectedRevenueIndex(null)}
+                        >
                           <path d={revenueArea} fill="rgba(249,115,22,0.25)" />
                           <path
                             d={revenueCurve}
@@ -921,7 +929,7 @@ export default function Profile() {
                                 r="1"
                                 fill="rgb(249,115,22)"
                                 className="cursor-pointer"
-                                onClick={() => setSelectedRevenueIndex(i)}
+                                onMouseEnter={() => setSelectedRevenueIndex(i)}
                               />
                             </g>
                           ))}

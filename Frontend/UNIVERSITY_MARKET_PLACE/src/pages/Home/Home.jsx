@@ -36,7 +36,16 @@ export default function Index() {
       setServicesLoading(true);
       setServicesError("");
       try {
-        const response = await fetch(`${API_BASE_URL}/api/services`);
+        const params = new URLSearchParams();
+        if (selectedCategory !== "All") params.set("category", selectedCategory);
+        if (location !== "all") params.set("location", location);
+        if (Number(minRating) > 0) params.set("minRating", String(minRating));
+        params.set("minPrice", String(priceRange[0] ?? 0));
+        params.set("maxPrice", String(priceRange[1] ?? 10000));
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/services/ranked?${params.toString()}`
+        );
         const result = await response.json();
         if (!response.ok) {
           throw new Error(result.error || result.message || "Failed to load services.");
@@ -50,7 +59,7 @@ export default function Index() {
     };
 
     loadServices();
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, selectedCategory, location, minRating, priceRange]);
 
   const mappedServices = useMemo(
     () =>
@@ -71,7 +80,7 @@ export default function Index() {
         bookingsCount: 0,
         price: s.pricePerHour ?? 0,
         location: (s.locationMode || "online").toLowerCase(),
-        rankingScore: 0,
+        rankingScore: Number(s.rankingScore || 0),
         views: Number(s.viewCount || 0),
         clicks: 0,
         createdAt: s.createdAt,
@@ -81,24 +90,16 @@ export default function Index() {
 
   const filteredServices = useMemo(
     () =>
-      mappedServices.filter((s) => {
-        const categoryOk = selectedCategory === "All" || s.category === selectedCategory;
-        const price = Number(s.price || 0);
-        const minPrice = Number(priceRange[0] || 0);
-        const maxPrice = Number(priceRange[1] || 0);
-        const priceOk = price >= minPrice && (maxPrice === 10000 ? true : price <= maxPrice);
-        const ratingOk = Number(s.rating || 0) >= Number(minRating || 0);
-        const locationOk =
-          location === "all" ? true : String(s.location || "").toLowerCase() === location;
-        return categoryOk && priceOk && ratingOk && locationOk;
-      }),
-    [mappedServices, selectedCategory, priceRange, minRating, location]
+      [...mappedServices].sort(
+        (a, b) => Number(b.rankingScore || 0) - Number(a.rankingScore || 0)
+      ),
+    [mappedServices]
   );
 
   const trending = useMemo(
     () =>
       [...filteredServices]
-        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .sort((a, b) => Number(b.rankingScore || 0) - Number(a.rankingScore || 0))
         .slice(0, 3),
     [filteredServices]
   );
