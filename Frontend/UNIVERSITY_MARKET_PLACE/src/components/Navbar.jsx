@@ -9,7 +9,7 @@ const navLinks = [
   { label: "Marketplace", path: "/" },
   { label: "User Dashboard", path: "/dashboard" },
   { label: "Create Service", path: "/create-service" },
-  { label: "Post Request", path: "/create-request" },
+  { label: "Post Request", path: "/post-request" },
 ];
 
 export default function Navbar() {
@@ -28,7 +28,7 @@ export default function Navbar() {
       <div className="container flex h-16 items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[hsl(152_60%_32%)]">
             <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="font-display text-xl font-bold text-foreground hidden sm:block">
@@ -54,11 +54,10 @@ export default function Navbar() {
             <Link
               key={link.path}
               to={link.path}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                location.pathname === link.path
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
             >
               {link.label}
             </Link>
@@ -111,11 +110,10 @@ export default function Navbar() {
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname === link.path
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
               >
                 {link.label}
               </Link>
