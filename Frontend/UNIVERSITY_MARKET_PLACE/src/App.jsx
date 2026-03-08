@@ -12,7 +12,7 @@ import PendingVerification from "./components/PendingVerification/PendingVerific
 import Verificationstatushandler from "./components/Verificationstatushandler/Verificationstatushandler";
 import Navbar from "./components/Navbar";
 import Profile from "./components/Profile/Profile";
-
+import AdminDashboard from "./Admin/AdminDashboard/AdminDashboard";
 function App() {
   return (
     <>
@@ -26,6 +26,7 @@ function App() {
         <Route path="/userManagement" element={<UserManagement />} />
         <Route path="/userInsert" element={<UserInsert />} />
         <Route path="/userUpdate/:email" element={<UserUpdate />} />
+        <Route path="/admin" element={<AdminDashboard />} />
 
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

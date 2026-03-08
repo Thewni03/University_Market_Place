@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
 
-// ─── Google Fonts ─────────────────────────────────────────────────────────────
 const fontLink = document.createElement("link");
 fontLink.href = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap";
 fontLink.rel = "stylesheet";
 document.head.appendChild(fontLink);
 
-// ─── Auth hook ────────────────────────────────────────────────────────────────
 function useAuth() {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
   return { user, token };
 }
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
+
 const T = {
   navy:    "#0f172a",
   navyMid: "#1e293b",
@@ -66,7 +64,6 @@ const STATUS_CONFIG = {
   },
 };
 
-// ─── Global CSS ───────────────────────────────────────────────────────────────
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
@@ -494,7 +491,6 @@ function NormalHomePage({ status, user, onProfileClick }) {
   );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);

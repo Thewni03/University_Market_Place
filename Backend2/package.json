@@ -1,6 +1,14 @@
 {
   "name": "backend",
   "version": "1.0.0",
+<<<<<<< HEAD:Backend2/package.json
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+=======
 
  "main": "src/server.js",
   "type": "module",
@@ -10,16 +18,20 @@
 },
   
   "keywords": [],
+>>>>>>> 7383993ee87403568b11def5bb5d34173f2ab7f2:Backend/package.json
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.3",
     "multer": "^2.1.1",
+    "nodemailer": "^8.0.1",
     "nodemon": "^3.1.14"
-  }
+  },
+  "type": "module"
 }

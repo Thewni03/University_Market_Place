@@ -1,5 +1,6 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+import mongoose from "mongoose";
+
+const { Schema } = mongoose;
 
 const userSchema = new Schema({
   
@@ -29,10 +30,7 @@ const userSchema = new Schema({
     unique: true
   },
 
-  student_id_pic: {
-    type: String, // store file path or image URL
-    required: true
-  },
+  student_id_pic: { type: String, required: false, default: "" },
 
   university_name: {
     type: String,
@@ -65,14 +63,19 @@ const userSchema = new Schema({
     type: Date,
     default: null
   },
+  trust_score: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
 
   created_at: {
     type: Date,
     default: Date.now
   }
 
-}, { timestamps: true }); 
-// timestamps automatically adds createdAt and updatedAt
+}, { timestamps: true });
 
-module.exports = mongoose.model("Users",  //file name
-    userSchema);//function name
+export default mongoose.model("Users", userSchema);
+
