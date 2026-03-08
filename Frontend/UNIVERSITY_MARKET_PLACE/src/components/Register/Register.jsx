@@ -67,11 +67,11 @@ function Register() {
                     <p className="text-gray-400 text-sm mt-3">Register with your university credentials to get started</p>
                 </div>
 
-                {/* Form card */}
+            
                 <div className="border-l-4 border-purple-950 bg-white shadow-xl rounded-2xl p-8">
                     <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-5">
 
-                        {/* Email - full width */}
+
                         <div className="col-span-2 flex flex-col gap-1">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Email</label>
                             <input
@@ -81,7 +81,6 @@ function Register() {
                             />
                         </div>
 
-                        {/* Password - full width */}
                         <div className="col-span-2 flex flex-col gap-1">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Password</label>
                             <input
@@ -91,57 +90,64 @@ function Register() {
                             />
                         </div>
 
-                        {/* Full Name */}
+                     
                         <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Full Name</label>
                             <input
-                                type="text" name="fullname" placeholder="John Doe"
+                                type="text" name="fullname" placeholder="Dulaj Sanmitha"
                                 onChange={handleChange} required
                                 className="border-b-2 border-purple-200 focus:border-cyan-500 outline-none px-2 py-2 text-black placeholder-gray-400 transition-all duration-200"
                             />
                         </div>
 
-                        {/* Student ID */}
+
                         <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Student ID</label>
                             <input
-                                type="text" name="student_id" placeholder="IT23175402"
+                                type="text" name="student_id" placeholder="IT22XXXXX"
                                 onChange={handleChange} required
                                 className="border-b-2 border-purple-200 focus:border-cyan-500 outline-none px-2 py-2 text-black placeholder-gray-400 transition-all duration-200"
                             />
                         </div>
 
-                        {/* University */}
+                 
                         <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">University</label>
                             <input
-                                type="text" name="university_name" placeholder="SLIIT"
+                                type="text" name="university_name" placeholder="University of Kelaniya"
                                 onChange={handleChange} required
                                 className="border-b-2 border-purple-200 focus:border-cyan-500 outline-none px-2 py-2 text-black placeholder-gray-400 transition-all duration-200"
                             />
                         </div>
 
-                        {/* Phone */}
+          
                         <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Phone</label>
                             <input
-                                type="text" name="phone" placeholder="0771234567"
+                                type="text" name="phone" placeholder="077XXXXX"
                                 onChange={handleChange} required
                                 className="border-b-2 border-purple-200 focus:border-cyan-500 outline-none px-2 py-2 text-black placeholder-gray-400 transition-all duration-200"
                             />
                         </div>
 
-                        {/* Graduate Year - full width */}
                         <div className="col-span-2 flex flex-col gap-1">
-                            <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Graduate Year</label>
-                            <input
-                                type="number" name="graduate_year" placeholder="2026"
-                                onChange={handleChange} required
-                                className="border-b-2 border-purple-200 focus:border-cyan-500 outline-none px-2 py-2 text-black placeholder-gray-400 transition-all duration-200"
-                            />
-                        </div>
+  <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">
+    Graduate Year
+  </label>
 
-                        {/* File upload - full width */}
+  <input
+    type="number"
+    name="graduate_year"
+    placeholder="2026"
+    min="2026"
+    max="2034"
+    onChange={handleChange}
+    required
+    className="border-b-2 border-purple-200 focus:border-cyan-500 outline-none px-2 py-2 text-black placeholder-gray-400 transition-all duration-200"
+  />
+</div>
+
+                    
                         <div className="col-span-2 flex flex-col gap-2">
                             <label className="text-xs font-bold text-purple-950 uppercase tracking-wider">Student ID Picture</label>
                             <div className="border-2 border-dashed border-purple-200 hover:border-cyan-500 rounded-xl px-4 py-4 transition-all duration-200">
@@ -154,7 +160,7 @@ function Register() {
                             </div>
                         </div>
 
-                        {/* Submit */}
+                 
                         <div className="col-span-2">
                             <button
                                 type="submit"
@@ -164,7 +170,7 @@ function Register() {
                             </button>
                         </div>
 
-                        {/* Login link */}
+             
                         <div className="col-span-2 text-center">
                             <p className="text-gray-400 text-sm">Already have an account?
                                 <span
