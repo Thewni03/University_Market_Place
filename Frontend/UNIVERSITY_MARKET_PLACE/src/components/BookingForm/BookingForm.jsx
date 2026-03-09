@@ -11,8 +11,11 @@ const BookingForm = () => {
     date: '',
     timeSlot: '',
     persons: 1,
-    specialRequests: ''
+    specialRequests: '',
+    documents: [] // New field for uploaded documents
   });
+
+  const [dragActive, setDragActive] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -24,6 +27,63 @@ const BookingForm = () => {
       ...prev,
       persons: action === 'increment' ? prev.persons + 1 : Math.max(1, prev.persons - 1)
     }));
+  };
+
+  // New functions for document handling
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    handleFiles(files);
+  };
+
+  const handleFileInput = (e) => {
+    const files = Array.from(e.target.files);
+    handleFiles(files);
+  };
+
+  const handleFiles = (files) => {
+    // Filter for images and PDFs
+    const validFiles = files.filter(file => 
+      file.type.startsWith('image/') || file.type === 'application/pdf'
+    );
+
+    const newDocuments = validFiles.map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      name: file.name,
+      size: (file.size / 1024).toFixed(2), // Convert to KB
+      type: file.type,
+      file: file
+    }));
+
+    setFormData(prev => ({
+      ...prev,
+      documents: [...prev.documents, ...newDocuments]
+    }));
+  };
+
+  const removeDocument = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      documents: prev.documents.filter(doc => doc.id !== id)
+    }));
+  };
+
+  const formatFileSize = (size) => {
+    if (size < 1024) return size + ' KB';
+    return (size / 1024).toFixed(2) + ' MB';
   };
 
   return (
@@ -140,7 +200,7 @@ const BookingForm = () => {
             </div>
           </div>
 
-          {/* Service Details */}
+          {/* Service Details with Document Upload */}
           <div className="bg-[rgba(15,23,42,0.6)] backdrop-blur border border-white/10 rounded-2xl p-5 lg:p-6 transition-all hover:border-white/20">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-[#8b5cf6] mb-2">Service Details</h2>
@@ -209,6 +269,88 @@ const BookingForm = () => {
                     onClick={() => handlePersonsChange('increment')}
                   >+</button>
                 </div>
+              </div>
+
+              {/* Full Width - Document Upload Section */}
+              <div className="md:col-span-2">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-2">
+                    📎 Attach Documents (Images or PDFs)
+                  </label>
+                  
+                  {/* Drag & Drop Area */}
+                  <div
+                    className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                      dragActive 
+                        ? 'border-[#8b5cf6] bg-[rgba(139,92,246,0.1)]' 
+                        : 'border-white/10 hover:border-[#8b5cf6]/50'
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      type="file"
+                      id="file-upload"
+                      multiple
+                      accept="image/*,.pdf"
+                      onChange={handleFileInput}
+                      className="hidden"
+                    />
+                    
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">📄</div>
+                      <p className="text-[#94a3b8] mb-2">
+                        Drag & drop files here or{' '}
+                        <label 
+                          htmlFor="file-upload" 
+                          className="text-[#8b5cf6] cursor-pointer hover:text-[#60a5fa] transition-colors"
+                        >
+                          browse
+                        </label>
+                      </p>
+                      <p className="text-xs text-[#64748b]">
+                        Supported formats: JPEG, PNG, GIF, PDF (Max 10MB each)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Uploaded Files List */}
+                {formData.documents.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                      Uploaded Documents ({formData.documents.length})
+                    </h4>
+                    {formData.documents.map((doc) => (
+                      <div 
+                        key={doc.id}
+                        className="flex items-center justify-between bg-[rgba(15,23,42,0.8)] border border-white/10 rounded-lg p-3 group hover:border-[#8b5cf6]/50 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {doc.type.startsWith('image/') ? '🖼️' : '📄'}
+                          </span>
+                          <div>
+                            <p className="text-sm text-white font-medium truncate max-w-[200px]">
+                              {doc.name}
+                            </p>
+                            <p className="text-xs text-[#64748b]">
+                              {formatFileSize(doc.size)}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeDocument(doc.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Full Width - Textarea */}
