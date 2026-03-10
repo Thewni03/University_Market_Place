@@ -7,13 +7,26 @@ import {
 
 const BASE = "http://localhost:5000";
 
-// ── Helpers ──────────────────────────────────────────────────
+
 const trustColor = (s) => s >= 80 ? "#22c55e" : s >= 50 ? "#f59e0b" : "#ef4444";
 const trustLabel = (s) => s >= 80 ? "High" : s >= 50 ? "Medium" : "Low";
 const statusColor = { verified:"#22c55e", pending:"#f59e0b", rejected:"#ef4444", suspended:"#6b7280" };
 const statusBg    = { verified:"#f0fdf4", pending:"#fffbeb", rejected:"#fef2f2", suspended:"#f9fafb" };
 
-// ── Trust Badge ───────────────────────────────────────────────
+
+const getSLAInfo = (createdAt) => {
+  const hrs = (Date.now() - new Date(createdAt)) / (1000 * 60 * 60);
+  if (hrs < 24)  return { hrs, color:"#22c55e", bg:"#f0fdf4", border:"#bbf7d0", label:"On Time", urgency:0 }
+  if (hrs < 48)  return { hrs, color:"#f59e0b", bg:"#fffbeb", border:"#fde68a", label:"Warning", urgency:1 }
+  return               { hrs, color:"#ef4444", bg:"#fef2f2", border:"#fecaca", label:"Overdue", urgency:2 }
+}
+
+const formatWaitTime = (hrs) => {
+  if (hrs < 1)   return `${Math.round(hrs * 60)}m waiting`
+  if (hrs < 24)  return `${Math.round(hrs)}h waiting`
+  return `${Math.floor(hrs/24)}d ${Math.round(hrs%24)}h waiting`
+}
+
 function TrustBadge({ score }) {
   const c = trustColor(score);
   const r = 18, circ = 2 * Math.PI * r;
@@ -37,9 +50,9 @@ function TrustBadge({ score }) {
   );
 }
 
-// ── Status Badge ──────────────────────────────────────────────
+
 function StatusBadge({ status }) {
-  const icons = { verified:"✅", pending:"⏳", rejected:"❌", suspended:"🚫" };
+  const icons = { verified:"", pending:"", rejected:"", suspended:"" };
   return (
     <span style={{
       background: statusBg[status]||"#f9fafb",
@@ -82,7 +95,7 @@ function TrustModal({ user, onClose }) {
         onClick={e => e.stopPropagation()}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:20, fontWeight:900, color:"#1e0a3c" }}>
-            🧠 Trust Score Breakdown
+            Trust Score Breakdown
           </h3>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:20, cursor:"pointer", color:"#9ca3af" }}>✕</button>
         </div>
@@ -113,7 +126,36 @@ function TrustModal({ user, onClose }) {
   );
 }
 
-// ── Main Dashboard ────────────────────────────────────────────
+function SLABadge({ createdAt }) {
+  const sla = getSLAInfo(createdAt);
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+      <span style={{
+        background:sla.bg, border:`1.5px solid ${sla.border}`,
+        color:sla.color, borderRadius:20, padding:"3px 10px",
+        fontSize:11, fontWeight:800, whiteSpace:"nowrap"
+      }}>
+        {sla.icon} {sla.label}
+      </span>
+      <span style={{ fontSize:10, color:"#9ca3af", paddingLeft:4 }}>
+        {formatWaitTime(sla.hrs)}
+      </span>
+    </div>
+  );
+}
+
+function SLABar({ createdAt }) {
+  const sla = getSLAInfo(createdAt);
+  const pct = Math.min(100, (sla.hrs / 72) * 100); // 72hr = full bar
+  return (
+    <div style={{ width:"100%", background:"#f3f4f6", borderRadius:99, height:6, overflow:"hidden" }}>
+      <div style={{ height:"100%", width:`${pct}%`, background:sla.color,
+        borderRadius:99, transition:"width 0.8s ease" }}/>
+    </div>
+  );
+}
+
+
 export default function AdminDashboard() {
   const [tab, setTab]           = useState("overview");
   const [users, setUsers]       = useState([]);
@@ -124,15 +166,16 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast]       = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
-  // fetch all users + trust scores
+ 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${BASE}/Users`);
       const withScores = await Promise.all(res.data.map(async (u) => {
         try {
-            const tr = await axios.get(`${BASE}/Users/trust-score/${u.email}`);
+          const tr = await axios.get(`${BASE}/Users/trust-score/${u.email}`);
           return { ...u, trust_score: tr.data.score, trustBreakdown: tr.data.breakdown };
         } catch { return { ...u, trust_score: u.trust_score || 0 }; }
       }));
@@ -153,8 +196,8 @@ export default function AdminDashboard() {
     try {
       await axios.put(`${BASE}/Users/${email}`, { verification_status: status });
       setUsers(prev => prev.map(u => u.email === email ? { ...u, verification_status: status } : u));
-      showToast(`User ${status} successfully ✅`);
-    } catch { showToast("Action failed 😿", "error"); }
+      showToast(`User ${status} successfully `);
+    } catch { showToast("Action failed ", "error"); }
     finally { setActionLoading(null); }
   };
 
@@ -163,8 +206,30 @@ export default function AdminDashboard() {
     try {
       await axios.delete(`${BASE}/Users/${email}`);
       setUsers(prev => prev.filter(u => u.email !== email));
-      showToast("User deleted 🗑️");
+      showToast("User deleted ");
     } catch { showToast("Delete failed 😿", "error"); }
+  };
+
+  // bulk approve all high-trust pending users
+  const bulkApproveLowRisk = async () => {
+    const eligible = users.filter(u =>
+      u.verification_status === "pending" && (u.trust_score||0) >= 80
+    );
+    if (eligible.length === 0) { showToast("No high-trust pending users to approve 🐾", "error"); return; }
+    if (!window.confirm(`Bulk approve ${eligible.length} high-trust users?`)) return;
+    setBulkLoading(true);
+    try {
+      await Promise.all(eligible.map(u =>
+        axios.put(`${BASE}/Users/${u.email}`, { verification_status: "verified" })
+      ));
+      setUsers(prev => prev.map(u =>
+        eligible.find(e => e.email === u.email)
+          ? { ...u, verification_status: "verified" }
+          : u
+      ));
+      showToast(` ${eligible.length} users approved successfully!`);
+    } catch { showToast("Bulk approve failed 😿", "error"); }
+    finally { setBulkLoading(false); }
   };
 
   // ── Derived stats ─────────────────────────────────────────
@@ -223,9 +288,10 @@ export default function AdminDashboard() {
   });
 
   const TABS = [
-    { id:"overview", label:"📊 Overview"   },
-    { id:"users",    label:"👥 Users"      },
-    { id:"trust",    label:"🧠 Trust Scores"},
+    { id:"overview", label:"Overview"    },
+    { id:"users",    label:"Users"       },
+    { id:"trust",    label:"Trust Scores"},
+    { id:"sla",      label:"SLA Tracker" },
   ];
 
   const CSS = `
@@ -255,7 +321,7 @@ export default function AdminDashboard() {
     <>
       <style>{CSS}</style>
 
-      {/* Toast */}
+
       {toast && (
         <div style={{ position:"fixed", top:20, right:20, zIndex:9999,
           background: toast.type==="error"?"#fef2f2":"#f0fdf4",
@@ -267,12 +333,12 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Trust Breakdown Modal */}
+
       <TrustModal user={selectedUser} onClose={() => setSelectedUser(null)} />
 
       <div style={{ minHeight:"100vh", background:"#f0f2ff" }}>
 
-        {/* ── SIDEBAR + CONTENT layout ── */}
+   
         <div style={{ display:"flex", minHeight:"100vh" }}>
 
           {/* Sidebar */}
@@ -316,9 +382,10 @@ export default function AdminDashboard() {
               <div>
                 <h1 style={{ fontFamily:"Nunito,sans-serif", fontSize:28, fontWeight:900,
                   color:"#1e0a3c", marginBottom:2 }}>
-                  { tab==="overview" ? "📊 Dashboard Overview" :
-                    tab==="users"    ? "👥 User Management" :
-                    "🧠 Trust Score Analysis" }
+                  { tab==="overview" ? "Dashboard Overview" :
+                    tab==="users"    ? "User Management" :
+                    tab==="sla"      ? "Verification SLA Tracker" :
+                    " Trust Score Analysis" }
                 </h1>
                 <p style={{ fontSize:13, color:"#9ca3af" }}>
                   University Marketplace — Admin Control Panel
@@ -329,13 +396,13 @@ export default function AdminDashboard() {
                   borderRadius:10, padding:"10px 18px", cursor:"pointer",
                   fontSize:12, fontWeight:700, fontFamily:"DM Sans,sans-serif",
                   display:"flex", alignItems:"center", gap:6 }}>
-                🔄 Refresh
+                Refresh
               </button>
             </div>
 
             {loading ? (
               <div style={{ textAlign:"center", padding:80, color:"#9ca3af", fontSize:16 }}>
-                <div style={{ fontSize:48, marginBottom:16 }}>⏳</div>
+                <div style={{ fontSize:48, marginBottom:16 }}></div>
                 Loading dashboard data...
               </div>
             ) : (
@@ -346,13 +413,13 @@ export default function AdminDashboard() {
 
                     {/* Stat Cards */}
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:16, marginBottom:28 }}>
-                      <StatCard icon="👥" label="Total Users"    value={total}    color="#06b6d4" sub="Registered accounts"/>
-                      <StatCard icon="✅" label="Verified"       value={verified}  color="#22c55e" sub={`${total?Math.round(verified/total*100):0}% of total`}/>
-                      <StatCard icon="⏳" label="Pending"        value={pending}   color="#f59e0b" sub="Awaiting review"/>
-                      <StatCard icon="❌" label="Rejected"       value={rejected}  color="#ef4444" sub="Not approved"/>
-                      <StatCard icon="🧠" label="Avg Trust Score" value={avgTrust} color="#8b5cf6" sub="Out of 100"/>
-                      <StatCard icon="🛡️" label="High Trust"     value={highTrust} color="#22c55e" sub="Score ≥ 80"/>
-                      <StatCard icon="⚠️" label="Low Trust"      value={lowTrust}  color="#ef4444" sub="Score < 50 — review"/>
+                      <StatCard icon="" label="Total Users"    value={total}    color="#06b6d4" sub="Registered accounts"/>
+                      <StatCard icon="" label="Verified"       value={verified}  color="#22c55e" sub={`${total?Math.round(verified/total*100):0}% of total`}/>
+                      <StatCard icon="" label="Pending"        value={pending}   color="#f59e0b" sub="Awaiting review"/>
+                      <StatCard icon="" label="Rejected"       value={rejected}  color="#ef4444" sub="Not approved"/>
+                      <StatCard icon="" label="Avg Trust Score" value={avgTrust} color="#8b5cf6" sub="Out of 100"/>
+                      <StatCard icon="" label="High Trust"     value={highTrust} color="#22c55e" sub="Score ≥ 80"/>
+                      <StatCard icon="" label="Low Trust"      value={lowTrust}  color="#ef4444" sub="Score < 50 — review"/>
                     </div>
 
                     {/* Charts Row 1 */}
@@ -361,7 +428,7 @@ export default function AdminDashboard() {
                       {/* Verification Pie */}
                       <div style={{ background:"white", borderRadius:16, padding:24, boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
                         <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c", marginBottom:16 }}>
-                          🥧 Verification Status
+                          Verification Status
                         </h3>
                         <ResponsiveContainer width="100%" height={220}>
                           <PieChart>
@@ -378,7 +445,7 @@ export default function AdminDashboard() {
                       {/* Trust Distribution Bar */}
                       <div style={{ background:"white", borderRadius:16, padding:24, boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
                         <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c", marginBottom:16 }}>
-                          🧠 Trust Score Distribution
+                          Trust Score Distribution
                         </h3>
                         <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={trustDist} barSize={40}>
@@ -400,7 +467,7 @@ export default function AdminDashboard() {
                       {/* University Bar */}
                       <div style={{ background:"white", borderRadius:16, padding:24, boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
                         <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c", marginBottom:16 }}>
-                          🏫 Users by University
+                          Users by University
                         </h3>
                         <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={uniBar} layout="vertical" barSize={16}>
@@ -416,7 +483,7 @@ export default function AdminDashboard() {
                       {/* Graduate Year Line */}
                       <div style={{ background:"white", borderRadius:16, padding:24, boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
                         <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c", marginBottom:16 }}>
-                          🎓 Graduate Year Distribution
+                          Graduate Year Distribution
                         </h3>
                         <ResponsiveContainer width="100%" height={220}>
                           <LineChart data={gradYearLine}>
@@ -448,18 +515,18 @@ export default function AdminDashboard() {
                         style={{ padding:"10px 14px", border:"2px solid #e9d5ff", borderRadius:10,
                           fontSize:13, outline:"none", background:"white", cursor:"pointer" }}>
                         <option value="all">All Status</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="verified">✅ Verified</option>
-                        <option value="rejected">❌ Rejected</option>
-                        <option value="suspended">🚫 Suspended</option>
+                        <option value="pending">Pending</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="suspended">Suspended</option>
                       </select>
                       <select value={filterTrust} onChange={e => setFilterTrust(e.target.value)}
                         style={{ padding:"10px 14px", border:"2px solid #e9d5ff", borderRadius:10,
                           fontSize:13, outline:"none", background:"white", cursor:"pointer" }}>
                         <option value="all">All Trust</option>
-                        <option value="high">🟢 High Trust</option>
-                        <option value="medium">🟡 Medium</option>
-                        <option value="low">🔴 Low Trust</option>
+                        <option value="high">High Trust</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low Trust</option>
                       </select>
                     </div>
 
@@ -486,7 +553,7 @@ export default function AdminDashboard() {
                           <tbody>
                             {filtered.length === 0 ? (
                               <tr><td colSpan={7} style={{ textAlign:"center", padding:48, color:"#9ca3af" }}>
-                                No users found 🐾
+                                No users found
                               </td></tr>
                             ) : filtered.map((u, i) => (
                               <tr key={u.email} className="user-row"
@@ -499,7 +566,7 @@ export default function AdminDashboard() {
                                   <div style={{ fontWeight:700, color:"#1e0a3c", fontSize:13 }}>{u.fullname}</div>
                                   <div style={{ fontSize:11, color:"#9ca3af" }}>{u.email}</div>
                                   <div style={{ fontSize:10, color:"#c4b5fd", marginTop:2 }}>
-                                    📅 {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
                                   </div>
                                 </td>
 
@@ -538,7 +605,7 @@ export default function AdminDashboard() {
                                     <button className="action-btn"
                                       style={{ background:"#f0f9ff", color:"#0284c7" }}
                                       onClick={() => window.open(`${BASE}/uploads/${u.student_id_pic.replace("uploads/","")}`, "_blank")}>
-                                      📄 View
+                                      View
                                     </button>
                                   ) : <span style={{ fontSize:11, color:"#d1d5db" }}>No file</span>}
                                 </td>
@@ -551,7 +618,7 @@ export default function AdminDashboard() {
                                         disabled={actionLoading === u.email+"verified"}
                                         style={{ background:"#f0fdf4", color:"#16a34a" }}
                                         onClick={() => updateStatus(u.email, "verified")}>
-                                        ✅ Approve
+                                        Approve
                                       </button>
                                     )}
                                     {u.verification_status !== "rejected" && (
@@ -559,7 +626,7 @@ export default function AdminDashboard() {
                                         disabled={actionLoading === u.email+"rejected"}
                                         style={{ background:"#fef2f2", color:"#dc2626" }}
                                         onClick={() => updateStatus(u.email, "rejected")}>
-                                        ❌ Reject
+                                        Reject
                                       </button>
                                     )}
                                     {u.verification_status !== "suspended" && (
@@ -567,13 +634,13 @@ export default function AdminDashboard() {
                                         disabled={actionLoading === u.email+"suspended"}
                                         style={{ background:"#f9fafb", color:"#6b7280" }}
                                         onClick={() => updateStatus(u.email, "suspended")}>
-                                        🚫 Suspend
+                                         Suspend
                                       </button>
                                     )}
                                     <button className="action-btn"
                                       style={{ background:"#fef2f2", color:"#dc2626" }}
                                       onClick={() => deleteUser(u.email)}>
-                                      🗑️ Delete
+                                      Delete
                                     </button>
                                   </div>
                                 </td>
@@ -586,16 +653,201 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {/* ══ TRUST TAB ══ */}
+                {/* ══ SLA TRACKER TAB ══ */}
+                {tab === "sla" && (
+                  <div style={{ animation:"fadeUp 0.4s ease both" }}>
+
+                    {/* SLA Summary Cards */}
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:16, marginBottom:28 }}>
+                      <StatCard icon="" label="Pending Review"
+                        value={users.filter(u=>u.verification_status==="pending").length}
+                        color="#f59e0b" sub="Total awaiting"/>
+                      <StatCard icon="" label="On Time (< 24h)"
+                        value={users.filter(u=>u.verification_status==="pending" && getSLAInfo(u.createdAt).urgency===0).length}
+                        color="#22c55e" sub="Within SLA"/>
+                      <StatCard icon="" label="Warning (24–48h)"
+                        value={users.filter(u=>u.verification_status==="pending" && getSLAInfo(u.createdAt).urgency===1).length}
+                        color="#f59e0b" sub="Needs attention"/>
+                      <StatCard icon="" label="Overdue (> 48h)"
+                        value={users.filter(u=>u.verification_status==="pending" && getSLAInfo(u.createdAt).urgency===2).length}
+                        color="#ef4444" sub="Action required!"/>
+                      <StatCard icon="" label="High-Trust Pending"
+                        value={users.filter(u=>u.verification_status==="pending" && (u.trust_score||0)>=80).length}
+                        color="#8b5cf6" sub="Safe to bulk approve"/>
+                    </div>
+
+                    {/* Bulk Approve Banner */}
+                    {users.filter(u => u.verification_status==="pending" && (u.trust_score||0)>=80).length > 0 && (
+                      <div style={{ background:"linear-gradient(135deg,#f0fdf4,#dcfce7)",
+                        border:"2px solid #86efac", borderRadius:16, padding:"20px 24px",
+                        marginBottom:24, display:"flex", alignItems:"center",
+                        justifyContent:"space-between", gap:16, flexWrap:"wrap" }}>
+                        <div>
+                          <div style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:900, color:"#15803d", marginBottom:4 }}>
+                            🚀 Quick Win Available!
+                          </div>
+                          <div style={{ fontSize:13, color:"#16a34a" }}>
+                            <strong>{users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80).length} high-trust users</strong> are pending verification with a trust score ≥ 80.
+                            These are low-risk and safe to approve instantly.
+                          </div>
+                        </div>
+                        <button disabled={bulkLoading} onClick={bulkApproveLowRisk}
+                          style={{ background:"#16a34a", color:"white", border:"none",
+                            borderRadius:12, padding:"12px 24px", cursor:"pointer",
+                            fontFamily:"DM Sans,sans-serif", fontSize:13, fontWeight:800,
+                            whiteSpace:"nowrap", boxShadow:"0 4px 14px rgba(22,163,74,0.35)",
+                            opacity: bulkLoading?0.7:1 }}>
+                          {bulkLoading ? "Approving..." : "⚡ Bulk Approve All"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* SLA Table — pending only, sorted by urgency */}
+                    <div style={{ background:"white", borderRadius:16, overflow:"hidden",
+                      boxShadow:"0 4px 24px rgba(0,0,0,0.07)", marginBottom:24 }}>
+                      <div style={{ padding:"20px 24px", borderBottom:"2px solid #f3f4f6",
+                        display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c" }}>
+                          ⏳ Pending Verification Queue
+                        </h3>
+                        <span style={{ fontSize:12, color:"#9ca3af" }}>Sorted by wait time — longest first</span>
+                      </div>
+                      <div style={{ overflowX:"auto" }}>
+                        <table style={{ width:"100%", borderCollapse:"collapse", minWidth:800 }}>
+                          <thead>
+                            <tr style={{ background:"#f8f7ff" }}>
+                              {["User","University","Trust Score","Wait Time","SLA Status","Progress","Actions"].map(h=>(
+                                <th key={h} style={{ padding:"12px 16px", textAlign:"left",
+                                  fontSize:11, fontWeight:800, color:"#7c3aed",
+                                  letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users
+                              .filter(u => u.verification_status === "pending")
+                              .sort((a,b) => getSLAInfo(b.createdAt).hrs - getSLAInfo(a.createdAt).hrs)
+                              .map((u, i) => {
+                                const sla = getSLAInfo(u.createdAt);
+                                return (
+                                  <tr key={u.email} className="user-row"
+                                    style={{ borderBottom:"1px solid #f3f4f6",
+                                      background: sla.urgency===2?"#fff5f5": sla.urgency===1?"#fffdf0":"white" }}>
+                                    <td style={{ padding:"14px 16px" }}>
+                                      <div style={{ fontWeight:700, fontSize:13, color:"#1e0a3c" }}>{u.fullname}</div>
+                                      <div style={{ fontSize:11, color:"#9ca3af" }}>{u.email}</div>
+                                    </td>
+                                    <td style={{ padding:"14px 16px", fontSize:12, color:"#374151", maxWidth:160 }}>
+                                      {u.university_name || "—"}
+                                    </td>
+                                    <td style={{ padding:"14px 16px", cursor:"pointer" }}
+                                      onClick={() => setSelectedUser(u)}>
+                                      <TrustBadge score={u.trust_score||0}/>
+                                    </td>
+                                    <td style={{ padding:"14px 16px" }}>
+                                      <div style={{ fontSize:13, fontWeight:800, color:sla.color }}>
+                                        {formatWaitTime(sla.hrs)}
+                                      </div>
+                                      <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>
+                                        Registered: {new Date(u.createdAt).toLocaleDateString()}
+                                      </div>
+                                    </td>
+                                    <td style={{ padding:"14px 16px" }}>
+                                      <SLABadge createdAt={u.createdAt}/>
+                                    </td>
+                                    <td style={{ padding:"14px 16px", minWidth:120 }}>
+                                      <SLABar createdAt={u.createdAt}/>
+                                      <div style={{ fontSize:10, color:"#9ca3af", marginTop:3 }}>
+                                        {Math.min(100,Math.round((sla.hrs/72)*100))}% of 72hr SLA
+                                      </div>
+                                    </td>
+                                    <td style={{ padding:"14px 16px" }}>
+                                      <div style={{ display:"flex", gap:6 }}>
+                                        <button className="action-btn"
+                                          style={{ background:"#f0fdf4", color:"#16a34a" }}
+                                          onClick={() => updateStatus(u.email, "verified")}>
+                                          Approve
+                                        </button>
+                                        <button className="action-btn"
+                                          style={{ background:"#fef2f2", color:"#dc2626" }}
+                                          onClick={() => updateStatus(u.email, "rejected")}>
+                                          Reject
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            {users.filter(u=>u.verification_status==="pending").length === 0 && (
+                              <tr><td colSpan={7} style={{ textAlign:"center", padding:48, color:"#9ca3af" }}>
+                                 No pending verifications! All caught up.
+                              </td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Already verified/rejected today */}
+                    <div style={{ background:"white", borderRadius:16, overflow:"hidden",
+                      boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
+                      <div style={{ padding:"20px 24px", borderBottom:"2px solid #f3f4f6" }}>
+                        <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c" }}>
+                           Recently Verified Users
+                        </h3>
+                      </div>
+                      <div style={{ overflowX:"auto" }}>
+                        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                          <thead>
+                            <tr style={{ background:"#f8f7ff" }}>
+                              {["User","University","Trust Score","Registered","Status"].map(h=>(
+                                <th key={h} style={{ padding:"12px 16px", textAlign:"left",
+                                  fontSize:11, fontWeight:800, color:"#7c3aed",
+                                  letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.filter(u=>u.verification_status==="verified")
+                              .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+                              .slice(0,5)
+                              .map((u,i)=>(
+                              <tr key={u.email} className="user-row"
+                                style={{ borderBottom:"1px solid #f3f4f6",
+                                  background:i%2===0?"white":"#fafbff" }}>
+                                <td style={{ padding:"12px 16px" }}>
+                                  <div style={{ fontWeight:700, fontSize:13, color:"#1e0a3c" }}>{u.fullname}</div>
+                                  <div style={{ fontSize:11, color:"#9ca3af" }}>{u.email}</div>
+                                </td>
+                                <td style={{ padding:"12px 16px", fontSize:12, color:"#374151" }}>{u.university_name||"—"}</td>
+                                <td style={{ padding:"12px 16px" }}><TrustBadge score={u.trust_score||0}/></td>
+                                <td style={{ padding:"12px 16px", fontSize:12, color:"#9ca3af" }}>
+                                  {new Date(u.createdAt).toLocaleDateString()}
+                                </td>
+                                <td style={{ padding:"12px 16px" }}><StatusBadge status={u.verification_status}/></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
                 {tab === "trust" && (
                   <div style={{ animation:"fadeUp 0.4s ease both" }}>
 
                     {/* Summary */}
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:16, marginBottom:28 }}>
-                      <StatCard icon="🧠" label="Average Trust"  value={avgTrust}  color="#8b5cf6" sub="System-wide"/>
-                      <StatCard icon="🟢" label="High Trust"     value={highTrust} color="#22c55e" sub="Score ≥ 80"/>
-                      <StatCard icon="🟡" label="Medium Trust"   value={users.filter(u=>(u.trust_score||0)>=50&&(u.trust_score||0)<80).length} color="#f59e0b" sub="Score 50–79"/>
-                      <StatCard icon="🔴" label="Low Trust"      value={lowTrust}  color="#ef4444" sub="Score < 50"/>
+                      <StatCard icon="" label="Average Trust"  value={avgTrust}  color="#8b5cf6" sub="System-wide"/>
+                      <StatCard icon="" label="High Trust"     value={highTrust} color="#22c55e" sub="Score ≥ 80"/>
+                      <StatCard icon="" label="Medium Trust"   value={users.filter(u=>(u.trust_score||0)>=50&&(u.trust_score||0)<80).length} color="#f59e0b" sub="Score 50–79"/>
+                      <StatCard icon="" label="Low Trust"      value={lowTrust}  color="#ef4444" sub="Score < 50"/>
                     </div>
 
                     {/* Trust Score Table */}
@@ -604,7 +856,7 @@ export default function AdminDashboard() {
                       <div style={{ padding:"20px 24px", borderBottom:"2px solid #f3f4f6",
                         display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                         <h3 style={{ fontFamily:"Nunito,sans-serif", fontSize:16, fontWeight:800, color:"#1e0a3c" }}>
-                          🧠 All User Trust Scores
+                          All User Trust Scores
                         </h3>
                         <span style={{ fontSize:12, color:"#9ca3af" }}>Click score to see breakdown</span>
                       </div>
@@ -653,7 +905,7 @@ export default function AdminDashboard() {
                                       color: trustColor(u.trust_score||0),
                                       padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:800
                                     }}>
-                                      {(u.trust_score||0)>=80?"✅ Safe to verify":(u.trust_score||0)>=50?"⚠️ Review needed":"🚨 High risk"}
+                                      {(u.trust_score||0)>=80?" Safe to verify":(u.trust_score||0)>=50?"Review needed":"High risk"}
                                     </span>
                                   </td>
                                 </tr>
