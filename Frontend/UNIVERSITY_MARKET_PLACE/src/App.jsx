@@ -1,8 +1,10 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
+/*
 import Booking from "./components/Booking/Booking";
 import BookingForm from "./components/BookingForm/BookingForm";
 import Payment from "./components/payment/payment";
+*/
 import UserUpdate from "./Admin/UserUpdate/UserUpdate";
 import UserManagement from "./Admin/UserManagement/UserManagement";
 import UserInsert from "./Admin/UserInsert/UserInsert";
@@ -19,9 +21,10 @@ function App() {
       <Navbar />   {/* Navbar outside Routes */}
 
       <Routes>
-        <Route path="/" element={<Booking />} />
+  {/*      <Route path="/" element={<Booking />} />
+
         <Route path="/booking-form" element={<BookingForm />} />
-        <Route path="/payment" element={<Payment />} />
+       <Route path="/payment" element={<Payment />} />    */}
 
         <Route path="/userManagement" element={<UserManagement />} />
         <Route path="/userInsert" element={<UserInsert />} />
