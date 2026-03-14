@@ -3,10 +3,10 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
-// Generate OTP
+
 const generateOTP = () => crypto.randomInt(100000, 999999).toString();
 
-// Forgot Password - Send OTP
+
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -169,7 +169,7 @@ export const forgotPassword = async (req, res) => {
     }
 };
 
-// Verify OTP
+
 export const verifyOTP = async (req, res) => {
     try {
         const { email, otp } = req.body;
@@ -189,7 +189,7 @@ export const verifyOTP = async (req, res) => {
     }
 };
 
-// Reset Password
+
 export const resetPassword = async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
