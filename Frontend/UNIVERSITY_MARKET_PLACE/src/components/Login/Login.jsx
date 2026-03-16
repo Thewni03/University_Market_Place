@@ -31,10 +31,11 @@ const CSS = `
   @keyframes sunGlow   { 0%,100%{opacity:0.9;}50%{opacity:1;} }
   @keyframes earPerk   { from{transform:rotate(0);}to{transform:rotate(-18deg);} }
   @keyframes earPerkR  { from{transform:rotate(0);}to{transform:rotate(18deg);} }
-  @keyframes slideIn   { from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);} }
 
+  /* Layout */
   .cat-root { min-height:100vh; display:flex; font-family:'DM Sans',sans-serif; overflow:hidden; background:#f8f7ff; }
 
+  /* LEFT cozy panel — warm cream */
   .cat-left {
     width:44%; min-height:100vh;
     background:linear-gradient(160deg,#fff8ee 0%,#fef3c7 50%,#fde8d8 100%);
@@ -68,6 +69,7 @@ const CSS = `
 
   .splash-drop { position:absolute;width:7px;height:7px;border-radius:50%;background:#d97706;animation:splashDrop 0.6s ease-out both; }
 
+  /* Cat animations */
   .cat-sleeping { animation:breathe 2.8s ease-in-out infinite; transform-origin:bottom center; }
   .cat-awake    { animation:catBounce 1.8s ease-in-out infinite; }
   .cat-happy    { animation:happyWig  0.6s ease-in-out infinite; }
@@ -99,6 +101,7 @@ const CSS = `
 
   .cat-floor { position:absolute;bottom:0;left:0;width:100%;pointer-events:none; }
 
+  /* ── RIGHT — white/purple/cyan, same as original ── */
   .cat-right {
     flex:1; display:flex; align-items:center; justify-content:center;
     padding:40px 32px;
@@ -112,6 +115,7 @@ const CSS = `
   .cat-sub { font-size:13.5px;color:#9ca3af;margin-top:5px; }
   .cat-bar { height:4px;width:0;background:#06b6d4;border-radius:99px;margin:10px auto 0;animation:barGrow 0.7s ease 0.4s both; }
 
+  /* Same card style as original — left purple border */
   .cat-card {
     border-left:4px solid #1e0a3c;
     background:white;
@@ -127,8 +131,10 @@ const CSS = `
   .cat-field:nth-child(3){animation-delay:0.4s;}
   .cat-field:nth-child(4){animation-delay:0.5s;}
 
+  /* Original label style */
   .cat-lbl { display:block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#1e0a3c;margin-bottom:6px; }
 
+  /* Original underline input style */
   .cat-input {
     width:100%; padding:8px 4px;
     background:transparent;
@@ -146,12 +152,7 @@ const CSS = `
     font-size:13px; animation:shake 0.5s ease both; margin-bottom:16px;
   }
 
-  .cat-success {
-    background:#f0fdf4; border:1px solid #bbf7d0;
-    border-radius:8px; padding:10px 14px; color:#16a34a;
-    font-size:13px; margin-bottom:16px; animation:fadeUp 0.3s ease both;
-  }
-
+  /* Original button style */
   .cat-btn {
     width:100%; padding:13px;
     background:#1e0a3c;
@@ -167,39 +168,11 @@ const CSS = `
   .cat-btn::after { content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.15) 50%,transparent 70%);transform:translateX(-100%);transition:transform 0.5s; }
   .cat-btn:hover::after { transform:translateX(100%); }
 
-  .cat-btn-secondary {
-    width:100%; padding:11px;
-    background:transparent;
-    border:2px solid #e9d5ff; border-radius:12px; color:#6d28d9;
-    font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;
-    letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;
-    transition:all 0.2s; margin-top:10px;
-  }
-  .cat-btn-secondary:hover { border-color:#06b6d4; color:#06b6d4; }
-
   .cat-spinner { width:15px;height:15px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:7px; }
 
   .cat-link-row { text-align:center;margin-top:16px;font-size:13px;color:#9ca3af; }
   .cat-link { color:#06b6d4;font-weight:700;cursor:pointer;margin-left:4px;transition:color 0.2s; }
   .cat-link:hover { color:#1e0a3c; }
-
-  .reset-step { animation:slideIn 0.35s cubic-bezier(.34,1.4,.64,1) both; }
-
-  .otp-input-row { display:flex; gap:10px; justify-content:center; margin:8px 0; }
-  .otp-digit {
-    width:46px; height:54px; text-align:center;
-    font-size:22px; font-weight:900; font-family:'Nunito',sans-serif; color:#1e0a3c;
-    border:2px solid #e9d5ff; border-radius:10px; outline:none;
-    background:white; transition:border-color 0.2s, transform 0.15s;
-  }
-  .otp-digit:focus { border-color:#06b6d4; transform:translateY(-2px); box-shadow:0 4px 14px rgba(6,182,212,0.2); }
-
-  .reset-progress { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px; }
-  .reset-dot { width:10px;height:10px;border-radius:50%;background:#e9d5ff;transition:all 0.3s; }
-  .reset-dot.active { background:#06b6d4; transform:scale(1.3); }
-  .reset-dot.done   { background:#1e0a3c; }
-  .reset-line { width:28px;height:2px;background:#e9d5ff;transition:background 0.3s; }
-  .reset-line.done { background:#1e0a3c; }
 
   @media(max-width:768px){ .cat-left{display:none;} .cat-right{padding:28px 16px;} }
 `
@@ -248,7 +221,7 @@ function Cat({ mood, isPerked, isPawSwiping, eyesClosed }) {
   const bodyClass = { sleeping:'cat-sleeping', awake:'cat-awake', happy:'cat-happy', smug:'cat-smug', error:'cat-shake' }[mood] || 'cat-sleeping'
   const tailClass = mood === 'sleeping' ? 'tail-slow' : 'tail-fast'
 
-  const bubbles = { sleeping:null, awake:'...hm? 👁️', proud:'nice email bestie ✨', hiding:'i see nothing 😴', happy:'YESSS!! 🎉', smug:'oops~ 😏', error:'*destruction mode* 😈', reset:'forgot pawssword? 🐾', otp:'check ur email! 📬', newpass:'almost there! 🔑' }
+  const bubbles = { sleeping:null, awake:'...hm? 👁️', proud:'nice email bestie ✨', hiding:'i see nothing 😴', happy:'YESSS!! 🎉', smug:'oops~ 😏', error:'*destruction mode* 😈' }
 
   const EyeL = () => {
     if (mood==='sleeping'||mood==='hiding') return <path d="M34 54 Q39 50 44 54" stroke="#92400e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
@@ -288,6 +261,7 @@ function Cat({ mood, isPerked, isPawSwiping, eyesClosed }) {
         <ellipse cx="72" cy="100" rx="30" ry="18" fill="#fde68a"/>
         <path d="M50 85 Q58 78 66 85" stroke="#d97706" strokeWidth="2.5" fill="none" opacity="0.5"/>
         <path d="M76 85 Q84 78 92 85" stroke="#d97706" strokeWidth="2.5" fill="none" opacity="0.5"/>
+
         <g className={isPerked ? 'perked' : ''}>
           <g className="cat-ear-l">
             <path d="M26 52 L20 22 L46 40 Z" fill="#f59e0b"/>
@@ -310,6 +284,7 @@ function Cat({ mood, isPerked, isPawSwiping, eyesClosed }) {
           <line x1="90" y1="67" x2="64" y2="66" stroke="#92400e" strokeWidth="1.5" opacity="0.6"/>
           <EyeL/><EyeR/><Mouth/>
         </g>
+
         <ellipse cx="38" cy="114" rx="12" ry="7" fill="#fde68a"/>
         <ellipse cx="30" cy="115" rx="6"  ry="5" fill="#f59e0b"/>
         <g className={isPawSwiping?'paw-swipe':''} style={{transformOrigin:'80px 108px'}}>
@@ -324,174 +299,9 @@ function Cat({ mood, isPerked, isPawSwiping, eyesClosed }) {
   )
 }
 
-// ── Password Reset Steps ──────────────────────────────────────
-function ResetProgress({ step }) {
-  return (
-    <div className="reset-progress">
-      <div className={`reset-dot ${step >= 1 ? 'done' : ''} ${step === 0 ? 'active' : ''}`}/>
-      <div className={`reset-line ${step >= 1 ? 'done' : ''}`}/>
-      <div className={`reset-dot ${step >= 2 ? 'done' : ''} ${step === 1 ? 'active' : ''}`}/>
-      <div className={`reset-line ${step >= 2 ? 'done' : ''}`}/>
-      <div className={`reset-dot ${step === 2 ? 'active' : ''}`}/>
-    </div>
-  )
-}
-
-function ForgotPassword({ onBack, onOTPSent }) {
-  const [email, setEmail]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-
-  const handleSubmit = async () => {
-    if (!email) return
-    setLoading(true); setError('')
-    try {
-      await axios.post('http://localhost:5000/forgot-password', { email })
-      onOTPSent(email)
-    } catch {
-      setError('No account found with that email 😿')
-    } finally { setLoading(false) }
-  }
-
-  return (
-    <div className="reset-step">
-      <ResetProgress step={0} />
-      <p style={{fontSize:12,color:'#9ca3af',textAlign:'center',marginBottom:20}}>
-        Enter your email and we'll send you an OTP 📬
-      </p>
-      {error && <div className="cat-err">😾 {error}</div>}
-      <div className="cat-field">
-        <label className="cat-lbl">Email Address</label>
-        <input type="email" className="cat-input" placeholder="student@university.edu"
-          value={email} onChange={e => { setError(''); setEmail(e.target.value) }}/>
-      </div>
-      <div style={{marginTop:8}}>
-        <button className="cat-btn" disabled={loading} onClick={handleSubmit}>
-          {loading ? <><span className="cat-spinner"/>Sending OTP…</> : 'Send OTP →'}
-        </button>
-        <button className="cat-btn-secondary" onClick={onBack}>← Back to Login</button>
-      </div>
-    </div>
-  )
-}
-
-function VerifyOTP({ email, onVerified, onBack }) {
-  const [digits, setDigits]   = useState(['','','','','',''])
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-
-  const handleDigit = (i, val) => {
-    if (!/^\d?$/.test(val)) return
-    const next = [...digits]
-    next[i] = val
-    setDigits(next)
-    if (val && i < 5) document.getElementById(`otp-${i+1}`)?.focus()
-  }
-
-  const handleKeyDown = (i, e) => {
-    if (e.key === 'Backspace' && !digits[i] && i > 0)
-      document.getElementById(`otp-${i-1}`)?.focus()
-  }
-
-  const handleSubmit = async () => {
-    const otp = digits.join('')
-    if (otp.length < 6) { setError('Please enter all 6 digits 🐾'); return }
-    setLoading(true); setError('')
-    try {
-      await axios.post('http://localhost:5000/verify-otp', { email, otp })
-      onVerified(otp)
-    } catch {
-      setError('Invalid or expired OTP 😿')
-    } finally { setLoading(false) }
-  }
-
-  const handleResend = async () => {
-    try {
-      await axios.post('http://localhost:5000/forgot-password', { email })
-      setError('')
-      setDigits(['','','','','',''])
-    } catch { setError('Could not resend OTP 😿') }
-  }
-
-  return (
-    <div className="reset-step">
-      <ResetProgress step={1} />
-      <p style={{fontSize:12,color:'#9ca3af',textAlign:'center',marginBottom:4}}>
-        OTP sent to <strong style={{color:'#1e0a3c'}}>{email}</strong>
-      </p>
-      <p style={{fontSize:11,color:'#9ca3af',textAlign:'center',marginBottom:20}}>
-        Expires in 10 minutes ⏱️
-      </p>
-      {error && <div className="cat-err">😾 {error}</div>}
-      <div className="otp-input-row">
-        {digits.map((d,i) => (
-          <input key={i} id={`otp-${i}`} className="otp-digit" maxLength={1}
-            value={d} onChange={e => handleDigit(i, e.target.value)}
-            onKeyDown={e => handleKeyDown(i, e)}/>
-        ))}
-      </div>
-      <div style={{marginTop:20}}>
-        <button className="cat-btn" disabled={loading} onClick={handleSubmit}>
-          {loading ? <><span className="cat-spinner"/>Verifying…</> : 'Verify OTP →'}
-        </button>
-        <button className="cat-btn-secondary" onClick={handleResend}>Resend OTP 🔁</button>
-        <button className="cat-btn-secondary" onClick={onBack}>← Back</button>
-      </div>
-    </div>
-  )
-}
-
-function ResetPassword({ email, otp, onSuccess, onBack }) {
-  const [newPassword, setNewPassword] = useState('')
-  const [confirm, setConfirm]         = useState('')
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-
-  const handleSubmit = async () => {
-    if (newPassword.length < 8) { setError('Password must be at least 8 characters 🐾'); return }
-    if (newPassword !== confirm) { setError("Passwords don't match 😿"); return }
-    setLoading(true); setError('')
-    try {
-      await axios.post('http://localhost:5000/reset-password', { email, otp, newPassword })
-      onSuccess()
-    } catch {
-      setError('Something went wrong. Please try again 😿')
-    } finally { setLoading(false) }
-  }
-
-  return (
-    <div className="reset-step">
-      <ResetProgress step={2} />
-      <p style={{fontSize:12,color:'#9ca3af',textAlign:'center',marginBottom:20}}>
-        Choose a strong new password 🔑
-      </p>
-      {error && <div className="cat-err">😾 {error}</div>}
-      <div className="cat-field">
-        <label className="cat-lbl">New Password</label>
-        <input type="password" className="cat-input" placeholder="••••••••"
-          value={newPassword} onChange={e => { setError(''); setNewPassword(e.target.value) }}/>
-      </div>
-      <div className="cat-field">
-        <label className="cat-lbl">Confirm Password</label>
-        <input type="password" className="cat-input" placeholder="••••••••"
-          value={confirm} onChange={e => { setError(''); setConfirm(e.target.value) }}/>
-      </div>
-      <div style={{marginTop:8}}>
-        <button className="cat-btn" disabled={loading} onClick={handleSubmit}>
-          {loading ? <><span className="cat-spinner"/>Resetting…</> : 'Reset Password →'}
-        </button>
-        <button className="cat-btn-secondary" onClick={onBack}>← Back</button>
-      </div>
-    </div>
-  )
-}
-
-// ── Main Login ────────────────────────────────────────────────
 export default function Login() {
   injectCSS()
   const navigate = useNavigate()
-
-  // login state
   const [inputs,  setInputs]  = useState({ email:'', password:'' })
   const [error,   setError]   = useState('')
   const [loading, setLoading] = useState(false)
@@ -502,24 +312,15 @@ export default function Login() {
   const [isPawSwiping, setIsPawSwiping] = useState(false)
   const [catMoodOvr,   setCatMoodOvr]   = useState(null)
 
-  // reset flow state
-  // view: 'login' | 'forgot' | 'otp' | 'newpass' | 'resetdone'
-  const [view,         setView]         = useState('login')
-  const [resetEmail,   setResetEmail]   = useState('')
-  const [resetOTP,     setResetOTP]     = useState('')
-
-  // cat mood logic
-  const resetMoods = { forgot:'reset', otp:'otp', newpass:'newpass', resetdone:'happy' }
   const baseMood =
-    view !== 'login'  ? (resetMoods[view] || 'awake') :
-    done              ? 'happy'   :
-    error             ? 'smug'    :
+    done          ? 'happy'   :
+    error         ? 'smug'    :
     active==='password' && inputs.password.length > 0 ? 'hiding' :
     active==='email'    && inputs.email.length > 2    ? 'proud'  :
-    active            ? 'awake'   : 'sleeping'
+    active        ? 'awake'   : 'sleeping'
 
-  const catMood    = catMoodOvr || baseMood
-  const isPerked   = view !== 'login' || active !== null || done || !!error
+  const catMood  = catMoodOvr || baseMood
+  const isPerked = active !== null || done || !!error
   const eyesClosed = catMood==='sleeping' || catMood==='hiding'
 
   const handleChange = (e) => {
@@ -535,7 +336,7 @@ export default function Login() {
     setTimeout(() => { setShowSplash(false); setMugKnocked(false); setCatMoodOvr(null) }, 2400)
   }
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true); setError('')
     try {
@@ -553,6 +354,8 @@ export default function Login() {
     } finally { setLoading(false) }
   }
 
+  
+
   const moodLabel = {
     sleeping:' zzz... leave me alone...',
     awake:   '...what do you want',
@@ -561,20 +364,7 @@ export default function Login() {
     happy:   ' WELCOME IN BESTIE!!',
     smug:    'oops~ mug fell hehe',
     error:   '*destruction noises*',
-    reset:   'forgot pawssword? 🐾',
-    otp:     'check ur email! 📬',
-    newpass: 'almost there! 🔑',
   }
-
-  // title per view
-  const titles = {
-    login:     { eyebrow:'University Marketplace', title:'Welcome Back', sub:'Login to your account' },
-    forgot:    { eyebrow:'Password Reset',         title:'Forgot Password', sub:'Step 1 of 3 — enter your email' },
-    otp:       { eyebrow:'Password Reset',         title:'Check Your Email', sub:'Step 2 of 3 — enter your OTP' },
-    newpass:   { eyebrow:'Password Reset',         title:'New Password', sub:'Step 3 of 3 — set a new password' },
-    resetdone: { eyebrow:'All Done!',              title:'Password Reset! 🎉', sub:'You can now log in with your new password' },
-  }
-  const t = titles[view] || titles.login
 
   return (
     <div className="cat-root">
@@ -595,6 +385,7 @@ export default function Login() {
           {left:'68%',w:15,h:32,color:'#06b6d4'},
         ].map((b,i) => <div key={i} className="cat-book" style={{left:b.left,width:b.w,height:b.h,background:b.color,bottom:152,borderRadius:'3px 3px 0 0',opacity:0.85}}/>)}
 
+        {/* table */}
         <div style={{position:'absolute',bottom:60,left:'50%',transform:'translateX(-50%)',width:220,height:18,background:'linear-gradient(180deg,#d97706,#b45309)',borderRadius:4,boxShadow:'0 4px 12px rgba(120,53,15,0.3)'}}/>
         <div style={{position:'absolute',bottom:42,left:'calc(50% - 80px)',width:14,height:24,background:'#b45309',borderRadius:'0 0 4px 4px'}}/>
         <div style={{position:'absolute',bottom:42,left:'calc(50% + 66px)',width:14,height:24,background:'#b45309',borderRadius:'0 0 4px 4px'}}/>
@@ -618,98 +409,53 @@ export default function Login() {
         </svg>
       </div>
 
-      {/* ══ RIGHT ══ */}
+      {/* ══ RIGHT — white/purple/cyan ══ */}
       <div className="cat-right">
         <div className="cat-form-wrap">
 
-          <div className="cat-header" key={view}>
-            <p className="cat-eyebrow">{t.eyebrow}</p>
-            <h1 className="cat-title">{t.title}</h1>
+          {/* Same header as original */}
+          <div className="cat-header">
+            <p className="cat-eyebrow">University Marketplace</p>
+            <h1 className="cat-title">Welcome Back</h1>
             <div className="cat-bar"/>
-            <p className="cat-sub" style={{marginTop:8}}>{t.sub}</p>
+            <p className="cat-sub" style={{marginTop:8}}>Login to your account</p>
           </div>
 
+          {/* Same card style as original */}
           <div className="cat-card">
+            <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:4}}>
 
-            {/* ── LOGIN VIEW ── */}
-            {view === 'login' && (
-              <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:4}}>
-                {error && <div className="cat-err">😾 {error}</div>}
-                <div className="cat-field">
-                  <label className="cat-lbl">Email</label>
-                  <input type="email" name="email" placeholder="student@university.edu"
-                    className="cat-input" onChange={handleChange} required
-                    onFocus={()=>setActive('email')} onBlur={()=>setActive(null)}/>
-                </div>
-                <div className="cat-field">
-                  <label className="cat-lbl">Password</label>
-                  <input type="password" name="password" placeholder="••••••••"
-                    className="cat-input" onChange={handleChange} required
-                    onFocus={()=>setActive('password')} onBlur={()=>setActive(null)}/>
-                </div>
-                {/* Forgot password link */}
-                <div style={{textAlign:'right',marginTop:-8,marginBottom:8}}>
-                  <span className="cat-link" style={{fontSize:12}}
-                    onClick={() => setView('forgot')}>
-                    Forgot password? 🐾
-                  </span>
-                </div>
-                <div className="cat-field" style={{marginBottom:0,marginTop:4}}>
-                  <button type="submit" disabled={loading} className="cat-btn">
-                    {loading ? <><span className="cat-spinner"/>Logging in…</> : done ? ' Redirecting…' : 'Login →'}
-                  </button>
-                </div>
-              </form>
-            )}
+              {error && (
+                <div className="cat-err">😾 {error}</div>
+              )}
 
-            {/* ── FORGOT PASSWORD ── */}
-            {view === 'forgot' && (
-              <ForgotPassword
-                onBack={() => setView('login')}
-                onOTPSent={(email) => { setResetEmail(email); setView('otp') }}
-              />
-            )}
+              <div className="cat-field">
+                <label className="cat-lbl">Email</label>
+                <input type="email" name="email" placeholder="student@university.edu"
+                  className="cat-input" onChange={handleChange} required
+                  onFocus={()=>setActive('email')} onBlur={()=>setActive(null)}/>
+              </div>
 
-            {/* ── VERIFY OTP ── */}
-            {view === 'otp' && (
-              <VerifyOTP
-                email={resetEmail}
-                onVerified={(otp) => { setResetOTP(otp); setView('newpass') }}
-                onBack={() => setView('forgot')}
-              />
-            )}
+              <div className="cat-field">
+                <label className="cat-lbl">Password</label>
+                <input type="password" name="password" placeholder="••••••••"
+                  className="cat-input" onChange={handleChange} required
+                  onFocus={()=>setActive('password')} onBlur={()=>setActive(null)}/>
+              </div>
 
-            {/* ── NEW PASSWORD ── */}
-            {view === 'newpass' && (
-              <ResetPassword
-                email={resetEmail}
-                otp={resetOTP}
-                onSuccess={() => setView('resetdone')}
-                onBack={() => setView('otp')}
-              />
-            )}
-
-            {/* ── RESET DONE ── */}
-            {view === 'resetdone' && (
-              <div className="reset-step" style={{textAlign:'center'}}>
-                <div style={{fontSize:48,marginBottom:12}}>🎉</div>
-                <div className="cat-success">
-                  Password reset successfully! You can now log in with your new password.
-                </div>
-                <button className="cat-btn" onClick={() => setView('login')}>
-                  Go to Login →
+              <div className="cat-field" style={{marginBottom:0,marginTop:8}}>
+                <button type="submit" disabled={loading} className="cat-btn">
+                  {loading ? <><span className="cat-spinner"/>Logging in…</> : done ? ' Redirecting…' : 'Login →'}
                 </button>
               </div>
-            )}
 
+            </form>
           </div>
 
-          {view === 'login' && (
-            <div className="cat-link-row">
-              Don't have an account?
-              <span className="cat-link" onClick={()=>navigate('/register')}>Register here</span>
-            </div>
-          )}
+          <div className="cat-link-row">
+            Don't have an account?
+            <span className="cat-link" onClick={()=>navigate('/register')}>Register here</span>
+          </div>
 
         </div>
       </div>
