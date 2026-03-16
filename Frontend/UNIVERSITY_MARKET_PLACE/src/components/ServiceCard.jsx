@@ -5,8 +5,8 @@ import { Badge } from "./ui/badge";
 
 export default function ServiceCard({ service }) {
   return (
-    <Link to={`/service/${service.id}`} className="block">
-      <div className="rounded-xl border border-border bg-card p-5 card-hover group">
+    <Link to={`/service/${service._id || service.id}`} className="block">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-[0_1px_3px_0_hsl(0_0%_0%_/_0.04),_0_1px_2px_-1px_hsl(0_0%_0%_/_0.04)] hover:shadow-[0_10px_25px_-5px_hsl(152_60%_42%_/_0.08),_0_4px_10px_-4px_hsl(0_0%_0%_/_0.04)] group transition-shadow">
         <div className="flex items-start justify-between mb-3">
           <Badge variant="secondary" className="text-xs font-medium">
             {service.category}
@@ -63,7 +63,7 @@ export default function ServiceCard({ service }) {
           </div>
           <div className="text-right">
             <span className="text-lg font-bold text-foreground">
-              ${service.price}
+              ${service.pricePerHour || service.price}
             </span>
             <span className="text-xs text-muted-foreground">/hr</span>
           </div>

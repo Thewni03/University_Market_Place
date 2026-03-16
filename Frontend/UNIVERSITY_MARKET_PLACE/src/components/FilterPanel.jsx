@@ -1,4 +1,4 @@
-import { categories } from "../../../../University_Market_Place-keerthi_Frontend/University_Market_Place/Frontend/UNIVERSITY_MARKET_PLACE/src/data/mockData.js";
+import { categories } from "../data/mockData.js";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { Slider } from "./ui/slider";
@@ -21,11 +21,10 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
               key={cat}
               type="button"
               onClick={() => onCategoryChange(cat)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                selectedCategory === cat
-                  ? "gradient-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-primary/10"
-              }`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${selectedCategory === cat
+                ? "bg-gradient-to-br from-primary to-[hsl(152_60%_32%)] text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                }`}
             >
               {cat}
             </button>
@@ -62,11 +61,10 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
               key={r}
               type="button"
               onClick={() => setRating(r)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                rating === r
-                  ? "gradient-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-primary/10"
-              }`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${rating === r
+                ? "bg-gradient-to-br from-primary to-[hsl(152_60%_32%)] text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                }`}
             >
               {r === 0 ? "Any" : `${r}+`}
             </button>
@@ -85,11 +83,10 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
               key={l}
               type="button"
               onClick={() => setLocation(l)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
-                location === l
-                  ? "gradient-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-primary/10"
-              }`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${location === l
+                ? "bg-gradient-to-br from-primary to-[hsl(152_60%_32%)] text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                }`}
             >
               {l === "all" ? "All" : l}
             </button>
@@ -135,9 +132,8 @@ export default function FilterPanel({
       )}
 
       <div
-        className={`fixed top-0 left-0 h-full w-72 bg-card border-r border-border z-50 transform transition-transform duration-300 lg:hidden ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 h-full w-72 bg-card border-r border-border z-50 transform transition-transform duration-300 lg:hidden ${open ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="p-5 space-y-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between">

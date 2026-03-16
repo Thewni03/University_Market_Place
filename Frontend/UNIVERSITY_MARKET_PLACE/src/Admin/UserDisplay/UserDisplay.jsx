@@ -21,13 +21,8 @@ function UserDisplay(props) {
     }
 
     const handleViewPic = () => {
-        if (student_id_pic) {
-            const filename = student_id_pic.replace("uploads/", "");
-            window.open(`http://localhost:5000/uploads/${filename}`, "_blank");
-        } else {
-            alert("No image available");
-        }
-    };
+        window.open(student_id_pic, '_blank');
+    }
 
     return (
         <div className="bg-white rounded-xl shadow-md p-6 mb-4 border border-gray-200">
