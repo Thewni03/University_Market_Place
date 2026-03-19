@@ -20,6 +20,7 @@ import feedRoutes from "./routes/feedRoutes.js";
 import { setIo } from "./config/io.js";
 import { registerSocketHandlers } from "./Utils/socket.js";
 import "./config/db.js";
+import marketplaceRoutes from "./routes/marketplaceRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +73,7 @@ app.use("/Users", registerRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);  // ← ADDED: mount notification routes
 app.use("/api/payments", paymentRoutes);
+app.use("/api/marketplace", marketplaceRoutes);
 
 app.get("/", (_req, res) => {
   res.send("Marketplace Backend API is running");
