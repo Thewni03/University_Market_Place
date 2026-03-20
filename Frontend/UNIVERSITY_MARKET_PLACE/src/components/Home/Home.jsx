@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { SlidersHorizontal, TrendingUp, Briefcase, Sparkles } from "lucide-react";
 import { mockServices, mockRequests } from "../../data/mockData";
-import ServiceCard from "../../components/ServiceCard";
-import RequestCard from "../../components/RequestCard";
-import FilterPanel from "../../components/FilterPanel";
-import { Button } from "../../components/ui/button";
+import ServiceCard from "../ServiceCard";
+import RequestCard from "../RequestCard";
+import FilterPanel from "../FilterPanel";
+import { Button } from "../ui/button";
 
 export default function Index() {
   const [tab, setTab] = useState("services"); // "services" | "requests"
