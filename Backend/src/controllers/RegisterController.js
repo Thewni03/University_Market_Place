@@ -214,3 +214,47 @@ export const loginUser = async (req, res) => {
       return res.status(500).json({ message: "Server error" });
   }
 };
+
+// ── Trust Score ────────────────────────────────────────────────
+export const getTrustScore = async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.params.email });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const breakdown = {};
+    let score = 0;
+
+    // Email domain check
+    const eduDomains = [".ac.", ".edu", ".edu.lk", ".ac.lk", ".ac.uk", ".edu.au"];
+    const isEduEmail = eduDomains.some(d => user.email.includes(d));
+    breakdown.emailDomain = isEduEmail
+      ? { pts: 30, note: "Academic email domain detected" }
+      : { pts: 0,  note: "Non-academic email domain" };
+    score += breakdown.emailDomain.pts;
+
+    // Student ID check
+    const hasValidId = user.student_id && user.student_id.length >= 4;
+    breakdown.studentId = hasValidId
+      ? { pts: 20, note: "Valid student ID present" }
+      : { pts: 0,  note: "Missing or invalid student ID" };
+    score += breakdown.studentId.pts;
+
+    // University name check
+    const hasUni = user.university_name && user.university_name.trim().length > 2;
+    breakdown.universityName = hasUni
+      ? { pts: 20, note: "University name provided" }
+      : { pts: 0,  note: "No university name" };
+    score += breakdown.universityName.pts;
+
+    // Profile completeness
+    const fields = [user.fullname, user.phone, user.student_id_pic, user.graduate_year];
+    const filled = fields.filter(Boolean).length;
+    const pts = Math.round((filled / fields.length) * 30);
+    breakdown.completeness = { pts, note: `${filled}/${fields.length} profile fields complete` };
+    score += pts;
+
+    res.json({ success: true, score, breakdown });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

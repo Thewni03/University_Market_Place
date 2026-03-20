@@ -15,7 +15,7 @@ const app = express();
 
 // ── Middleware ─────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: 'http://localhost:5173',   // ← your React frontend URL
+  origin: 'http://localhost:5174',   // ← your React frontend URL
   credentials: true,
 }));
 app.use(express.json({ limit: "15mb" }));
@@ -34,7 +34,7 @@ const httpServer = createServer(app);                  // ← ADDED
 
 const io = new Server(httpServer, {                    // ← ADDED
   cors: {
-    origin: 'http://localhost:5173',  // must match your React frontend URL
+    origin: 'http://localhost:5174',  // must match your React frontend URL
     credentials: true,
   },
 });
