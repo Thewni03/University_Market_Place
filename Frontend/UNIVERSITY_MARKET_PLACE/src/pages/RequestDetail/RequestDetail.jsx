@@ -9,7 +9,7 @@ export default function RequestDetail() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchRequest = async () => {
+        const fetchRequest = async () => {   
             try {
                 const res = await axios.get(`http://localhost:5001/api/requests/${id}`);
                 setRequest(res.data);
@@ -83,7 +83,7 @@ export default function RequestDetail() {
                                     <p className="text-xs text-slate-400">{new Date(request.deadline).toLocaleDateString()}</p>
                                 </div>
                             </div>
-                        )}
+                        )}  
 
                         <div className="flex items-center gap-2 text-slate-600 font-medium">
                             <div className="p-2 bg-slate-100 rounded-full">

@@ -14,7 +14,7 @@ export default function ServiceDetail() {
             try {
                 const res = await axios.get(`http://localhost:5001/api/services/${id}`);
                 setService(res.data.data || res.data);
-            } catch (error) {
+            } catch (error) {       
                 console.error("Error fetching service details:", error);
             } finally {
                 setLoading(false);
