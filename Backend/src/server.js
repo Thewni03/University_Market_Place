@@ -8,6 +8,7 @@ import serviceRoutes from './routes/serviceRoutes.js';
 import serviceRequestRoutes from './routes/serviceRequestRoutes.js';
 import RegisterRoutes from './routes/RegisterRoutes.js';
 import resetRoutes from './routes/ResetRoute.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/requests', serviceRequestRoutes);
 app.use('/Users', RegisterRoutes);
 app.use('/', resetRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Root route
 app.get("/", (req, res) => {
