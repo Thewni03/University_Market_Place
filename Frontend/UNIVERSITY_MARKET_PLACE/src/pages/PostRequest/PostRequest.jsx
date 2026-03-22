@@ -28,11 +28,21 @@ export default function PostRequest() {
         setIsSubmitting(true);
 
         try {
-            // Mocking userId
+            // Fetch user from localStorage
+            const userStr = localStorage.getItem("user");
+            let user = { name: "Anonymous Student", id: "60d0bc7b8f0f0b2f1c8a9abc" };
+            if (userStr) {
+                try {
+                    const parsed = JSON.parse(userStr);
+                    user = { name: parsed.name || parsed.fullname, id: parsed.id || parsed._id };
+                } catch(e) {}
+            }
+
             const payload = {
                 ...formData,
                 budget: formData.budget ? Number(formData.budget) : undefined,
-                userId: '60d0bc7b8f0f0b2f1c8a9abc', // mockup id
+                userId: user.id || "60d0bc7b8f0f0b2f1c8a9abc",
+                postedBy: { name: user.name }
             };
 
             await axios.post('http://localhost:5001/api/requests', payload);

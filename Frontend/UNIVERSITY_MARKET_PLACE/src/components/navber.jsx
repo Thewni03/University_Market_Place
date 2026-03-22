@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
-import { useState } from "react";
+import { Search, Bell, Menu, X, GraduationCap, LogIn } from "lucide-react";
+import { useState, useEffect } from "react";
 
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -9,22 +9,54 @@ const navLinks = [
   { label: "Marketplace", path: "/" },
   { label: "User Dashboard", path: "/dashboard" },
   { label: "Create Service", path: "/create-service" },
-  { label: "Post Request", path: "/create-request" },
+  { label: "Post Request", path: "/post-request" },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
+  // Check login state from localStorage (same pattern as Thewni's login)
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInitials, setUserInitials] = useState("U");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setIsLoggedIn(true);
+        const name = user.name || user.firstName || "User";
+        setUserInitials(
+          name
+            .split(" ")
+            .map((n) => n?.[0] || "")
+            .join("")
+            .toUpperCase()
+            .slice(0, 2)
+        );
+      } catch {
+        setIsLoggedIn(false);
+      }
+    }
+  }, []);
+
   const isAuth =
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
+    location.pathname === "/register" ||
     location.pathname === "/pending";
 
   if (isAuth) return null;
 
+  // Links to show based on login state
+  const visibleLinks = isLoggedIn
+    ? navLinks
+    : navLinks.filter((l) => l.path === "/" || l.path === "/dashboard");
+
   return (
-    <nav className=" sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
+    <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
       <div className="container flex h-16 items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -48,16 +80,17 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Desktop nav */}
+        {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                location.pathname === link.path
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+              }`}
             >
               {link.label}
             </Link>
@@ -66,18 +99,35 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
-          </Button>
+          {isLoggedIn ? (
+            <>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
+              </Button>
 
-          <Link to="/profile">
-            <Avatar className="h-8 w-8 border-2 border-primary/20 cursor-pointer hover:border-primary transition-colors">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                SC
-              </AvatarFallback>
-            </Avatar>
-          </Link>
+              <Link to="/profile">
+                <Avatar className="h-8 w-8 border-2 border-primary/20 cursor-pointer hover:border-primary transition-colors">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-foreground gap-1.5">
+                  <LogIn className="h-4 w-4" /> Log In
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="rounded-full px-5 text-sm font-semibold shadow-md shadow-primary/20">
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
 
           <Button
             variant="ghost"
@@ -105,19 +155,36 @@ export default function Navbar() {
               />
             </div>
 
-            {navLinks.map((link) => (
+            {visibleLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
+                className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === link.path
                     ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
+                }`}
               >
                 {link.label}
               </Link>
             ))}
+
+            {/* Mobile login/signup */}
+            {!isLoggedIn && (
+              <div className="flex gap-2 pt-3 border-t border-border mt-2">
+                <Link to="/login" className="flex-1" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" className="w-full text-sm font-medium">
+                    Log In
+                  </Button>
+                </Link>
+                <Link to="/register" className="flex-1" onClick={() => setMobileOpen(false)}>
+                  <Button className="w-full text-sm font-semibold">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const url = "http://localhost:5000/Users";
+const url = "http://localhost:5001/Users";
 
 function Register() {
 

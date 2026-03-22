@@ -11,6 +11,10 @@ const ServiceRequestSchema = new Schema(
         category: { type: String, required: true, trim: true, index: true },
         description: { type: String, required: true, trim: true, maxlength: 5000 },
 
+        postedBy: {
+            name: { type: String }
+        },
+
         // Budget offered, optional.
         budget: { type: Number, min: 0 },
 

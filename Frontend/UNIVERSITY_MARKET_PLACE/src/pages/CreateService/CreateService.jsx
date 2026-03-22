@@ -48,13 +48,23 @@ export default function CreateService() {
         setIsSubmitting(true);
 
         try {
-            // Mocking ownerId for now since auth might not be fully hooked up in frontend context
+            // Fetch user from localStorage
+            const userStr = localStorage.getItem("user");
+            let user = { name: "Anonymous Student", id: "60d0bc7b8f0f0b2f1c8a9abc" };
+            if (userStr) {
+                try {
+                    const parsed = JSON.parse(userStr);
+                    user = { name: parsed.name || parsed.fullname, id: parsed.id || parsed._id };
+                } catch(e) {}
+            }
+
             const payload = {
                 ...formData,
                 pricePerHour: Number(formData.pricePerHour),
                 availabilitySlots: slots,
                 workSamples: workSamples,
-                ownerId: '60d0bc7b8f0f0b2f1c8a9abc', // mockup id
+                ownerId: user.id || "60d0bc7b8f0f0b2f1c8a9abc",
+                provider: { name: user.name, verified: true },
                 isPublished: true
             };
 

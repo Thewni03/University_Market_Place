@@ -3,11 +3,17 @@ import { SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { Slider } from "./ui/slider";
 
-function FilterContent({ selectedCategory, onCategoryChange }) {
-  const [priceRange, setPriceRange] = useState([0, 100]);
-  const [rating, setRating] = useState(0);
-  const [location, setLocation] = useState("all"); // "all" | "online" | "on-campus"
-
+function FilterContent({
+  selectedCategory,
+  onCategoryChange,
+  priceRange,
+  setPriceRange,
+  rating,
+  setRating,
+  location,
+  setLocation,
+  maxPrice = 5000
+}) {
   return (
     <>
       {/* Category */}
@@ -22,8 +28,8 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
               type="button"
               onClick={() => onCategoryChange(cat)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${selectedCategory === cat
-                ? "bg-gradient-to-br from-primary to-[hsl(152_60%_32%)] text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                ? "bg-emerald-500 text-white shadow-md border-emerald-500"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-transparent"
                 }`}
             >
               {cat}
@@ -40,13 +46,13 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
         <Slider
           value={priceRange}
           onValueChange={setPriceRange}
-          max={200}
-          step={5}
+          max={maxPrice}
+          step={50}
           className="w-full"
         />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>${priceRange[0]}</span>
-          <span>${priceRange[1]}+</span>
+        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+          <span>Rs {priceRange[0]}</span>
+          <span>Rs {priceRange[1]}{priceRange[1] >= maxPrice ? '+' : ''}</span>
         </div>
       </div>
 
@@ -62,8 +68,8 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
               type="button"
               onClick={() => setRating(r)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${rating === r
-                ? "bg-gradient-to-br from-primary to-[hsl(152_60%_32%)] text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                ? "bg-emerald-500 text-white shadow-md"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
             >
               {r === 0 ? "Any" : `${r}+`}
@@ -84,8 +90,8 @@ function FilterContent({ selectedCategory, onCategoryChange }) {
               type="button"
               onClick={() => setLocation(l)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${location === l
-                ? "bg-gradient-to-br from-primary to-[hsl(152_60%_32%)] text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-primary/10"
+                ? "bg-emerald-500 text-white shadow-md"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
             >
               {l === "all" ? "All" : l}
@@ -102,6 +108,13 @@ export default function FilterPanel({
   onClose,
   selectedCategory,
   onCategoryChange,
+  priceRange,
+  setPriceRange,
+  rating,
+  setRating,
+  location,
+  setLocation,
+  maxPrice,
   isDesktop,
 }) {
   if (isDesktop) {
@@ -117,6 +130,13 @@ export default function FilterPanel({
         <FilterContent
           selectedCategory={selectedCategory}
           onCategoryChange={onCategoryChange}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
+          rating={rating}
+          setRating={setRating}
+          location={location}
+          setLocation={setLocation}
+          maxPrice={maxPrice}
         />
       </div>
     );
@@ -156,6 +176,13 @@ export default function FilterPanel({
           <FilterContent
             selectedCategory={selectedCategory}
             onCategoryChange={onCategoryChange}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            rating={rating}
+            setRating={setRating}
+            location={location}
+            setLocation={setLocation}
+            maxPrice={maxPrice}
           />
         </div>
       </div>

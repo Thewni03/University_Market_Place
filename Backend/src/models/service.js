@@ -40,6 +40,11 @@ const ServiceSchema = new Schema(
     title: { type: String, required: true, trim: true, maxlength: 120 },
     category: { type: String, required: true, trim: true, index: true },
 
+    provider: {
+      name: { type: String },
+      verified: { type: Boolean, default: false }
+    },
+
     // UI shows $/hr
     pricePerHour: { type: Number, required: true, min: 0 },
 
