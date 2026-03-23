@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Star, Eye, CalendarCheck, MapPin, User, Loader2 } from 'lucide-react';
 
 export default function ServiceDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [service, setService] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -14,7 +15,7 @@ export default function ServiceDetail() {
             try {
                 const res = await axios.get(`http://localhost:5001/api/services/${id}`);
                 setService(res.data.data || res.data);
-            } catch (error) {
+            } catch (error) {       
                 console.error("Error fetching service details:", error);
             } finally {
                 setLoading(false);
@@ -153,7 +154,19 @@ export default function ServiceDetail() {
                                 )}
                             </div>
 
-                            <button className="w-full py-4 bg-slate-900 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300">
+                            <button
+                                className="w-full py-4 bg-slate-900 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300"
+                                onClick={() =>
+                                    navigate('/booking-form', {
+                                        state: {
+                                            serviceId: id,
+                                            serviceTitle: service?.title || "",
+                                            pricePerHour: service?.pricePerHour || service?.price || 0,
+                                            selectedSlot: selectedSlot || null,
+                                        },
+                                    })
+                                }
+                            >
                                 {selectedSlot ? `Book for ${selectedSlot.day} at ${selectedSlot.time}` : 'Select a slot to Book'}
                             </button>
 

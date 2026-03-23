@@ -1,13 +1,13 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-
 import serviceRoutes from "./routes/serviceRoutes.js";
 import serviceRequestRoutes from "./routes/serviceRequestRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import registerRoutes from "./routes/RegisterRoutes.js";
 import resetRoutes from "./routes/ResetRoute.js";
 import predictionRoutes from "./routes/predictionRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
 import "./config/db.js";
 
 dotenv.config();
@@ -26,6 +26,7 @@ app.use("/api/requests", serviceRequestRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/users", registerRoutes);
 app.use("/Users", registerRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.get("/", (_req, res) => {
   res.send("Marketplace Backend API is running");

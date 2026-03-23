@@ -118,7 +118,7 @@ const Payment = () => {
               </div>
 
               {/* Total Section */}
-              <div className="flex justify-between items-center mt-5 pt-5 border-t-2 border-[#21262D]">
+              <div className="flex justify-between items-center mt-5 pt-5 border-t border-[#21262D]">
                 <span className="text-base font-semibold text-white">Total</span>
                 <span className="text-xl font-bold text-[#00CFFF] drop-shadow-[0_0_10px_rgba(0,207,255,0.5)]">
                   LKR 11800.18
@@ -165,7 +165,7 @@ const Payment = () => {
                 </div>
                 
                 {/* Subtotal */}
-                <div className="flex justify-between items-center py-3 border-t border-[#21262D] border-b  mt-1">
+                <div className="flex justify-between items-center py-3 border-t border-[#21262D] mt-1">
                   <span className="text-sm text-[#A0A0A0]">Subtotal</span>
                   <span className="text-sm font-semibold text-white">LKR 11800.18</span>
                 </div>
@@ -196,4 +196,4 @@ const Payment = () => {
   );
 };
 
-export default Payment;    
+export default Payment;

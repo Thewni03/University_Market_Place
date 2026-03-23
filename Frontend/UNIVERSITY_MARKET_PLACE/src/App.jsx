@@ -4,15 +4,16 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/navber";
 
 import Home from "./pages/Home/Home";
-import Booking from "./pages/Booking/Booking";
-import BookingForm from "./pages/BookingForm/BookingForm";
-import Payment from "./pages/payment/payment";
 import Profile from "./pages/profile/profile";
 import CreateService from "./pages/CreateService/CreateService";
 import EditService from "./pages/services/editservice";
 import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
 import PostRequest from "./pages/PostRequest/PostRequest";
 import RequestDetail from "./pages/RequestDetail/RequestDetail";
+
+import BookingForm from "./components/BookingForm/BookingForm";
+import Payment from "./components/payment/payment";
+import Reviewandrating from "./components/Reviewandrating/Reviewandrating";
 
 import UserManagement from "./Admin/UserManagement/UserManagement";
 import UserInsert from "./Admin/UserInsert/UserInsert";
@@ -45,9 +46,9 @@ function App() {
         <Route path="/post-request" element={<PostRequest />} />
         <Route path="/request/:id" element={<RequestDetail />} />
 
-        <Route path="/booking" element={<Booking />} />
         <Route path="/booking-form" element={<BookingForm />} />
         <Route path="/payment" element={<Payment />} />
+        <Route path="/reviewandrating" element={<Reviewandrating />} />
 
         <Route path="/userManagement" element={<UserManagement />} />
         <Route path="/userInsert" element={<UserInsert />} />
