@@ -258,18 +258,18 @@ const BookingForm = () => {
             <div className="mb-5">
               <div className="flex justify-between text-[#94a3b8] mb-3">
                 <span>Service Fee</span>
-                <span>$299.00</span>
+                <span>LKR 299.00</span>
               </div>
               <div className="flex justify-between text-[#94a3b8] mb-3">
                 <span>Platform Fee</span>
-                <span>$19.00</span>
+                <span>LKR 19.00</span>
               </div>
               
               <div className="h-px bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent my-4"></div>
               
               <div className="flex justify-between text-lg font-semibold text-white">
                 <span>Total Amount</span>
-                <span className="text-2xl font-bold text-[#60a5fa] drop-shadow-[0_0_20px_rgba(96,165,250,0.5)]">$318.00</span>
+                <span className="text-2xl font-bold text-[#60a5fa] drop-shadow-[0_0_20px_rgba(96,165,250,0.5)]">LKR 318.00</span>
               </div>
             </div>
 

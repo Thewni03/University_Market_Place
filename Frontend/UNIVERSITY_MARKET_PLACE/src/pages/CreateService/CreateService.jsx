@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Camera, CheckCircle2, Clock, MapPin, Tag } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Camera, CheckCircle2, Clock, MapPin, Tag, X } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +9,18 @@ const times = ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 P
 
 export default function CreateService() {
     const navigate = useNavigate();
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+    const currentUserId =
+        localStorage.getItem("userId") ||
+        localStorage.getItem("ownerId") ||
+        (() => {
+            try {
+                return JSON.parse(localStorage.getItem("user") || "null")?._id || "";
+            } catch {
+                return "";
+            }
+        })();
+
     const [formData, setFormData] = useState({
         title: '',
         category: '',
@@ -21,8 +33,8 @@ export default function CreateService() {
     const [selectedDay, setSelectedDay] = useState(days[0]);
     const [selectedTime, setSelectedTime] = useState(times[0]);
 
-    const [workSamples, setWorkSamples] = useState([]);
-    const [sampleUrl, setSampleUrl] = useState('');
+    const [sampleFiles, setSampleFiles] = useState([]);
+    const sampleFileInputRef = useRef(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,22 +60,35 @@ export default function CreateService() {
         setIsSubmitting(true);
 
         try {
-            // Mocking ownerId for now since auth might not be fully hooked up in frontend context
-            const payload = {
-                ...formData,
-                pricePerHour: Number(formData.pricePerHour),
-                availabilitySlots: slots,
-                workSamples: workSamples,
-                ownerId: '60d0bc7b8f0f0b2f1c8a9abc', // mockup id
-                isPublished: true
-            };
+            if (!currentUserId) {
+                throw new Error("User ID not found. Please login again.");
+            }
+            const price = Number(formData.pricePerHour);
+            if (price > 10000) {
+                alert("you cant add more than 10000");
+                setIsSubmitting(false);
+                return;
+            }
 
-            await axios.post('http://localhost:5001/api/services', payload);
+            const payload = new FormData();
+            payload.append("title", formData.title);
+            payload.append("category", formData.category);
+            payload.append("pricePerHour", String(price));
+            payload.append("description", formData.description);
+            payload.append("locationMode", formData.locationMode);
+            payload.append("ownerId", currentUserId);
+            payload.append("isPublished", "true");
+            payload.append("availabilitySlots", JSON.stringify(slots));
+            sampleFiles.forEach((file) => {
+                payload.append("workSampleFiles", file);
+            });
+
+            await axios.post(`${API_BASE_URL}/api/services`, payload);
             alert('Service created successfully!');
             navigate('/');
         } catch (error) {
             console.error("Error creating service:", error);
-            alert('Failed to create service.');
+            alert(error?.response?.data?.error || error?.message || 'Failed to create service.');
         } finally {
             setIsSubmitting(false);
         }
@@ -124,6 +149,7 @@ export default function CreateService() {
                                         name="pricePerHour"
                                         required
                                         min="0"
+                                        max="10000"
                                         value={formData.pricePerHour}
                                         onChange={handleInputChange}
                                         placeholder="e.g. 1500"
@@ -140,44 +166,54 @@ export default function CreateService() {
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                 <Camera className="w-5 h-5 text-emerald-500" /> Sample Photos (Optional)
                             </h2>
-                            <p className="text-sm text-slate-500 mb-2">Provide URLs to images that showcase your previous work or service.</p>
+                            <p className="text-sm text-slate-500 mb-2">Click Add Photo to choose files from your folder.</p>
 
-                            <div className="flex flex-col md:flex-row gap-4 items-end bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                <div className="flex-1 w-full">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Image URL</label>
-                                    <input
-                                        type="url"
-                                        value={sampleUrl}
-                                        onChange={e => setSampleUrl(e.target.value)}
-                                        placeholder="https://example.com/my-work.jpg"
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white transition-all"
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (sampleUrl) {
-                                            setWorkSamples([...workSamples, { url: sampleUrl, mimeType: "image/jpeg", filename: "Sample" }]);
-                                            setSampleUrl('');
-                                        }
+                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                <label className="block text-sm font-semibold text-slate-700 mb-3">Work Sample Photos</label>
+                                <input
+                                    ref={sampleFileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => {
+                                        const files = Array.from(e.target.files || []);
+                                        if (files.length === 0) return;
+                                        setSampleFiles((prev) => [...prev, ...files]);
+                                        e.target.value = "";
                                     }}
-                                    className="w-full md:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition-colors shrink-0"
-                                >
-                                    Add Photo
-                                </button>
+                                    className="hidden"
+                                />
+                                <div className="flex items-center justify-between gap-4">
+                                    <p className="text-sm text-slate-600">
+                                        {sampleFiles.length > 0 ? `${sampleFiles.length} file(s) selected` : "No files selected"}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => sampleFileInputRef.current?.click()}
+                                        className="w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition-colors shrink-0"
+                                    >
+                                        Add Photo
+                                    </button>
+                                </div>
                             </div>
 
-                            {workSamples.length > 0 && (
-                                <div className="flex flex-wrap gap-4 mt-4">
-                                    {workSamples.map((sample, idx) => (
-                                        <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200 shadow-sm group">
-                                            <img src={sample.url} alt="Sample" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button type="button" onClick={() => setWorkSamples(workSamples.filter((_, i) => i !== idx))} className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
-                                                    &times;
-                                                </button>
-                                            </div>
-                                        </div>
+                            {sampleFiles.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    {sampleFiles.map((file, idx) => (
+                                        <span
+                                            key={`${file.name}-${idx}`}
+                                            className="inline-flex items-center gap-2 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm text-emerald-800"
+                                        >
+                                            <span className="truncate max-w-[220px]">{file.name}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSampleFiles(sampleFiles.filter((_, i) => i !== idx))}
+                                                className="text-emerald-700 hover:text-red-600 transition-colors"
+                                                aria-label={`Remove ${file.name}`}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </span>
                                     ))}
                                 </div>
                             )}

@@ -1,7 +1,6 @@
-
 import express from "express";
-import upload from "../uploads/Uploads.js";
 import RegisterController from "../controllers/RegisterController.js";
+import upload from "../uploads/Uploads.js";
 const router = express.Router();
 
 // Get all users
@@ -26,4 +25,3 @@ router.put("/:email", upload.single("student_id_pic"), RegisterController.update
 router.delete("/:email", RegisterController.deleteUser);
 
 export default router;
-

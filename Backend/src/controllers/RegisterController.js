@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { calculateTrustScore } from "../Utils/trustScore.js";
 
 // get all
-const getAllUsers = async (req, res, next) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find();
     if (!users || users.length === 0) {
@@ -22,6 +22,14 @@ const getAllUsers = async (req, res, next) => {
 const addUsers = async (req, res, next) => {
   const { email, password, fullname, student_id, university_name, graduate_year, phone } = req.body;
   try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Student ID picture is required." });
+    }
+
+    if (!password || String(password).length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
@@ -52,20 +60,39 @@ const addUsers = async (req, res, next) => {
 
     await user.save();
 
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
-      user
+      user: safeUser
     });
 
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ message: "Unable to add user" });
+    if (err?.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern || {})[0];
+      if (duplicateField === "email") {
+        return res.status(409).json({ message: "Email already exists." });
+      }
+      if (duplicateField === "student_id") {
+        return res.status(409).json({ message: "Student ID already exists." });
+      }
+      return res.status(409).json({ message: "Duplicate value exists." });
+    }
+
+    if (err?.name === "ValidationError") {
+      const firstMessage = Object.values(err.errors || {})[0]?.message;
+      return res.status(400).json({ message: firstMessage || "Invalid registration data." });
+    }
+
+    return res.status(500).json({ message: err?.message || "Unable to add user" });
   }
 };
 
 // get by email
-const getByEmail = async (req, res, next) => {
+export const getByEmail = async (req, res, next) => {
   const email = req.params.email;
   try {
     const user = await User.findOne({ email });
@@ -78,7 +105,7 @@ const getByEmail = async (req, res, next) => {
 };
 
 // update user
-const updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   const userEmail = req.params.email;
   const { password, fullname, student_id, university_name, graduate_year, phone, verification_status } = req.body;
   try {
@@ -112,7 +139,7 @@ const updateUser = async (req, res) => {
 };
 
 // delete user
-const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   const userEmail = req.params.email;
   try {
     const user = await User.findOne({ email: userEmail });
@@ -125,7 +152,8 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// login user
+
+
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {

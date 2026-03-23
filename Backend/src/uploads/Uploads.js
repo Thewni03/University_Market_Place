@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 
 // Make sure the uploads folder exists
-const UPLOADS_DIR = path.join(process.cwd(), "Uploads"); // absolute path
+const UPLOADS_DIR = path.join(process.cwd(), "uploads"); // absolute path
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
   console.log("Created uploads folder at", UPLOADS_DIR);
