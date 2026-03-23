@@ -11,11 +11,14 @@ export const getUserDashboardData = async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing email or id parameters" });
     }
 
-    // Parallel fetch for massive performance gains
-    const [services, requests, bookings] = await Promise.all([
-      Service.find({ ownerId: id }).sort({ createdAt: -1 }),
+    // Massive performance gains with optimal queries
+    const services = await Service.find({ ownerId: id }).sort({ createdAt: -1 });
+    const serviceIds = services.map(s => s._id);
+
+    const [requests, bookings, incomingBookings] = await Promise.all([
       ServiceRequest.find({ userId: id }).sort({ createdAt: -1 }),
       Booking.find({ bookerEmail: email }).populate('serviceId', 'title category').sort({ createdAt: -1 }),
+      Booking.find({ serviceId: { $in: serviceIds } }).populate('serviceId', 'title category').sort({ createdAt: -1 })
     ]);
 
     res.status(200).json({
@@ -23,7 +26,8 @@ export const getUserDashboardData = async (req, res) => {
       data: {
         services,
         requests,
-        bookings
+        bookings,
+        incomingBookings
       }
     });
 

@@ -15,7 +15,7 @@ import Register from "./components/Register/Register";
 import Login from "./components/Login/Login";
 import PendingVerification from "./components/PendingVerification/PendingVerification";
 import Verificationstatushandler from "./components/Verificationstatushandler/Verificationstatushandler";
-import Navbar from "./components/navber";
+import Navbar from "./components/Navbar";
 import Profile from "./components/Profile/Profile";
 
 function App() {

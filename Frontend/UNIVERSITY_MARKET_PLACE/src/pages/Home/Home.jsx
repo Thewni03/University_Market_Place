@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 export default function Home() {
   const [tab, setTab] = useState("services");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [maxPrice, setMaxPrice] = useState(5000);
   const [priceRange, setPriceRange] = useState([0, 5000]);
@@ -81,6 +82,14 @@ export default function Home() {
   const filteredServices = services
     .filter((s) => selectedCategory === "All" || s.category === selectedCategory)
     .filter((s) => {
+      if (!searchQuery) return true;
+      const term = searchQuery.toLowerCase();
+      return (
+        (s.title && s.title.toLowerCase().includes(term)) || 
+        (s.description && s.description.toLowerCase().includes(term))
+      );
+    })
+    .filter((s) => {
       const p = s.pricePerHour || s.price || 0;
       if (priceRange[1] >= maxPrice) return p >= priceRange[0];
       return p >= priceRange[0] && p <= priceRange[1];
@@ -95,44 +104,33 @@ export default function Home() {
     })
     .sort((a, b) => (b.rankingScore || 0) - (a.rankingScore || 0));
 
+  // ── Filtered requests logic ──
+  const filteredRequests = requests
+    .filter((r) => selectedCategory === "All" || r.category === selectedCategory)
+    .filter((r) => {
+      if (!searchQuery) return true;
+      const term = searchQuery.toLowerCase();
+      return (
+        (r.title && r.title.toLowerCase().includes(term)) || 
+        (r.description && r.description.toLowerCase().includes(term))
+      );
+    })
+    .filter((r) => {
+      const p = r.budget || 0;
+      if (priceRange[1] >= maxPrice) return p >= priceRange[0];
+      return p >= priceRange[0] && p <= priceRange[1];
+    });
+
   // ── Shared listings section (used in both views) ──
   const ListingsSection = () => (
-    <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto">
-      {tab === "services" && (
-        <>
-          {/* Desktop sidebar */}
-          <div className="hidden lg:block shrink-0 w-64 xl:w-72">
-            <div className="sticky top-24 pt-4">
-              <FilterPanel
-                open={true}
-                onClose={() => {}}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                priceRange={priceRange}
-                setPriceRange={setPriceRange}
-                rating={rating}
-                setRating={setRating}
-                location={location}
-                setLocation={setLocation}
-                maxPrice={maxPrice}
-                isDesktop
-              />
-            </div>
-          </div>
-
-          {/* Mobile filter toggle */}
-          <div className="lg:hidden mb-4">
-            <Button
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2 rounded-xl h-12"
-              onClick={() => setFilterOpen(true)}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-            </Button>
+    <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto w-full relative">
+      <>
+        {/* Desktop sidebar */}
+        <div className="hidden lg:block shrink-0 w-64 xl:w-72">
+          <div className="sticky top-24 pt-4">
             <FilterPanel
-              open={filterOpen}
-              onClose={() => setFilterOpen(false)}
+              open={true}
+              onClose={() => {}}
               selectedCategory={selectedCategory}
               onCategoryChange={setSelectedCategory}
               priceRange={priceRange}
@@ -142,10 +140,36 @@ export default function Home() {
               location={location}
               setLocation={setLocation}
               maxPrice={maxPrice}
+              isDesktop
             />
           </div>
-        </>
-      )}
+        </div>
+
+        {/* Mobile filter toggle */}
+        <div className="lg:hidden mb-4">
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 rounded-xl h-12"
+            onClick={() => setFilterOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+          </Button>
+          <FilterPanel
+            open={filterOpen}
+            onClose={() => setFilterOpen(false)}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            rating={rating}
+            setRating={setRating}
+            location={location}
+            setLocation={setLocation}
+            maxPrice={maxPrice}
+          />
+        </div>
+      </>
 
       <div className="flex-1 min-w-0 pt-4">
         {loading ? (
@@ -171,11 +195,23 @@ export default function Home() {
             </div>
           )
         ) : (
-          <div className="flex flex-col gap-5 max-w-4xl mx-auto">
-            {requests.map((r) => (
-              <RequestCard key={r._id || r.id} request={r} />
-            ))}
-          </div>
+          filteredRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-3xl border border-slate-100">
+              <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                <SlidersHorizontal className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No requests found</h3>
+              <p className="text-slate-500 max-w-sm">
+                Try adjusting your category or budget slider to see more requests.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-5 w-full">
+              {filteredRequests.map((r) => (
+                <RequestCard key={r._id || r.id} request={r} />
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>
@@ -216,8 +252,8 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-background font-sans">
         {/* Welcome bar */}
-        <div className="border-b border-border bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
-          <div className="container mx-auto px-5 md:px-10 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="border-b border-border bg-gradient-to-r from-primary/5 via-transparent to-accent/5 pb-10">
+          <div className="container mx-auto px-5 md:px-10 py-5 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-slate-900">
                 Welcome back, <span className="text-primary">{userName}</span> 👋
@@ -241,24 +277,63 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Search + Tab toggle bar */}
-        <div className="container mx-auto px-5 md:px-10 pt-6 pb-2">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            {/* Search */}
-            <div className="relative w-full md:max-w-md">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search services, tutors, skills..."
-                className="w-full rounded-xl border border-input bg-white py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring shadow-sm"
-              />
+        {/* Airbnb Style Advanced Search Pill */}
+        <div className="container mx-auto px-5 md:px-10 relative z-20">
+          <div className="max-w-4xl mx-auto -mt-8">
+            <div className="flex flex-col md:flex-row items-center bg-white rounded-3xl md:rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 p-2 md:pl-8">
+              
+              {/* Segment 1: What */}
+              <div className="flex flex-col flex-1 w-full px-4 py-2 hover:bg-slate-50 rounded-t-3xl md:rounded-l-full cursor-pointer transition-colors md:border-r border-slate-100 group relative">
+                <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Looking For</span>
+                <select 
+                  className="text-[15px] font-semibold text-slate-500 bg-transparent outline-none cursor-pointer appearance-none truncate w-full group-hover:text-primary transition-colors"
+                  value={tab}
+                  onChange={(e) => setTab(e.target.value)}
+                >
+                  <option value="services">Services</option>
+                  <option value="requests">Help Requests</option>
+                </select>
+              </div>
+
+              {/* Segment 2: Keyword Search */}
+              <div className="flex flex-col flex-[1.5] w-full px-4 py-2 hover:bg-slate-50 cursor-text transition-colors md:border-r border-slate-100 group">
+                <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Keyword</span>
+                <input 
+                  type="text" 
+                  placeholder="Design, Math, Coding..."
+                  className="text-[15px] font-semibold bg-transparent outline-none placeholder:text-slate-400/70 text-slate-700 truncate w-full focus:ring-0"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Segment 3: Location */}
+              <div className="flex flex-col flex-1 w-full px-4 py-2 hover:bg-slate-50 cursor-pointer transition-colors group relative md:rounded-r-full">
+                <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Where</span>
+                <select 
+                  className="text-[15px] font-semibold text-slate-500 bg-transparent outline-none cursor-pointer appearance-none truncate w-full group-hover:text-primary transition-colors"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                >
+                  <option value="all">Anywhere</option>
+                  <option value="online">Online</option>
+                  <option value="on-campus">On Campus</option>
+                </select>
+              </div>
+
+              {/* Search Button */}
+              <div className="shrink-0 mt-2 md:mt-0 p-1 md:pl-2 w-full md:w-auto flex justify-end">
+                <div className="h-14 w-14 md:h-14 md:w-14 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 hover:scale-105 cursor-pointer transition-all shadow-md active:scale-95">
+                  <Search className="h-6 w-6" strokeWidth={2.5} />
+                </div>
+              </div>
+              
             </div>
-            <TabToggle />
           </div>
         </div>
 
         {/* Listings */}
-        <div className="container mx-auto px-5 md:px-10 pb-12">
+        <div className="container mx-auto px-5 md:px-10 pb-12 mt-8 md:mt-12">
           <ListingsSection />
         </div>
       </div>

@@ -50,9 +50,15 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await sendRequest();
-        alert("Registration successful! Please wait for verification.");
-        navigate('/');
+        try {
+            await sendRequest();
+            alert("Registration successful! Please wait for verification.");
+            navigate('/');
+        } catch (error) {
+            console.error("Registration error:", error);
+            const msg = error.response?.data?.message || "Registration failed. Check console for details.";
+            alert("Error: " + msg);
+        }
     }
 
     return (

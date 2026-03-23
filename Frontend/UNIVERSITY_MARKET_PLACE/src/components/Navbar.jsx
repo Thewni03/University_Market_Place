@@ -86,16 +86,8 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Search - desktop */}
+        {/* Search - desktop (Removed to favor the Homepage search engine) */}
         <div className="hidden md:flex flex-1 max-w-md">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search services, tutors, skills..."
-              className="w-full rounded-lg border border-input bg-secondary/50 py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
         </div>
 
         {/* Desktop nav */}
@@ -198,15 +190,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-card animate-fade-in">
           <div className="container py-3 space-y-1">
-            {/* Mobile search */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search services..."
-                className="w-full rounded-lg border border-input bg-secondary/50 py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
+            {/* Mobile search removed */}
 
             {navLinks.map((link) => (
               <Link

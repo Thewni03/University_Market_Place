@@ -186,9 +186,12 @@ export default function ServiceDetail() {
                                 <p className="text-slate-500 mt-1 max-w-md">Undergraduate Student • Responds within 1 hour</p>
                             </div>
 
-                            <button className="shrink-0 w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors relative z-10">
+                            <a 
+                                href={`mailto:${service.ownerEmail || service.provider?.email || 'hello@unimarket.edu'}?subject=Inquiry from UniMarket regarding: ${service.title}`}
+                                className="shrink-0 w-full sm:w-auto px-6 py-3 text-center bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors relative z-10"
+                            >
                                 Contact Me
-                            </button>
+                            </a>
                         </div>
 
                         {/* About this Service */}
