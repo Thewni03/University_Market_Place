@@ -1,39 +1,54 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+
+import Navbar from "./components/navber";
+
+import Home from "./pages/Home/Home";
+import Profile from "./pages/profile/profile";
+import CreateService from "./pages/CreateService/CreateService";
+import EditService from "./pages/services/editservice";
+import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
+import PostRequest from "./pages/PostRequest/PostRequest";
+import RequestDetail from "./pages/RequestDetail/RequestDetail";
 
 import BookingForm from "./components/BookingForm/BookingForm";
 import Payment from "./components/payment/payment";
-import Home from "./pages/Home/Home";
-import CreateService from "./pages/CreateService/CreateService";
-import PostRequest from "./pages/PostRequest/PostRequest";
-import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
-import RequestDetail from "./pages/RequestDetail/RequestDetail";
-import UserUpdate from "./Admin/UserUpdate/UserUpdate";
+import Reviewandrating from "./components/Reviewandrating/Reviewandrating";
+
 import UserManagement from "./Admin/UserManagement/UserManagement";
 import UserInsert from "./Admin/UserInsert/UserInsert";
-import Register from "./components/Register/Register";
-import Login from "./components/Login/Login";
-import PendingVerification from "./components/PendingVerification/PendingVerification";
+import UserUpdate from "./Admin/UserUpdate/UserUpdate";
+
+import Register from "./pages/Register/Register";
+import Login from "./pages/Login/Login";
+import PendingVerification from "./pages/PendingVerification/PendingVerification";
 import Verificationstatushandler from "./components/Verificationstatushandler/Verificationstatushandler";
-import Navbar from "./components/Navbar";
-import Profile from "./components/Profile/Profile";
-import Reviewandrating from "./components/Reviewandrating/Reviewandrating"; 
 
 function App() {
+  const location = useLocation();
+  const hideNavbar =
+    location.pathname === "/register" ||
+    location.pathname === "/Verificationstatushandler";
+
   return (
     <>
-      <Navbar />   
+      {!hideNavbar && <Navbar />}
 
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Profile />} />
+        <Route path="/profile" element={<Profile />} />
+
         <Route path="/create-service" element={<CreateService />} />
-        <Route path="/post-request" element={<PostRequest />} />
+        <Route path="/edit-service/:serviceId" element={<EditService />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
+
+        <Route path="/post-request" element={<PostRequest />} />
         <Route path="/request/:id" element={<RequestDetail />} />
-       
+
         <Route path="/booking-form" element={<BookingForm />} />
         <Route path="/payment" element={<Payment />} />
-        <Route path="/reviewandrating" element={<Reviewandrating />} /> 
+        <Route path="/reviewandrating" element={<Reviewandrating />} />
 
         <Route path="/userManagement" element={<UserManagement />} />
         <Route path="/userInsert" element={<UserInsert />} />
@@ -41,10 +56,11 @@ function App() {
 
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-
         <Route path="/pending" element={<PendingVerification />} />
-        <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route
+          path="/Verificationstatushandler"
+          element={<Verificationstatushandler />}
+        />
       </Routes>
     </>
   );

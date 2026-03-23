@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const url = "http://localhost:5000/Users/login"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001"
+const url = `${API_BASE_URL}/users/login`
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
@@ -223,19 +224,19 @@ function Cat({ mood, isPerked, isPawSwiping, eyesClosed }) {
 
   const bubbles = { sleeping:null, awake:'...hm? 👁️', proud:'nice email bestie ✨', hiding:'i see nothing 😴', happy:'YESSS!! 🎉', smug:'oops~ 😏', error:'*destruction mode* 😈' }
 
-  const EyeL = () => {
+  const renderEyeL = () => {
     if (mood==='sleeping'||mood==='hiding') return <path d="M34 54 Q39 50 44 54" stroke="#92400e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     if (mood==='happy')   return <path d="M34 56 Q39 50 44 56" stroke="#92400e" strokeWidth="3" fill="none" strokeLinecap="round"/>
     if (mood==='smug')    return <path d="M34 56 Q39 50 44 56" stroke="#92400e" strokeWidth="3" fill="none" strokeLinecap="round"/>
     return <g className={eyesClosed?'eye-close-cls':'eye-open-cls'}><ellipse cx="39" cy="55" rx="6.5" ry="7" fill="#1c1410"/><ellipse cx="40.5" cy="53" rx="2.2" ry="2.5" fill="white" opacity="0.6"/></g>
   }
-  const EyeR = () => {
+  const renderEyeR = () => {
     if (mood==='sleeping'||mood==='hiding') return <path d="M56 54 Q61 50 66 54" stroke="#92400e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     if (mood==='happy')   return <path d="M56 56 Q61 50 66 56" stroke="#92400e" strokeWidth="3" fill="none" strokeLinecap="round"/>
     if (mood==='smug')    return <path d="M56 56 Q61 50 66 56" stroke="#92400e" strokeWidth="3" fill="none" strokeLinecap="round"/>
     return <g className={eyesClosed?'eye-close-cls':'eye-open-cls'}><ellipse cx="61" cy="55" rx="6.5" ry="7" fill="#1c1410"/><ellipse cx="62.5" cy="53" rx="2.2" ry="2.5" fill="white" opacity="0.6"/></g>
   }
-  const Mouth = () => {
+  const renderMouth = () => {
     if (mood==='sleeping') return <path d="M47 66 Q50 69 53 66" stroke="#92400e" strokeWidth="2" fill="none" strokeLinecap="round"/>
     if (mood==='happy')    return <><path d="M43 65 Q50 75 57 65" stroke="#92400e" strokeWidth="2.5" fill="none" strokeLinecap="round"/><ellipse cx="50" cy="70" rx="8" ry="5" fill="#fda4af" opacity="0.5"/></>
     if (mood==='smug')     return <path d="M45 66 Q52 73 58 65" stroke="#92400e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
@@ -282,7 +283,9 @@ function Cat({ mood, isPerked, isPawSwiping, eyesClosed }) {
           <line x1="10" y1="67" x2="36" y2="66" stroke="#92400e" strokeWidth="1.5" opacity="0.6"/>
           <line x1="90" y1="62" x2="64" y2="64" stroke="#92400e" strokeWidth="1.5" opacity="0.6"/>
           <line x1="90" y1="67" x2="64" y2="66" stroke="#92400e" strokeWidth="1.5" opacity="0.6"/>
-          <EyeL/><EyeR/><Mouth/>
+          {renderEyeL()}
+          {renderEyeR()}
+          {renderMouth()}
         </g>
 
         <ellipse cx="38" cy="114" rx="12" ry="7" fill="#fde68a"/>
@@ -344,9 +347,13 @@ export default function Login() {
       const { token, user } = res.data
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
+      if (user?._id) {
+        localStorage.setItem('userId', user._id)
+        localStorage.setItem('ownerId', user._id)
+      }
       setDone(true)
       setTimeout(() => {
-        user.verification_status === 'verified' ? navigate('/profile') : navigate('/Verificationstatushandler')
+        navigate('/')
       }, 1800)
     } catch {
       setError("Invalid email or password")

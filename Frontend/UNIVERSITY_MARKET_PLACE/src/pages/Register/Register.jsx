@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const url = "http://localhost:5000/Users";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+const url = `${API_BASE_URL}/users`;
 
 function Register() {
 
@@ -43,16 +44,29 @@ function Register() {
         formData.append('graduate_year', inputs.graduate_year);
         formData.append('phone', inputs.phone);
 
-        await axios.post(url, formData, {
+        return axios.post(url, formData, {
             headers: { "Content-Type": "multipart/form-data" }
         });
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await sendRequest();
-        alert("Registration successful! Please wait for verification.");
-        navigate('/');
+        try {
+            const res = await sendRequest();
+            const user = res?.data?.user;
+            if (user?._id) {
+                localStorage.setItem("userId", user._id);
+                localStorage.setItem("ownerId", user._id);
+                localStorage.setItem("user", JSON.stringify(user));
+            }
+            navigate('/');
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Registration failed. Please try again.";
+            alert(message);
+        }
     }
 
     return (
@@ -147,7 +161,7 @@ function Register() {
                             <div className="border-2 border-dashed border-purple-200 hover:border-cyan-500 rounded-xl px-4 py-4 transition-all duration-200">
                                 <input
                                     type="file" name="student_id_pic" accept=".pdf,.jpg,.jpeg,.png"
-                                    onChange={handleFileChange} required
+                                    onChange={handleFileChange} 
                                     className="text-black text-sm w-full"
                                 />
                                 <p className="text-gray-400 text-xs mt-1">Accepts jpg, jpeg, png, pdf</p>

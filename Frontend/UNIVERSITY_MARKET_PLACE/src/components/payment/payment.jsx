@@ -36,7 +36,7 @@ const Payment = () => {
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium text-white text-[15px]">Credit card</span>
-                    <span className="text-[13px] text-[#A0A0A0]">Current Balance: $5,750.20</span>
+                    <span className="text-[13px] text-[#A0A0A0]">Current Balance: LKR 5,750.20</span>
                   </div>
                   <span className="text-[13px] text-[#A0A0A0] bg-[#21262D] px-2.5 py-1 rounded-full">Mastercard</span>
                 </div>
@@ -121,7 +121,7 @@ const Payment = () => {
               <div className="flex justify-between items-center mt-5 pt-5 border-t border-[#21262D]">
                 <span className="text-base font-semibold text-white">Total</span>
                 <span className="text-xl font-bold text-[#00CFFF] drop-shadow-[0_0_10px_rgba(0,207,255,0.5)]">
-                  $11800.18
+                  LKR 11800.18
                 </span>
               </div>
             </div>
@@ -134,7 +134,7 @@ const Payment = () => {
               <div className="mb-6 pb-5 border-b border-[#21262D]">
                 <div className="flex flex-col gap-1">
                   <span className="text-base text-[#A0A0A0]">BMW 3 Series</span>
-                  <span className="text-2xl font-bold text-white">$12000.18 Lakh</span>
+                  <span className="text-2xl font-bold text-white">LKR 12000.18 Lakh</span>
                 </div>
               </div>
 
@@ -149,7 +149,7 @@ const Payment = () => {
                 {/* Commission */}
                 <div className="flex justify-between items-center py-3 border-b border-dashed border-[#21262D]">
                   <span className="text-sm text-[#A0A0A0]">Comisson</span>
-                  <span className="text-sm font-medium text-[#FF4444]">-$140.00</span>
+                  <span className="text-sm font-medium text-[#FF4444]">-LKR 140.00</span>
                 </div>
                 
                 {/* Invoice */}
@@ -167,21 +167,21 @@ const Payment = () => {
                 {/* Subtotal */}
                 <div className="flex justify-between items-center py-3 border-t border-[#21262D] mt-1">
                   <span className="text-sm text-[#A0A0A0]">Subtotal</span>
-                  <span className="text-sm font-semibold text-white">$11800.18</span>
+                  <span className="text-sm font-semibold text-white">LKR 11800.18</span>
                 </div>
                 
                 {/* Total */}
                 <div className="flex justify-between items-center py-3 mt-2.5">
                   <span className="text-sm text-[#A0A0A0]">Total</span>
                   <span className="text-lg font-bold text-[#00CFFF] drop-shadow-[0_0_10px_rgba(0,207,255,0.5)]">
-                    $11800.18
+                    LKR 11800.18
                   </span>
                 </div>
               </div>
 
               {/* Pay Button */}
               <button className="w-full bg-transparent text-white border-2 border-[#1E90FF] py-4 rounded-xl text-base font-semibold cursor-pointer transition-all duration-300 hover:bg-[#1E90FF] hover:border-[#1E90FF] hover:shadow-[0_0_20px_rgba(30,144,255,0.6)] hover:-translate-y-0.5 relative overflow-hidden">
-                Pay $11800.18
+                Pay LKR 11800.18
               </button>
             </div>
           </div>
