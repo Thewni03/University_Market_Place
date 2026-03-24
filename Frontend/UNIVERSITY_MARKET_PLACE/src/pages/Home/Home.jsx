@@ -68,6 +68,7 @@ export default function Home() {
         if (Number(minRating) > 0) params.set("minRating", String(minRating));
         params.set("minPrice", String(priceRange[0] ?? 0));
         params.set("maxPrice", String(priceRange[1] ?? 10000));
+        params.set("limit", "60");
 
         const response = await fetch(
           `${API_BASE_URL}/api/services/ranked?${params.toString()}`

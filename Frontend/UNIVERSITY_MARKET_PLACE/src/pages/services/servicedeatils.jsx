@@ -13,8 +13,8 @@ export default function ServiceDetail() {
 
   const currentUserId =
     localStorage.getItem("userId") ||
-    import.meta.env.VITE_PROFILE_USER_ID ||
-    "69a7cbb4f893c9e5eb3f479b";
+    localStorage.getItem("ownerId") ||
+    "";
 
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);

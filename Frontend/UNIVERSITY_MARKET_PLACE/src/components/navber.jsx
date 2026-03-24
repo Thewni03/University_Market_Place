@@ -11,7 +11,7 @@ import { useNotifications } from "../notifications/context/NotificationContext";
 import NotificationDropdown from "../notifications/components/NotificationDropdown";
 
 const navLinks = [
-  { label: "Marketplace", path: "/" },
+  { label: "Marketplace", path: "/home" },
   { label: "User Dashboard", path: "/dashboard" },
   { label: "Offer a Service", path: "/create-service" }, // ← KEPT: label from file 1
   { label: "Post Request", path: "/post-request" },
@@ -130,15 +130,19 @@ export default function Navbar() {
     };
   }, [API_BASE_URL, searchTerm]);
 
+  const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const isAuth =
-    location.pathname === "/login" ||
-    location.pathname === "/signup" ||
-    location.pathname === "/pending";
+    normalizedPath === "/" ||
+    normalizedPath === "/login" ||
+    normalizedPath === "/register" ||
+    normalizedPath === "/signup" ||
+    normalizedPath === "/pending" ||
+    normalizedPath === "/verificationstatushandler";
 
   if (isAuth) return null;
 
   const isLinkActive = (path) => {
-    if (path === "/") return location.pathname === "/";
+    if (path === "/home") return location.pathname === "/home";
     if (path === "/dashboard") {
       return location.pathname === "/dashboard" || location.pathname === "/profile";
     }
@@ -162,7 +166,7 @@ export default function Navbar() {
       <div className="page-container flex h-16 items-center justify-between gap-4"> {/* ← KEPT: page-container from file 1 */}
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
+        <Link to="/home" className="flex items-center gap-2 shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[hsl(152_60%_32%)]"> {/* ← KEPT: explicit gradient from file 1 */}
             <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>

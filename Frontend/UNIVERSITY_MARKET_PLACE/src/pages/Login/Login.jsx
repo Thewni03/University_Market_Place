@@ -220,7 +220,7 @@ export default function Login() {
       const res = await axios.post(`${API}/Users/login`, inputs)
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
-      navigate('/profile')
+      navigate('/home')
     } catch {
       setError('Invalid email or password')
     }

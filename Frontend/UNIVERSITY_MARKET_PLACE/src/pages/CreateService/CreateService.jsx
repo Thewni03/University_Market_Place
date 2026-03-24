@@ -34,9 +34,11 @@ export default function CreateService() {
     const [selectedTime, setSelectedTime] = useState(times[0]);
 
     const [sampleFiles, setSampleFiles] = useState([]);
+    const [removingSampleFiles, setRemovingSampleFiles] = useState([]);
     const sampleFileInputRef = useRef(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [removingSlots, setRemovingSlots] = useState([]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -51,8 +53,20 @@ export default function CreateService() {
         }
     };
 
-    const removeSlot = (index) => {
-        setSlots(slots.filter((_, i) => i !== index));
+    const removeSampleFileWithAnimation = (file) => {
+        setRemovingSampleFiles((prev) => (prev.includes(file) ? prev : [...prev, file]));
+        setTimeout(() => {
+            setSampleFiles((prev) => prev.filter((f) => f !== file));
+            setRemovingSampleFiles((prev) => prev.filter((f) => f !== file));
+        }, 380);
+    };
+
+    const removeSlotWithAnimation = (slot) => {
+        setRemovingSlots((prev) => (prev.includes(slot) ? prev : [...prev, slot]));
+        setTimeout(() => {
+            setSlots((prev) => prev.filter((s) => s !== slot));
+            setRemovingSlots((prev) => prev.filter((s) => s !== slot));
+        }, 380);
     };
 
     const handleSubmit = async (e) => {
@@ -198,17 +212,18 @@ export default function CreateService() {
                             </div>
 
                             {sampleFiles.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-4">
+                                <div className="flex flex-wrap gap-2 mt-4 transition-all duration-300">
                                     {sampleFiles.map((file, idx) => (
                                         <span
                                             key={`${file.name}-${idx}`}
-                                            className="inline-flex items-center gap-2 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm text-emerald-800"
+                                            className={`chip-enter inline-flex items-center gap-2 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm text-emerald-800 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${removingSampleFiles.includes(file) ? "chip-exit pointer-events-none" : ""}`}
+                                            style={{ animationDelay: `${idx * 35}ms` }}
                                         >
                                             <span className="truncate max-w-[220px]">{file.name}</span>
                                             <button
                                                 type="button"
-                                                onClick={() => setSampleFiles(sampleFiles.filter((_, i) => i !== idx))}
-                                                className="text-emerald-700 hover:text-red-600 transition-colors"
+                                                onClick={() => removeSampleFileWithAnimation(file)}
+                                                className="text-emerald-700 hover:text-red-600 transition-colors hover:scale-110"
                                                 aria-label={`Remove ${file.name}`}
                                             >
                                                 <X className="h-4 w-4" />
@@ -237,7 +252,7 @@ export default function CreateService() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-emerald-500" /> Location Mode
                                 </label>
                                 <div className="flex gap-4">
@@ -286,11 +301,15 @@ export default function CreateService() {
 
                             {/* Added Slots Badges */}
                             {slots.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-4 p-4 border border-emerald-100 bg-emerald-50/50 rounded-2xl">
+                                <div className="flex flex-wrap gap-2 mt-4 p-4 border border-emerald-100 bg-emerald-50/50 rounded-2xl transition-all duration-300">
                                     {slots.map((slot, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 py-1.5 px-3 bg-white border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium shadow-sm">
+                                        <div
+                                            key={idx}
+                                            className={`chip-enter flex items-center gap-2 py-1.5 px-3 bg-white border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow ${removingSlots.includes(slot) ? "chip-exit pointer-events-none" : ""}`}
+                                            style={{ animationDelay: `${idx * 35}ms` }}
+                                        >
                                             {slot.day} at {slot.time}
-                                            <button type="button" onClick={() => removeSlot(idx)} className="text-emerald-400 hover:text-red-500 transition-colors ml-1">
+                                            <button type="button" onClick={() => removeSlotWithAnimation(slot)} className="ml-1 text-emerald-400 hover:text-red-500 transition-colors hover:scale-110">
                                                 &times;
                                             </button>
                                         </div>
@@ -317,6 +336,35 @@ export default function CreateService() {
                     </form>
                 </div>
             </div>
+
+            <style>{`
+                @keyframes chipEnter {
+                    0% {
+                        opacity: 0;
+                        transform: translateY(8px) scale(0.96);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+                .chip-enter {
+                    animation: chipEnter 360ms ease-out both;
+                }
+                @keyframes chipExit {
+                    0% {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: translateY(8px) scale(0.96);
+                    }
+                }
+                .chip-exit {
+                    animation: chipExit 360ms ease-in forwards !important;
+                }
+            `}</style>
         </div>
     );
 }

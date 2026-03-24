@@ -36,8 +36,7 @@ export default function Profile() {
     localStorage.getItem("userId") ||
     localStorage.getItem("ownerId") ||
     storedUser?._id ||
-    import.meta.env.VITE_PROFILE_USER_ID ||
-    "69a7cbb4f893c9e5eb3f479b";
+    "";
 
   const defaultName = "";
   const defaultEducation = "";
@@ -85,6 +84,7 @@ export default function Profile() {
     totalRevenue: 0,
     points: [],
   });
+  const [revenueFiltersTouched, setRevenueFiltersTouched] = useState(false);
 
   const [selectedChartIndex, setSelectedChartIndex] = useState(null);
   const [selectedRevenueIndex, setSelectedRevenueIndex] = useState(null);
@@ -238,6 +238,21 @@ export default function Profile() {
             }))
           : [],
       });
+      if (!revenueFiltersTouched) {
+        setRevenueAnalytics({
+          totalViews: Number(result?.data?.totalViews || 0),
+          totalBookings: Number(result?.data?.totalBookings || 0),
+          totalRevenue: Number(result?.data?.totalRevenue || 0),
+          points: Array.isArray(result?.data?.points)
+            ? result.data.points.map((p) => ({
+                key: p.key, label: p.label, range: p.range,
+                views: Number(p.views || 0),
+                bookings: Number(p.bookings || 0),
+                revenue: Number(p.revenue || 0),
+              }))
+            : [],
+        });
+      }
       setSelectedChartIndex(null);
     } catch (error) {
       setApiMessage(error.message || "Unable to load view analytics.");
@@ -283,8 +298,9 @@ export default function Profile() {
 
   // ← ADDED: separate effect so revenue chart re-fetches on its own mode/month changes
   useEffect(() => {
+    if (!revenueFiltersTouched) return;
     fetchOwnerRevenueAnalytics(revenueMode);
-  }, [API_BASE_URL, profileUserId, revenueMode, selectedRevenueMonth]);
+  }, [API_BASE_URL, profileUserId, revenueMode, selectedRevenueMonth, revenueFiltersTouched]);
 
   useEffect(() => {
     if (!showSavedToast) return;
@@ -711,7 +727,13 @@ export default function Profile() {
               {/* ← ADDED: Day/Week/Month controls for revenue chart (independent of views chart) */}
               <div className="flex items-center gap-2">
                 {["day", "week", "month"].map((m) => (
-                  <button key={m} type="button" onClick={() => setRevenueMode(m)}
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setRevenueFiltersTouched(true);
+                      setRevenueMode(m);
+                    }}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${revenueMode === m ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary text-secondary-foreground border border-border"}`}>
                     {m === "day" ? "Everyday" : m.charAt(0).toUpperCase() + m.slice(1)}
                   </button>
@@ -723,7 +745,15 @@ export default function Profile() {
             {revenueMode === "week" && (
               <div className="mb-4 flex items-center gap-2">
                 <label className="text-xs text-muted-foreground">Select Month</label>
-                <input type="month" value={selectedRevenueMonth} onChange={(e) => setSelectedRevenueMonth(e.target.value)} className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground" />
+                <input
+                  type="month"
+                  value={selectedRevenueMonth}
+                  onChange={(e) => {
+                    setRevenueFiltersTouched(true);
+                    setSelectedRevenueMonth(e.target.value);
+                  }}
+                  className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground"
+                />
               </div>
             )}
 

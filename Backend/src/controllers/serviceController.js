@@ -132,6 +132,9 @@ const parseJsonMaybe = (value, fallback) => {
   }
 };
 
+const ML_SCORE_TTL_MS = 10 * 60 * 1000;
+const mlPredictionCache = new Map();
+
 /* ================= META ================= */
 export const getServiceMeta = async (_req, res) => {
   return res.json({
@@ -202,7 +205,10 @@ export const createService = async (req, res) => {
 /* ================= READ ALL ================= */
 export const getAllServices = async (req, res) => {
   try {
-    const { category, locationMode, q, ownerId } = req.query;
+    const { category, locationMode, ownerId, page = 1, limit = 24 } = req.query;
+    const safePage = Math.max(1, toNumber(page, 1));
+    const defaultLimit = ownerId ? 50 : 24;
+    const safeLimit = Math.min(100, Math.max(1, toNumber(limit, defaultLimit)));
 
     const filter = {};
     if (ownerId) {
@@ -213,23 +219,16 @@ export const getAllServices = async (req, res) => {
     if (category) filter.category = category;
     if (locationMode) filter.locationMode = locationMode;
 
-    let query = Service.find(filter)
+    const query = Service.find(filter)
       .populate({
         path: "ownerId",
         model: "Users",
         select: "fullname university_name verification_status",
       })
-      .sort({ publishedAt: -1, createdAt: -1 });
-
-    if (q) {
-      query = Service.find({ ...filter, $text: { $search: q } })
-        .populate({
-          path: "ownerId",
-          model: "Users",
-          select: "fullname university_name verification_status",
-        })
-        .sort({ publishedAt: -1, createdAt: -1 });
-    }
+      .sort({ publishedAt: -1, createdAt: -1 })
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .lean();
 
     const services = await query.exec();
     const ownerIds = services
@@ -250,8 +249,7 @@ export const getAllServices = async (req, res) => {
       );
     }
 
-    const data = services.map((s) => {
-      const obj = typeof s.toObject === "function" ? s.toObject() : s;
+    const data = services.map((obj) => {
       const ownerKey = obj?.ownerId?._id || obj?.ownerId;
       return {
         ...obj,
@@ -263,6 +261,8 @@ export const getAllServices = async (req, res) => {
 
     return res.json({
       success: true,
+      page: safePage,
+      limit: safeLimit,
       count: data.length,
       data,
     });
@@ -277,7 +277,8 @@ export const getAllServices = async (req, res) => {
 /* ================= RANKED ================= */
 export const getRankedServices = async (req, res) => {
   try {
-    const { category, location, minRating, minPrice, maxPrice } = req.query;
+    const { category, location, minRating, minPrice, maxPrice, limit = 60 } = req.query;
+    const safeLimit = Math.min(100, Math.max(1, toNumber(limit, 60)));
 
     const filter = { isPublished: true };
     if (category && category !== "All") filter.category = category;
@@ -291,11 +292,16 @@ export const getRankedServices = async (req, res) => {
     }
 
     let services = await Service.find(filter)
+      .select(
+        "_id ownerId title category pricePerHour locationMode reviews reviewCount viewCount bookingCount responseTimeMin completionRate updatedAt createdAt isPublished"
+      )
       .populate({
         path: "ownerId",
         model: "Users",
         select: "fullname university_name verification_status",
       })
+      .sort({ publishedAt: -1, createdAt: -1 })
+      .limit(safeLimit)
       .lean();
 
     if (minRating !== undefined && minRating !== "") {
@@ -343,6 +349,19 @@ export const getRankedServices = async (req, res) => {
           completion_rate: toNumber(service.completionRate, defaultCompletionRate),
         };
 
+        const cacheKey = `${String(service?._id || "")}:${String(service?.updatedAt || "")}`;
+        const cached = mlPredictionCache.get(cacheKey);
+        if (cached && Date.now() - cached.ts < ML_SCORE_TTL_MS) {
+          const ownerKey = service?.ownerId?._id || service?.ownerId;
+          return {
+            ...service,
+            rawPrediction: toNumber(cached.value, 0),
+            ownerProfilePicture: ownerKey
+              ? ownerPictureMap.get(String(ownerKey)) || null
+              : null,
+          };
+        }
+
         let rawPrediction = 0;
         try {
           const response = await fetch(`${mlBase}/predict`, {
@@ -353,10 +372,13 @@ export const getRankedServices = async (req, res) => {
           const json = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(json?.detail || "Predict failed");
           rawPrediction = toNumber(json?.prediction, 0);
+          mlPredictionCache.set(cacheKey, { value: rawPrediction, ts: Date.now() });
+          if (mlPredictionCache.size > 2000) {
+            const oldestKey = mlPredictionCache.keys().next().value;
+            if (oldestKey) mlPredictionCache.delete(oldestKey);
+          }
         } catch (error) {
-          throw new Error(
-            `ML prediction unavailable for service ${service?._id || "unknown"}: ${error?.message || "Predict failed"}`
-          );
+          rawPrediction = 0;
         }
 
         const ownerKey = service?.ownerId?._id || service?.ownerId;
@@ -370,30 +392,18 @@ export const getRankedServices = async (req, res) => {
       })
     );
 
-    const rawValues = scored.map((s) => toNumber(s.rawPrediction, 0));
-    const minRaw = rawValues.length ? Math.min(...rawValues) : 0;
-    const maxRaw = rawValues.length ? Math.max(...rawValues) : 0;
-    const range = maxRaw - minRaw;
+    const ranked = scored.map((item) => ({
+      ...item,
+      // Use direct ML output as ranking score (no normalization).
+      rankingScore: Number(toNumber(item.rawPrediction, 0).toFixed(2)),
+    }));
 
-    const normalized = scored.map((item) => {
-      const raw = toNumber(item.rawPrediction, 0);
-      const score =
-        range === 0
-          ? 50
-          : ((raw - minRaw) / range) * 100;
-
-      return {
-        ...item,
-        rankingScore: Number(Math.max(0, Math.min(100, score)).toFixed(2)),
-      };
-    });
-
-    normalized.sort((a, b) => toNumber(b.rankingScore, 0) - toNumber(a.rankingScore, 0));
+    ranked.sort((a, b) => toNumber(b.rankingScore, 0) - toNumber(a.rankingScore, 0));
 
     return res.json({
       success: true,
-      count: normalized.length,
-      data: normalized,
+      count: ranked.length,
+      data: ranked,
     });
   } catch (error) {
     return res.status(500).json({
@@ -605,7 +615,11 @@ export const getOwnerViewsAnalytics = async (req, res) => {
 /* ================= READ ONE ================= */
 export const getServiceById = async (req, res) => {
   try {
-    const doc = await Service.findById(req.params.id);
+    const doc = await Service.findById(req.params.id).populate({
+      path: "ownerId",
+      model: "Users",
+      select: "fullname university_name verification_status",
+    });
 
     if (!doc) {
       return res.status(404).json({ success: false, message: "Service not found" });
@@ -614,7 +628,8 @@ export const getServiceById = async (req, res) => {
     // Postman fallback for ownership checks
     const requesterId = req.userId || req.query.ownerId || req.body?.ownerId;
 
-    const isOwner = requesterId && String(doc.ownerId) === String(requesterId);
+    const ownerIdValue = doc?.ownerId?._id || doc?.ownerId;
+    const isOwner = requesterId && String(ownerIdValue) === String(requesterId);
 
     if (!doc.isPublished && !isOwner) {
       return res.status(403).json({ success: false, message: "Not authorized to view this service" });
@@ -634,7 +649,7 @@ export const getServiceById = async (req, res) => {
     await doc.save();
 
     const data = doc.toObject();
-    const ownerProfile = await Profile.findOne({ user_id: data.ownerId })
+    const ownerProfile = await Profile.findOne({ user_id: ownerIdValue })
       .select("profile_picture")
       .lean();
 

@@ -32,9 +32,13 @@ import { NotificationProvider } from "./notifications/context/NotificationContex
 
 function App() {
   const location = useLocation();
+  const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const hideNavbar =
-    location.pathname === "/register" ||
-    location.pathname === "/Verificationstatushandler";
+    normalizedPath === "/" ||
+    normalizedPath === "/login" ||
+    normalizedPath === "/register" ||
+    normalizedPath === "/verificationstatushandler" ||
+    normalizedPath === "/pending";
 
   return (
     // ← KEPT: NotificationProvider wraps everything (from file 1)
@@ -44,7 +48,8 @@ function App() {
 
       <Routes>
         {/* Core */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/dashboard" element={<Profile />} />
         <Route path="/profile" element={<Profile />} />
 
