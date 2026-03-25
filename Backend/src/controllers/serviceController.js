@@ -351,12 +351,13 @@ export const getRankedServices = async (req, res) => {
             body: JSON.stringify(features),
           });
           const json = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(json?.detail || "Predict failed");
-          rawPrediction = toNumber(json?.prediction, 0);
+          if (response.ok) {
+            rawPrediction = toNumber(json?.prediction, 0);
+          } else {
+            console.warn(`Predict warning: ${json?.detail || 'Unknown error'}`);
+          }
         } catch (error) {
-          throw new Error(
-            `ML prediction unavailable for service ${service?._id || "unknown"}: ${error?.message || "Predict failed"}`
-          );
+           console.warn(`ML prediction unavailable for service ${service?._id || "unknown"}: ${error?.message || "Predict failed"}`);
         }
 
         const ownerKey = service?.ownerId?._id || service?.ownerId;
