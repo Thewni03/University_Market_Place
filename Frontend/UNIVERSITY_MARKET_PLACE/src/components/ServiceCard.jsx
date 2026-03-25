@@ -76,7 +76,6 @@ export default function ServiceCard({ service }) {
             <span className="text-lg font-bold text-foreground">
               LKR {service.pricePerHour || service.price}
             </span>
-            <span className="text-xs text-muted-foreground">/hr</span>
           </div>
         </div>
 

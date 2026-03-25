@@ -24,8 +24,9 @@ export const createBooking = async (req, res) => {
     await newBooking.save();
 
     // 2. Fetch the corresponding service for details
-    const service = await Service.findById(serviceId);
+    const service = await Service.findById(serviceId).populate("ownerId");
     const serviceTitle = service ? service.title : "a service";
+    const resolvedProviderEmail = service?.ownerId?.email || req.body.providerEmail || "provider@mock.com";
 
     // 3. Create a Notification for the Service Provider
     if (service && service.ownerId) {
@@ -65,8 +66,8 @@ export const createBooking = async (req, res) => {
 
     // 5. Build Email Content
     const mailOptions = {
-      from: process.env.EMAIL_USER || '"UniMarket System" <noreply@unimarket.edu>',
-      to: process.env.EMAIL_USER || 'provider@mock.com', 
+      from: `"${bookerName} via UniMarket" <${process.env.EMAIL_USER || 'noreply@unimarket.edu'}>`,
+      to: resolvedProviderEmail, 
       replyTo: bookerEmail,
       subject: `🎉 New Booking Request: ${serviceTitle}`,
       html: `

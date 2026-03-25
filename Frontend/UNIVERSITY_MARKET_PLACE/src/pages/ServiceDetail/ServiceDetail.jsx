@@ -63,6 +63,7 @@ export default function ServiceDetail() {
             const res = await axios.post("http://localhost:5001/api/bookings", {
                 serviceId: service._id || service.id,
                 providerName: service.provider?.name || "Verified Student",
+                providerEmail: service.ownerId?.email,
                 bookerName,
                 bookerEmail,
                 day: selectedSlot.day,
@@ -195,7 +196,7 @@ export default function ServiceDetail() {
                             </div>
 
                             <a 
-                                href={`mailto:${service.ownerEmail || service.provider?.email || 'hello@unimarket.edu'}?subject=Inquiry from UniMarket regarding: ${service.title}`}
+                                href={`mailto:${service.ownerId?.email || 'hello@unimarket.edu'}?subject=Inquiry from UniMarket regarding: ${service.title}`}
                                 className="shrink-0 w-full sm:w-auto px-6 py-3 text-center bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors relative z-10"
                             >
                                 Contact Me
