@@ -100,6 +100,10 @@ export default function Home() {
         if (data.length > 0) {
           const calcMax = Math.max(...data.map(s => Number(s.pricePerHour || s.price || 0)), 1000);
           setMaxPrice(calcMax);
+          setPriceRange(prev => [
+            Math.min(prev[0], calcMax), 
+            (prev[1] >= calcMax || prev[1] === 10000) ? calcMax : prev[1]
+          ]);
         }
       } catch (error) {
         console.error("Error fetching ranked services, falling back to mock:", error);
