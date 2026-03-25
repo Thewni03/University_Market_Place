@@ -24,7 +24,7 @@ export const mockServices = [
   {
     id: "2",
     title: "Logo & Brand Identity Design",
-    category: "Design",
+    category: "Design & Media",
     provider: { name: "Marcus Lee", avatar: "", university: "RISD", verified: true },
     rating: 4.8,
     reviewCount: 31,
@@ -45,7 +45,7 @@ export const mockServices = [
   {
     id: "3",
     title: "React & TypeScript Development",
-    category: "Development",
+    category: "Tech & Development",
     provider: { name: "Aisha Patel", avatar: "", university: "Stanford", verified: true },
     rating: 5.0,
     reviewCount: 22,
@@ -67,7 +67,7 @@ export const mockServices = [
   {
     id: "4",
     title: "Essay Proofreading & Editing",
-    category: "Writing",
+    category: "Writing & Translation",
     provider: { name: "James Wright", avatar: "", university: "Columbia", verified: true },
     rating: 4.7,
     reviewCount: 56,
@@ -89,7 +89,7 @@ export const mockServices = [
   {
     id: "5",
     title: "Photography for Events",
-    category: "Photography",
+    category: "Events & Entertainment",
     provider: { name: "Luna Kim", avatar: "", university: "NYU", verified: true },
     rating: 4.9,
     reviewCount: 18,
@@ -111,7 +111,7 @@ export const mockServices = [
   {
     id: "6",
     title: "Music Composition & Production",
-    category: "Music",
+    category: "Events & Entertainment",
     provider: { name: "David Torres", avatar: "", university: "Berklee", verified: true },
     rating: 4.6,
     reviewCount: 14,
@@ -139,7 +139,7 @@ export const mockRequests = [
       "Looking for a developer to build a simple website for our debate club. Should have a members page, events calendar, and contact form.",
     budget: 200,
     deadline: "2026-03-15",
-    category: "Development",
+    category: "Tech & Development",
     postedBy: { name: "Emily Park", avatar: "" },
     expired: false,
   },
@@ -161,7 +161,7 @@ export const mockRequests = [
       "We need an eye-catching poster for our annual charity gala. Theme is 'Stars of Tomorrow'. Print-ready A3 format.",
     budget: 60,
     deadline: "2026-03-10",
-    category: "Design",
+    category: "Design & Media",
     postedBy: { name: "Zara Hussain", avatar: "" },
     expired: false,
   },
@@ -240,12 +240,12 @@ export const mockPendingStudents = [
 
 export const categories = [
   "All",
+  "Design & Media",
+  "Tech & Development",
+  "Academic Help",
+  "Writing & Translation",
   "Tutoring",
-  "Design",
-  "Development",
-  "Writing",
-  "Photography",
-  "Music",
-  "Marketing",
-  "Fitness",
+  "Beauty Services",
+  "Fitness & Health",
+  "Events & Entertainment",
 ];

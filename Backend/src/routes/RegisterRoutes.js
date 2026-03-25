@@ -1,13 +1,27 @@
-const express = require("express");
+import express from "express";
+import RegisterController from "../controllers/RegisterController.js";
+import upload from "../uploads/Uploads.js";
 const router = express.Router();
-const RegisterController = require("../Controller/RegisterController");
-const upload = require('../uploads/Uploads');
 
+// Get all users
 router.get("/", RegisterController.getAllUsers);
-router.post("/", upload.single('student_id_pic'), RegisterController.addUsers); 
-router.get("/:email", RegisterController.getByEmail);
-router.put("/:email", upload.single('student_id_pic'), RegisterController.updateUser);
-router.delete("/:email", RegisterController.deleteUser);
+
+// Login
 router.post("/login", RegisterController.loginUser);
 
-module.exports = router;
+// Trust score
+router.get("/trust-score/:email", RegisterController.getTrustScore);
+
+// Register user
+router.post("/", upload.single("student_id_pic"), RegisterController.addUsers);
+
+// Get user by email
+router.get("/:email", RegisterController.getByEmail);
+
+// Update user
+router.put("/:email", upload.single("student_id_pic"), RegisterController.updateUser);
+
+// Delete user
+router.delete("/:email", RegisterController.deleteUser);
+
+export default router;

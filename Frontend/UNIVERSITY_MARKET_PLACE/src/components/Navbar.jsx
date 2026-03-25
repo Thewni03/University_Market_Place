@@ -1,70 +1,119 @@
-import { Link, useLocation } from "react-router-dom";
-import { Search, Bell, Menu, X, GraduationCap, CheckCircle2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "./ui/button";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const navLinks = [
   { label: "Marketplace", path: "/" },
   { label: "User Dashboard", path: "/dashboard" },
-  { label: "Create Service", path: "/create-service" },
+  { label: "Offer a Service", path: "/create-service" },
   { label: "Post Request", path: "/post-request" },
 ];
 
 export default function Navbar() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profilePic, setProfilePic] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchBoxRef = useRef(null);
   const location = useLocation();
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // Close dropdown if clicked outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowNotifications(false);
-      }
+  const navigate = useNavigate();
+  const storedUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
     }
+  }, []);
+  const currentUserId =
+    localStorage.getItem("userId") || localStorage.getItem("ownerId") || storedUser?._id || "";
+  const initials =
+    (storedUser?.fullname || "U")
+      .split(" ")
+      .map((n) => n?.[0] || "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
+  const toImageSrc = (value) => {
+    if (!value || typeof value !== "string") return "";
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("data:image/") ||
+      value.startsWith("blob:")
+    ) {
+      return value;
+    }
+    if (value.startsWith("/")) return `${API_BASE_URL}${value}`;
+    return "";
+  };
+
+  useEffect(() => {
+    const loadProfilePic = async () => {
+      if (!currentUserId) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/profile/${currentUserId}`);
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) return;
+        const pic = result?.data?.profile_picture || "";
+        setProfilePic(toImageSrc(pic));
+      } catch {
+        // keep fallback avatar
+      }
+    };
+    loadProfilePic();
+  }, [API_BASE_URL, currentUserId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!searchBoxRef.current) return;
+      if (!searchBoxRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const userStr = localStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
-
   useEffect(() => {
-    if (user && user.id) {
-      const fetchNotifications = async () => {
-        try {
-          const res = await axios.get(`http://localhost:5001/api/notifications/${user.id}`);
-          if (res.data.success) {
-            setNotifications(res.data.data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch notifications", error);
-        }
-      };
-      
-      fetchNotifications();
-      // Poll every 30 seconds for immediate WOW factor
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+    const q = searchTerm.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
     }
-  }, [user?.id]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+    let ignore = false;
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/services?q=${encodeURIComponent(q)}`
+        );
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) return;
+        if (ignore) return;
+        const list = Array.isArray(result?.data) ? result.data : [];
+        setSearchResults(list.slice(0, 7));
+        setShowSearchResults(true);
+      } catch {
+        if (!ignore) setSearchResults([]);
+      } finally {
+        if (!ignore) setSearchLoading(false);
+      }
+    }, 250);
 
-  const handleMarkAllRead = async () => {
-    if (unreadCount === 0 || !user?.id) return;
-    try {
-      await axios.post('http://localhost:5001/api/notifications/mark-all-read', { userId: user.id });
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
-    } catch (error) {
-      console.error("Failed to mark read:", error);
-    }
-  };
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [API_BASE_URL, searchTerm]);
 
   const isAuth =
     location.pathname === "/login" ||
@@ -73,9 +122,29 @@ export default function Navbar() {
 
   if (isAuth) return null;
 
+  const isLinkActive = (path) => {
+    if (path === "/") return location.pathname === "/";
+    if (path === "/dashboard") {
+      return location.pathname === "/dashboard" || location.pathname === "/profile";
+    }
+    return location.pathname === path;
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setShowSearchResults(true);
+  };
+
+  const handleSelectResult = (serviceId) => {
+    if (!serviceId) return;
+    setShowSearchResults(false);
+    setMobileOpen(false);
+    navigate(`/service/${serviceId}`);
+  };
+
   return (
     <nav className=" sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
-      <div className="container flex h-16 items-center justify-between gap-4">
+      <div className="page-container flex h-16 items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[hsl(152_60%_32%)]">
@@ -86,8 +155,44 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Search - desktop (Removed to favor the Homepage search engine) */}
-        <div className="hidden md:flex flex-1 max-w-md">
+        {/* Search - desktop */}
+        <div className="hidden md:flex flex-1 max-w-md" ref={searchBoxRef}>
+          <form className="relative w-full" onSubmit={handleSearchSubmit}>
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search services, tutors, skills..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setShowSearchResults(true)}
+              className="w-full rounded-lg border border-input bg-secondary/50 py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            {showSearchResults && (
+              <div className="absolute top-full mt-2 w-full rounded-lg border border-border bg-card shadow-lg z-50 max-h-72 overflow-y-auto">
+                {searchLoading ? (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">Searching...</p>
+                ) : searchResults.length === 0 ? (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                    {searchTerm.trim().length < 2 ? "Type at least 2 letters" : "No matching services"}
+                  </p>
+                ) : (
+                  searchResults.map((item) => (
+                    <button
+                      key={item._id}
+                      type="button"
+                      onClick={() => handleSelectResult(item._id)}
+                      className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors"
+                    >
+                      <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.category} • LKR {Number(item.pricePerHour || 0).toLocaleString()}
+                      </p>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </form>
         </div>
 
         {/* Desktop nav */}
@@ -96,10 +201,11 @@ export default function Navbar() {
             <Link
               key={link.path}
               to={link.path}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isLinkActive(link.path)
+                  ? "text-[#013a63] bg-[#4a4e69]/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`}
             >
               {link.label}
             </Link>
@@ -108,68 +214,16 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          
-          {/* Notification Bell with Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={`relative ${showNotifications ? 'bg-secondary' : ''}`}
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                if (!showNotifications) handleMarkAllRead();
-              }}
-            >
-              <Bell className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-amber-500" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-rose-500 border border-white animate-pulse shadow-sm" />
-              )}
-            </Button>
-
-            {/* Notifications Dropdown Window */}
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in slide-in-from-top-2">
-                <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                    Notifications {unreadCount > 0 && <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadCount} New</span>}
-                  </h3>
-                </div>
-                
-                <div className="max-h-[350px] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400">
-                      <Bell className="h-8 w-8 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm font-medium">You're all caught up!</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-50">
-                      {notifications.map((notif) => (
-                        <div key={notif._id} className={`p-4 transition-colors hover:bg-slate-50 ${!notif.read ? 'bg-indigo-50/30' : ''}`}>
-                          <div className="flex gap-4">
-                            <div className="shrink-0 pt-1">
-                              <div className={`w-2 h-2 rounded-full mt-1.5 ${!notif.read ? 'bg-rose-500' : 'bg-slate-200'}`} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-800 mb-0.5">{notif.title}</p>
-                              <p className="text-sm text-slate-500 leading-snug">{notif.message}</p>
-                              <p className="text-[10px] font-semibold text-slate-400 mt-2 uppercase tracking-wider">
-                                {new Date(notif.createdAt).toLocaleDateString()} at {new Date(notif.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
+          </Button>
 
           <Link to="/profile">
             <Avatar className="h-8 w-8 border-2 border-primary/20 cursor-pointer hover:border-primary transition-colors">
+              {profilePic ? <AvatarImage src={profilePic} alt="Profile" /> : null}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                SC
+                {initials}
               </AvatarFallback>
             </Avatar>
           </Link>
@@ -189,18 +243,55 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-card animate-fade-in">
-          <div className="container py-3 space-y-1">
-            {/* Mobile search removed */}
+          <div className="page-container py-3 space-y-1">
+            {/* Mobile search */}
+            <form className="relative mb-3" onSubmit={handleSearchSubmit}>
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search services..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setShowSearchResults(true)}
+                className="w-full rounded-lg border border-input bg-secondary/50 py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {showSearchResults && (
+                <div className="absolute top-full mt-2 w-full rounded-lg border border-border bg-card shadow-lg z-50 max-h-72 overflow-y-auto">
+                  {searchLoading ? (
+                    <p className="px-3 py-2 text-sm text-muted-foreground">Searching...</p>
+                  ) : searchResults.length === 0 ? (
+                    <p className="px-3 py-2 text-sm text-muted-foreground">
+                      {searchTerm.trim().length < 2 ? "Type at least 2 letters" : "No matching services"}
+                    </p>
+                  ) : (
+                    searchResults.map((item) => (
+                      <button
+                        key={item._id}
+                        type="button"
+                        onClick={() => handleSelectResult(item._id)}
+                        className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors"
+                      >
+                        <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.category} • LKR {Number(item.pricePerHour || 0).toLocaleString()}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </form>
 
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
+                className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  isLinkActive(link.path)
+                    ? "text-[#013a63] bg-[#4a4e69]/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
               >
                 {link.label}
               </Link>
