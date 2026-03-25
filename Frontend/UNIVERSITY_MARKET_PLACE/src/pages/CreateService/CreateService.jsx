@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, CheckCircle2, Clock, MapPin, Tag } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +22,6 @@ export default function CreateService() {
     const [selectedTime, setSelectedTime] = useState(times[0]);
 
     const [workSamples, setWorkSamples] = useState([]);
-    const [sampleUrl, setSampleUrl] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,7 +47,6 @@ export default function CreateService() {
         setIsSubmitting(true);
 
         try {
-            // Fetch user from localStorage
             const userStr = localStorage.getItem("user");
             let user = { name: "Anonymous Student", id: "60d0bc7b8f0f0b2f1c8a9abc" };
             if (userStr) {
@@ -58,17 +56,24 @@ export default function CreateService() {
                 } catch(e) {}
             }
 
-            const payload = {
-                ...formData,
-                pricePerHour: Number(formData.pricePerHour),
-                availabilitySlots: slots,
-                workSamples: workSamples,
-                ownerId: user.id || "60d0bc7b8f0f0b2f1c8a9abc",
-                provider: { name: user.name, verified: true },
-                isPublished: true
-            };
+            const payload = new FormData();
+            payload.append("title", formData.title);
+            payload.append("category", formData.category);
+            payload.append("pricePerHour", Number(formData.pricePerHour));
+            payload.append("description", formData.description);
+            payload.append("locationMode", formData.locationMode);
+            
+            payload.append("availabilitySlots", JSON.stringify(slots));
+            payload.append("ownerId", user.id || "60d0bc7b8f0f0b2f1c8a9abc");
+            payload.append("isPublished", true);
+            
+            workSamples.forEach((file) => {
+                payload.append("workSampleFiles", file);
+            });
 
-            await axios.post('http://localhost:5001/api/services', payload);
+            await axios.post('http://localhost:5001/api/services', payload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             alert('Service created successfully!');
             navigate('/');
         } catch (error) {
@@ -78,6 +83,22 @@ export default function CreateService() {
             setIsSubmitting(false);
         }
     };
+
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (formData.description.trim().length > 10) {
+                try {
+                    const res = await axios.post("http://127.0.0.1:8000/predict_category", {
+                        description: formData.description
+                    });
+                    if (res.data && res.data.category && res.data.category !== formData.category) {
+                        setFormData(prev => ({ ...prev, category: res.data.category }));
+                    }
+                } catch(e) {}
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [formData.description]);
 
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -113,16 +134,29 @@ export default function CreateService() {
                                     />
                                 </div>
 
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Detailed Description (Powers AI Categorization)</label>
+                                    <textarea
+                                        name="description"
+                                        required
+                                        rows="5"
+                                        value={formData.description}
+                                        onChange={handleInputChange}
+                                        placeholder="Describe what you offer, your experience, and what students can expect... The AI will use this to automatically choose your category!"
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-slate-50 resize-none"
+                                    ></textarea>
+                                </div>
+
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Category ✨ AI Auto-Predicted</label>
                                     <select
                                         name="category"
                                         required
                                         value={formData.category}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-slate-50"
+                                        className="w-full px-4 py-3 rounded-xl border border-emerald-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-emerald-50 shadow-inner"
                                     >
-                                        <option value="" disabled>Select a category</option>
+                                        <option value="" disabled>Start typing description to auto-select!</option>
                                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
@@ -150,38 +184,32 @@ export default function CreateService() {
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                 <Camera className="w-5 h-5 text-emerald-500" /> Sample Photos (Optional)
                             </h2>
-                            <p className="text-sm text-slate-500 mb-2">Provide URLs to images that showcase your previous work or service.</p>
+                            <p className="text-sm text-slate-500 mb-2">Upload images that showcase your previous work or service.</p>
 
-                            <div className="flex flex-col md:flex-row gap-4 items-end bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                <div className="flex-1 w-full">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Image URL</label>
-                                    <input
-                                        type="url"
-                                        value={sampleUrl}
-                                        onChange={e => setSampleUrl(e.target.value)}
-                                        placeholder="https://example.com/my-work.jpg"
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white transition-all"
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (sampleUrl) {
-                                            setWorkSamples([...workSamples, { url: sampleUrl, mimeType: "image/jpeg", filename: "Sample" }]);
-                                            setSampleUrl('');
+                            <div className="bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-300 relative hover:bg-slate-100 transition-colors">
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={e => {
+                                        if (e.target.files) {
+                                            setWorkSamples([...workSamples, ...Array.from(e.target.files)]);
                                         }
                                     }}
-                                    className="w-full md:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition-colors shrink-0"
-                                >
-                                    Add Photo
-                                </button>
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <div className="text-center py-4">
+                                    <Camera className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+                                    <p className="text-sm font-semibold text-slate-700">Click or drag images to upload</p>
+                                    <p className="text-xs text-slate-400 mt-1">PNG, JPG, up to 10MB</p>
+                                </div>
                             </div>
 
                             {workSamples.length > 0 && (
                                 <div className="flex flex-wrap gap-4 mt-4">
-                                    {workSamples.map((sample, idx) => (
-                                        <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200 shadow-sm group">
-                                            <img src={sample.url} alt="Sample" className="w-full h-full object-cover" />
+                                    {workSamples.map((file, idx) => (
+                                        <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200 shadow-sm group bg-white">
+                                            <img src={URL.createObjectURL(file)} alt="Sample" className="w-full h-full object-cover" />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <button type="button" onClick={() => setWorkSamples(workSamples.filter((_, i) => i !== idx))} className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
                                                     &times;
@@ -195,21 +223,8 @@ export default function CreateService() {
 
                         <hr className="border-slate-100" />
 
-                        {/* Description & Location */}
+                        {/* Location */}
                         <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Detailed Description</label>
-                                <textarea
-                                    name="description"
-                                    required
-                                    rows="5"
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    placeholder="Describe what you offer, your experience, and what students can expect..."
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-slate-50 resize-none"
-                                ></textarea>
-                            </div>
-
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-emerald-500" /> Location Mode

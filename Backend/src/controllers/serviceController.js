@@ -606,7 +606,11 @@ export const getOwnerViewsAnalytics = async (req, res) => {
 /* ================= READ ONE ================= */
 export const getServiceById = async (req, res) => {
   try {
-    const doc = await Service.findById(req.params.id);
+    const doc = await Service.findById(req.params.id).populate({
+      path: "ownerId",
+      model: "Users",
+      select: "fullname university_name verification_status email",
+    });
 
     if (!doc) {
       return res.status(404).json({ success: false, message: "Service not found" });

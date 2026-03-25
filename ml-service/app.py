@@ -1,9 +1,18 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 model = joblib.load("model.pkl")
 EXPECTED_FEATURES = list(getattr(model, "feature_names_in_", []))
@@ -81,3 +90,40 @@ def predict(data: InputData):
     return {
         "prediction": float(prediction)
     }
+
+class CategoryPredictionRequest(BaseModel):
+    description: str
+
+@app.post("/predict_category")
+def predict_category(data: CategoryPredictionRequest):
+    text = data.description.lower()
+    
+    scores = {
+        "Tutoring": 0, "Web Design": 0, "Video Editing": 0, "Writing": 0, 
+        "Photography": 0, "Development": 0, "Design": 0, "Music": 0, 
+        "Marketing": 0, "Fitness": 0
+    }
+    
+    keywords = {
+        "Tutoring": ["teach", "tutor", "math", "science", "learn", "lesson", "student", "calculus", "physics", "chemistry"],
+        "Web Design": ["web", "design", "ui", "ux", "frontend", "html", "css", "figma", "website", "tailwind"],
+        "Video Editing": ["video", "edit", "premiere", "after effects", "cut", "vlog", "youtube", "render", "animation"],
+        "Writing": ["write", "essay", "proofread", "blog", "article", "translation", "content", "copywriting", "grammar"],
+        "Photography": ["photo", "shoot", "camera", "portrait", "photoshop", "lightroom", "event", "picture", "headshot"],
+        "Development": ["code", "programming", "app", "backend", "react", "node", "python", "software", "api", "bug", "debug", "database"],
+        "Design": ["logo", "graphic", "illustration", "poster", "banner", "branding", "flyer", "photoshop", "illustrator", "sketch"],
+        "Music": ["music", "audio", "mix", "master", "dj", "beat", "vocal", "sound", "guitar", "piano"],
+        "Marketing": ["market", "seo", "social media", "campaign", "ads", "promote", "instagram", "tiktok", "growth", "sales"],
+        "Fitness": ["fit", "workout", "gym", "train", "health", "exercise", "diet", "nutrition", "coach", "weight"]
+    }
+    
+    for category, words in keywords.items():
+        for word in words:
+            if word in text:
+                scores[category] += len(word)
+                
+    best_category = max(scores.keys(), key=lambda k: scores[k])
+    if scores[best_category] == 0:
+        best_category = "Tutoring"
+        
+    return {"category": best_category}

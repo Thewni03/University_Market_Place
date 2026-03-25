@@ -20,6 +20,14 @@ const getCategoryColors = (category) => {
     return colors[category] || "from-slate-700 to-slate-900";
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+const toImageSrc = (pathUrl) => {
+    if (!pathUrl) return null;
+    if (pathUrl.startsWith("http") || pathUrl.startsWith("data:")) return pathUrl;
+    const cleanPath = pathUrl.startsWith("/") ? pathUrl : `/${pathUrl}`;
+    return `${API_BASE_URL}${cleanPath}`;
+};
+
 export default function ServiceDetail() {
     const { id } = useParams();
     const [service, setService] = useState(null);
@@ -121,7 +129,7 @@ export default function ServiceDetail() {
 
     const hasImages = service.workSamples && service.workSamples.length > 0;
     const gradient = getCategoryColors(service.category);
-    const providerName = service.provider?.name || "Verified Student";
+    const providerName = service.provider?.name || service.ownerId?.fullname || "Verified Student";
     const providerInitial = providerName.charAt(0).toUpperCase();
 
     return (
@@ -130,7 +138,7 @@ export default function ServiceDetail() {
             <div className={`w-full relative ${hasImages ? '' : `bg-gradient-to-r ${gradient}`}`}>
                 {hasImages ? (
                     <div className="w-full h-[40vh] md:h-[50vh] relative">
-                        <img src={service.workSamples[0].url} alt="Cover" className="w-full h-full object-cover" />
+                        <img src={toImageSrc(service.workSamples[0].url)} alt="Cover" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
                     </div>
                 ) : (
@@ -225,7 +233,7 @@ export default function ServiceDetail() {
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {service.workSamples.slice(1).map((sample, idx) => (
                                         <div key={idx} className="aspect-square bg-slate-100 rounded-2xl overflow-hidden group cursor-pointer border border-slate-200 shadow-sm">
-                                            <img src={sample.url} alt={`Portfolio ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <img src={toImageSrc(sample.url)} alt={`Portfolio ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         </div>
                                     ))}
                                 </div>
@@ -246,7 +254,6 @@ export default function ServiceDetail() {
                                 <div className="flex items-baseline gap-1 text-slate-900">
                                     <span className="text-2xl font-bold text-slate-400">Rs</span>
                                     <span className="text-5xl font-black tracking-tighter">{service.pricePerHour || service.price}</span>
-                                    <span className="text-lg font-bold text-slate-400">/hr</span>
                                 </div>
                             </div>
 
