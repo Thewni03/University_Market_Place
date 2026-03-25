@@ -33,6 +33,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [maxPrice, setMaxPrice] = useState(10000);
   const [minRating, setMinRating] = useState(0);
   const [location, setLocation] = useState("all");
 
@@ -86,8 +87,6 @@ export default function Home() {
         if (selectedCategory !== "All") params.set("category", selectedCategory);
         if (location !== "all") params.set("location", location);
         if (Number(minRating) > 0) params.set("minRating", String(minRating));
-        params.set("minPrice", String(priceRange[0] ?? 0));
-        params.set("maxPrice", String(priceRange[1] ?? 10000));
 
         const response = await fetch(`${API_BASE_URL}/api/services/ranked?${params.toString()}`);
         const result = await response.json().catch(() => ({}));
@@ -95,7 +94,13 @@ export default function Home() {
           throw new Error(result.error || result.message || "Failed to load ranked services.");
         }
 
-        setServices(Array.isArray(result.data) ? result.data : []);
+        const data = Array.isArray(result.data) ? result.data : [];
+        setServices(data);
+
+        if (data.length > 0) {
+          const calcMax = Math.max(...data.map(s => Number(s.pricePerHour || s.price || 0)), 1000);
+          setMaxPrice(calcMax);
+        }
       } catch (error) {
         console.error("Error fetching ranked services, falling back to mock:", error);
         setServices(mockServices);
@@ -106,7 +111,7 @@ export default function Home() {
     };
 
     fetchRankedServices();
-  }, [API_BASE_URL, selectedCategory, location, minRating, priceRange]);
+  }, [API_BASE_URL, selectedCategory, location, minRating]);
 
   const mappedServices = useMemo(
     () =>
@@ -200,6 +205,7 @@ export default function Home() {
                 onRatingChange={setMinRating}
                 location={location}
                 onLocationChange={setLocation}
+                maxPrice={maxPrice}
                 isDesktop
               />
             </div>
@@ -224,6 +230,7 @@ export default function Home() {
               onRatingChange={setMinRating}
               location={location}
               onLocationChange={setLocation}
+              maxPrice={maxPrice}
             />
           </div>
         </>

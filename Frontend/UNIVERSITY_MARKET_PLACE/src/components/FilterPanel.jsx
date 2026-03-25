@@ -11,6 +11,7 @@ function FilterContent({
   onRatingChange,
   location,
   onLocationChange,
+  maxPrice = 10000,
 }) {
   return (
     <>
@@ -45,13 +46,13 @@ function FilterContent({
           value={priceRange}
           onValueChange={onPriceRangeChange}
           min={0}
-          max={10000}
-          step={100}
+          max={maxPrice}
+          step={Math.max(10, Math.floor(maxPrice / 100))}
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>LKR {priceRange[0]}</span>
-          <span>LKR {priceRange[1]}{priceRange[1] === 10000 ? "+" : ""}</span>
+          <span>LKR {priceRange[1]}{priceRange[1] === maxPrice ? "+" : ""}</span>
         </div>
       </div>
 
@@ -116,6 +117,7 @@ export default function FilterPanel({
   location,
   onLocationChange,
   isDesktop,
+  maxPrice,
 }) {
   if (isDesktop) {
     return (
@@ -136,6 +138,7 @@ export default function FilterPanel({
           onRatingChange={onRatingChange}
           location={location}
           onLocationChange={onLocationChange}
+          maxPrice={maxPrice}
         />
       </div>
     );
@@ -181,6 +184,7 @@ export default function FilterPanel({
             onRatingChange={onRatingChange}
             location={location}
             onLocationChange={onLocationChange}
+            maxPrice={maxPrice}
           />
         </div>
       </div>
