@@ -99,7 +99,7 @@ const MessageInput = () => {
         </div>
         <button
           type="submit"
-          className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4a4e69] text-white shadow-lg shadow-[#4a4e69]/20 transition hover:scale-[1.02] hover:bg-[#5a607f] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#03045e] text-white shadow-lg shadow-[#03045e]/25 transition hover:scale-[1.02] hover:bg-[#10117a] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!text.trim() && !imagePreview}
         >
           <Send size={22} />

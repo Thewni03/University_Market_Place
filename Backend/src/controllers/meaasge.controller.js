@@ -4,6 +4,7 @@ import Message from "../models/message.model.js";
 import cloudinary from "../Utils/cloudinary.js";
 import { getReceiverSocketId } from "../Utils/socket.js";
 import { getIo } from "../config/io.js";
+import { notify } from "../notifications/notification.service.js";
 
 const getAuthenticatedUserId = (req) => req.user?._id || req.userId;
 
@@ -35,6 +36,25 @@ export const getUsersforSlider = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const unreadCounts = await Message.aggregate([
+      {
+        $match: {
+          receiverId: loginUserId,
+          isRead: false,
+        },
+      },
+      {
+        $group: {
+          _id: "$senderId",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const unreadCountByUserId = new Map(
+      unreadCounts.map((item) => [item._id.toString(), item.count])
+    );
+
     const conversationMetaByUserId = new Map();
 
     for (const message of recentMessages) {
@@ -57,6 +77,7 @@ export const getUsersforSlider = async (req, res) => {
       profile_picture: profilePictureByUserId.get(user._id.toString()) || user.profilePic || "",
       lastMessage: conversationMetaByUserId.get(user._id.toString())?.lastMessage || "",
       lastMessageAt: conversationMetaByUserId.get(user._id.toString())?.lastMessageAt || null,
+      unreadCount: unreadCountByUserId.get(user._id.toString()) || 0,
     }));
 
     usersWithProfilePictures.sort((a, b) => {
@@ -80,6 +101,17 @@ export const getMessage = async (req, res) => {
     if (!myId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+
+    await Message.updateMany(
+      {
+        senderId: userToChatId,
+        receiverId: myId,
+        isRead: false,
+      },
+      {
+        $set: { isRead: true },
+      }
+    );
 
     const messages = await Message.find({
       $or: [
@@ -117,9 +149,36 @@ export const sentMessage = async (req, res) => {
       receiverId,
       text,
       image: imageUrl,
+      isRead: false,
     });
 
     await newMessage.save();
+
+    const sender = await User.findById(senderId).select("fullname").lean();
+    const senderName = sender?.fullname || "Someone";
+    const notificationTitle = imageUrl
+      ? `${senderName} sent you a photo`
+      : `${senderName} sent you a message`;
+    const notificationBody = imageUrl
+      ? "Open Talk Space to view the photo."
+      : text?.trim() || "Open Talk Space to read the message.";
+
+    await notify({
+      userId: receiverId,
+      type: "message",
+      title: notificationTitle,
+      body: notificationBody,
+      channels: ["in-app"],
+      metadata: {
+        senderId: senderId.toString(),
+        senderName,
+        receiverId: receiverId.toString(),
+        messageId: newMessage._id.toString(),
+        kind: imageUrl ? "photo" : "text",
+        route: "/dashboard",
+      },
+    });
+
     const receiverSocketID = getReceiverSocketId(receiverId);
     const io = getIo();
     if (receiverSocketID) {
