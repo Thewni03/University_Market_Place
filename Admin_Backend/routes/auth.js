@@ -5,7 +5,7 @@ const { protect, restrictTo } = require("../middleware/auth");
 
 const router = express.Router();
 
-// ── Helper: generate JWT ───────────────────────────────────────
+
 const signToken = (id, email, role) => {
   return jwt.sign(
     { id, email, role },
@@ -14,7 +14,7 @@ const signToken = (id, email, role) => {
   );
 };
 
-// ── POST /api/admin/auth/login ─────────────────────────────────
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -109,7 +109,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ── GET /api/admin/auth/me — get current admin info ───────────
+// admin info
 router.get("/me", protect, async (req, res) => {
   res.status(200).json({
     success: true,
@@ -124,7 +124,7 @@ router.get("/me", protect, async (req, res) => {
   });
 });
 
-// ── POST /api/admin/auth/logout — client-side only ────────────
+
 router.post("/logout", protect, (req, res) => {
   res.status(200).json({
     success: true,
@@ -132,7 +132,7 @@ router.post("/logout", protect, (req, res) => {
   });
 });
 
-// ── POST /api/admin/auth/change-password ──────────────────────
+
 router.post("/change-password", protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -163,7 +163,6 @@ router.post("/change-password", protect, async (req, res) => {
   }
 });
 
-// ── POST /api/admin/auth/create-admin (super_admin only) ──────
 router.post("/create-admin", protect, restrictTo("super_admin"), async (req, res) => {
   try {
     const { email, password, fullname, role } = req.body;
@@ -203,7 +202,7 @@ router.post("/create-admin", protect, restrictTo("super_admin"), async (req, res
   }
 });
 
-// ── GET /api/admin/auth/list (super_admin only) ───────────────
+// super admin part
 router.get("/list", protect, restrictTo("super_admin"), async (req, res) => {
   try {
     const Admin = await getAdminModel();
