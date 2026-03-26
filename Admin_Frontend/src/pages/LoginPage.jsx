@@ -128,9 +128,7 @@ export default function LoginPage() {
               Secure access for authorized administrators only. All sessions are logged and monitored.
             </p>
             {[
-              ["User Verification", "Review and approve student registrations"],
-              ["Trust Score Analysis", "Monitor account risk levels"],
-              ["SLA Tracker", "Track verification response times"],
+      
             ].map(([title, desc]) => (
               <div key={title} style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:20 }}>
                 <div style={{ width:6, height:6, borderRadius:"50%", background:"rgba(255,255,255,0.3)",
@@ -192,7 +190,7 @@ export default function LoginPage() {
                   <input
                     type={showPass ? "text" : "password"}
                     className={`login-field ${fieldErrors.password ? "error" : ""}`}
-                    placeholder="Enter your password"
+                    placeholder="Enter your password "
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setFieldErrors(p=>({...p,password:""})); setError(""); }}
                     style={{ paddingRight:56 }}
