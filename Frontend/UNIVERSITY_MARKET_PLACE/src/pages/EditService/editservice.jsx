@@ -30,8 +30,8 @@ export default function EditService() {
   const { serviceId } = useParams();
   const ownerId =
     localStorage.getItem("userId") ||
-    import.meta.env.VITE_PROFILE_USER_ID ||
-    "69a7cbb4f893c9e5eb3f479b";
+    localStorage.getItem("ownerId") ||
+    "";
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");

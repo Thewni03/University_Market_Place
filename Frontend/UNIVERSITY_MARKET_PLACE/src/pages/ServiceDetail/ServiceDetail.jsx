@@ -6,6 +6,19 @@ import { Star, Eye, CalendarCheck, MapPin, User, Loader2 } from 'lucide-react';
 export default function ServiceDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+    const storedUser = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("user") || "null");
+        } catch {
+            return null;
+        }
+    })();
+    const currentUserId =
+        localStorage.getItem("userId") ||
+        localStorage.getItem("ownerId") ||
+        storedUser?._id ||
+        "";
     const [service, setService] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -13,7 +26,10 @@ export default function ServiceDetail() {
     useEffect(() => {
         const fetchService = async () => {
             try {
-                const res = await axios.get(`http://localhost:5001/api/services/${id}`);
+                const requester = currentUserId
+                    ? `?ownerId=${encodeURIComponent(currentUserId)}`
+                    : "";
+                const res = await axios.get(`${API_BASE_URL}/api/services/${id}${requester}`);
                 setService(res.data.data || res.data);
             } catch (error) {       
                 console.error("Error fetching service details:", error);
@@ -22,7 +38,31 @@ export default function ServiceDetail() {
             }
         };
         fetchService();
-    }, [id]);
+    }, [id, API_BASE_URL, currentUserId]);
+
+    const reviewCount = Number(service?.reviewCount || (service?.reviews?.length || 0));
+    const averageRating = reviewCount > 0
+        ? (
+            (service.reviews || []).reduce((sum, r) => sum + Number(r?.rating || 0), 0) /
+            reviewCount
+        ).toFixed(1)
+        : "0.0";
+    const bookingsCount = Number(service?.bookingCount || reviewCount);
+    const ownerName = service?.ownerId?.fullname || service?.ownerName || "Service Provider";
+    const ownerPicture = (() => {
+        const value = service?.ownerProfilePicture;
+        if (!value || typeof value !== "string") return "";
+        if (
+            value.startsWith("http://") ||
+            value.startsWith("https://") ||
+            value.startsWith("data:image/") ||
+            value.startsWith("blob:")
+        ) {
+            return value;
+        }
+        if (value.startsWith("/")) return `${API_BASE_URL}${value}`;
+        return "";
+    })();
 
     if (loading) {
         return (
@@ -60,22 +100,30 @@ export default function ServiceDetail() {
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 font-medium">
                         <div className="flex items-center gap-1.5">
-                            <div className="p-1.5 bg-slate-200 rounded-full">
-                                <User className="w-4 h-4 text-slate-700" />
-                            </div>
-                            <span>Dulaj S.</span> {/* Mock Owner Name */}
+                            {ownerPicture ? (
+                                <img
+                                    src={ownerPicture}
+                                    alt={ownerName}
+                                    className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                                />
+                            ) : (
+                                <div className="p-1.5 bg-slate-200 rounded-full">
+                                    <User className="w-4 h-4 text-slate-700" />
+                                </div>
+                            )}
+                            <span>{ownerName}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                            <span>4.9 (12 reviews)</span>
+                            <span>{averageRating} ({reviewCount} reviews)</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <Eye className="w-4 h-4 text-slate-400" />
-                            <span>340 views</span>
+                            <span>{Number(service?.viewCount || 0)} views</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <CalendarCheck className="w-4 h-4 text-slate-400" />
-                            <span>24 bookings</span>
+                            <span>{bookingsCount} bookings</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <MapPin className="w-4 h-4 text-slate-400" />

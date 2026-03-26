@@ -1,33 +1,36 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Star, MapPin, Eye, TrendingUp, BadgeCheck } from "lucide-react";
+import { Star, MapPin, Eye, TrendingUp, BadgeCheck, CalendarCheck2, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "./ui/badge";
 
 export default function ServiceCard({ service }) {
+  const price = Number(service.pricePerHour || service.price || 0);
+  const score = Number(service.rankingScore || 0).toFixed(2);
+  const views = Number(service.viewsCount ?? service.views ?? 0);
+  const bookings = Number(service.bookingsCount ?? service.bookingCount ?? 0);
+
   return (
     <Link to={`/service/${service._id || service.id}`} className="block">
-      <div className="rounded-xl border border-border bg-card p-5 shadow-[0_1px_3px_0_hsl(0_0%_0%_/_0.04),_0_1px_2px_-1px_hsl(0_0%_0%_/_0.04)] hover:shadow-[0_10px_25px_-5px_hsl(152_60%_42%_/_0.08),_0_4px_10px_-4px_hsl(0_0%_0%_/_0.04)] group transition-shadow">
-        <div className="flex items-start justify-between mb-3">
-          <Badge variant="secondary" className="text-xs font-medium">
+      <div className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-white via-white to-slate-50/70 p-5 shadow-[0_2px_10px_hsl(220_14%_10%_/_0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_30px_-14px_hsl(218_32%_18%_/_0.35)]">
+
+        <div className="relative mb-4 flex items-start justify-between gap-3">
+          <Badge variant="secondary" className="border border-[#4a4e69]/20 bg-[#4a4e69]/10 text-[11px] font-semibold text-[#2f3248]">
             {service.category}
           </Badge>
 
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <TrendingUp className="h-3.5 w-3.5 text-primary" />
-            <span className="font-semibold text-primary">
-              {Number(service.rankingScore || 0).toFixed(2)}
-            </span>
+          <div className="inline-flex items-center gap-1 rounded-full border border-[#013a63]/25 bg-gradient-to-r from-[#013a63]/15 to-[#0ea5a2]/15 px-2.5 py-1 text-[11px] font-bold text-[#013a63]">
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span>{score}</span>
           </div>
         </div>
 
-        <h3 className="font-display text-base font-semibold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2">
+        <h3 className="mb-2 line-clamp-2 font-display text-xl font-bold leading-snug text-slate-900 transition-colors group-hover:text-[#013a63]">
           {service.title}
         </h3>
 
-        {/* Provider */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="h-7 w-7 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-xs font-semibold text-primary">
+        <div className="mb-4 flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#4a4e69]/20 to-[#013a63]/15 text-xs font-semibold text-[#2f3248] ring-2 ring-white shadow-sm">
             {service.provider?.avatar ? (
               <img
                 src={service.provider.avatar}
@@ -42,45 +45,56 @@ export default function ServiceCard({ service }) {
             )}
           </div>
 
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-foreground font-medium">
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="truncate text-sm font-semibold text-slate-800">
               {service.provider?.name}
             </span>
             {service.provider?.verified && (
-              <BadgeCheck className="h-4 w-4 text-primary" />
+              <BadgeCheck className="h-4 w-4 text-[#4a4e69]" />
             )}
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-          <div className="flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 text-accent fill-accent" />
-            <span className="font-medium text-foreground">{service.rating}</span>
+        <div className="mb-4 grid grid-cols-2 gap-2 text-xs">
+          <div className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span className="font-medium text-amber-900">{service.rating}</span>
             <span>({service.reviewCount})</span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-800">
             <Eye className="h-3.5 w-3.5" />
-            <span>{service.bookingsCount} booked</span>
+            <span>{views} views</span>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+            <CalendarCheck2 className="h-3.5 w-3.5" />
+            <span>{bookings} booked</span>
+          </div>
+
+          <div className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-violet-800 capitalize">
             <MapPin className="h-3.5 w-3.5" />
-            <span className="capitalize">{service.location}</span>
-          </div>
-          <div className="text-right">
-            <span className="text-lg font-bold text-foreground">
-              LKR {service.pricePerHour || service.price}
-            </span>
-            <span className="text-xs text-muted-foreground">/hr</span>
+            <span>{service.location}</span>
           </div>
         </div>
 
-        {/* Why shown link */}
+        <div className="flex items-end justify-between border-t border-slate-200 pt-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Starting At
+            </p>
+            <p className="font-display text-xl font-bold text-slate-900">
+              LKR {price.toLocaleString()}
+              <span className="ml-1 text-xs font-medium text-slate-500">/hr</span>
+            </p>
+          </div>
+
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#013a63] px-3 py-1.5 text-xs font-semibold text-white transition-all group-hover:translate-x-0.5 group-hover:bg-[#4a4e69]">
+            View Details
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
+
         <WhyShownLink service={service} />
       </div>
     </Link>

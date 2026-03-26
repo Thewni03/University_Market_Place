@@ -39,8 +39,7 @@ export default function EditService() {
     localStorage.getItem("userId") ||
     localStorage.getItem("ownerId") ||
     storedUser?._id ||
-    import.meta.env.VITE_PROFILE_USER_ID ||
-    "69a7cbb4f893c9e5eb3f479b";
+    "";
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
