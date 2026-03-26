@@ -1,39 +1,151 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { mainAPI, adminAuthAPI } from "../api";
+import { mainAPI } from "../api";
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
-// ── Helpers ────────────────────────────────────────────────────
-const trustColor = (s) => s >= 80 ? "#16a34a" : s >= 50 ? "#d97706" : "#dc2626";
-const trustLabel = (s) => s >= 80 ? "High" : s >= 50 ? "Medium" : "Low";
-const statusColor = { verified:"#16a34a", pending:"#d97706", rejected:"#dc2626", suspended:"#64748b" };
-const statusBg    = { verified:"#f0fdf4", pending:"#fffbeb", rejected:"#fef2f2", suspended:"#f8fafc" };
+// ── Category colors ────────────────────────────
+const CAT_COLORS = {
+  "Tech & Development":      "#6366f1",
+  "Writing & Translation":   "#06b6d4",
+  "Design & Creative":       "#f59e0b",
+  "Design & Media":          "#f59e0b",
+  "Design":                  "#f59e0b",
+  "Events & Entertainment":  "#ec4899",
+  "Education & Tutoring":    "#10b981",
+  "Tutoring":                "#10b981",
+  "Business & Marketing":    "#8b5cf6",
+  "Health & Wellness":       "#14b8a6",
+  "Beauty Services":         "#f472b6",
+  "Photography & Video":     "#f97316",
+  "Development":             "#3b82f6",
+};
+const catColor    = (cat) => CAT_COLORS[cat] || "#94a3b8";
+const trustColor  = (s) => s >= 80 ? "#10b981" : s >= 50 ? "#f59e0b" : "#ef4444";
+const trustLabel  = (s) => s >= 80 ? "High" : s >= 50 ? "Medium" : "Low";
+const fmtLKR      = (n) => `LKR ${Number(n||0).toLocaleString()}`;
 
 const getSLAInfo = (createdAt) => {
   const hrs = (Date.now() - new Date(createdAt)) / 3600000;
-  if (hrs < 24) return { hrs, color:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0", label:"On Time",  urgency:0 };
-  if (hrs < 48) return { hrs, color:"#d97706", bg:"#fffbeb", border:"#fde68a", label:"Warning",  urgency:1 };
-  return             { hrs, color:"#dc2626", bg:"#fef2f2", border:"#fecaca", label:"Overdue",  urgency:2 };
+  if (hrs < 24) return { hrs, color:"#10b981", bg:"#ecfdf5", border:"#6ee7b7", label:"On Time",  urgency:0 };
+  if (hrs < 48) return { hrs, color:"#f59e0b", bg:"#fffbeb", border:"#fde68a", label:"Warning",  urgency:1 };
+  return             { hrs, color:"#ef4444", bg:"#fef2f2", border:"#fecaca", label:"Overdue",  urgency:2 };
 };
 const formatWait = (hrs) => hrs < 1 ? `${Math.round(hrs*60)}m` : hrs < 24 ? `${Math.round(hrs)}h` : `${Math.floor(hrs/24)}d ${Math.round(hrs%24)}h`;
 
+const TABS = [
+  { id:"overview",  label:"Overview"    },
+  { id:"services",  label:"Services"    },
+  { id:"earnings",  label:"Earnings"    },
+  { id:"users",     label:"Users"       },
+  { id:"sla",       label:"SLA Tracker" },
+];
+
+
+const themes = {
+  light: {
+    bg:          "#f1f5f9",
+    surface:     "#ffffff",
+    surface2:    "#f8fafc",
+    border:      "#e2e8f0",
+    border2:     "#f1f5f9",
+    text:        "#0f172a",
+    textMuted:   "#94a3b8",
+    textFaint:   "#94a3b8",
+    navBg:       "#ffffff",
+    navBorder:   "#e2e8f0",
+    tablehead:   "#f8fafc",
+    rowHover:    "#f8fafc",
+    inputBg:     "#f8fafc",
+    codeBg:      "#f1f5f9",
+    glassBg:     "rgba(99,102,241,0.06)",
+    glassBorder: "rgba(99,102,241,0.15)",
+    gridStroke:  "#f1f5f9",
+    scrollTrack: "#f1f5f9",
+    scrollThumb: "#cbd5e1",
+    toastSuccBg: "#f0fdf4",
+    toastErrBg:  "#fef2f2",
+    statBorder:  "#e2e8f0",
+  },
+  dark: {
+    bg:          "#0f1117",
+    surface:     "#161b27",
+    surface2:    "#1a2236",
+    border:      "#1e2d3d",
+    border2:     "#1a2236",
+    text:        "#f1f5f9",
+    textMuted:   "#94a3b8",
+    textFaint:   "#64748b",
+    navBg:       "#131825",
+    navBorder:   "#1e2d3d",
+    tablehead:   "#131825",
+    rowHover:    "#1a2236",
+    inputBg:     "#161b27",
+    codeBg:      "#1e2d3d",
+    glassBg:     "rgba(99,102,241,0.07)",
+    glassBorder: "rgba(99,102,241,0.15)",
+    gridStroke:  "#1e2d3d",
+    scrollTrack: "#1a2433",
+    scrollThumb: "#334155",
+    toastSuccBg: "#0d1f17",
+    toastErrBg:  "#1e1215",
+    statBorder:  "#1e2d3d",
+  },
+};
+
 // ── Sub-components ─────────────────────────────────────────────
-function TrustBadge({ score, onClick }) {
+function StatCard({ label, value, sub, accent, t }) {
+  return (
+    <div style={{ background:t.surface, borderRadius:12, padding:"20px 22px",
+      border:`1px solid ${t.statBorder}`, borderLeft:`3px solid ${accent}`,
+      animation:"fadeUp 0.4s ease both" }}>
+      <div style={{ fontSize:26, fontWeight:800, color:t.text,
+        fontFamily:"'Baloo 2', cursive", lineHeight:1 }}>{value}</div>
+      <div style={{ fontSize:11, fontWeight:600, color:t.textMuted,
+        letterSpacing:"0.07em", textTransform:"uppercase", marginTop:8 }}>{label}</div>
+      {sub && <div style={{ fontSize:10, color:t.textFaint, marginTop:3 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function SectionHeader({ title, sub, action, t }) {
+  return (
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+      <div>
+        <h2 style={{ fontSize:15, fontWeight:700, color:t.text }}>{title}</h2>
+        {sub && <p style={{ fontSize:11, color:t.textFaint, marginTop:2 }}>{sub}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const colors = { verified:["#ecfdf5","#10b981"], pending:["#fffbeb","#f59e0b"], rejected:["#fef2f2","#ef4444"], suspended:["#f8fafc","#64748b"] };
+  const [bg, color] = colors[status] || ["#f8fafc","#64748b"];
+  return (
+    <span style={{ background:bg, color, border:`1px solid ${color}30`,
+      borderRadius:4, padding:"3px 9px", fontSize:10, fontWeight:700,
+      letterSpacing:"0.06em", textTransform:"uppercase" }}>{status}</span>
+  );
+}
+
+function TrustBadge({ score, onClick, t }) {
   const c = trustColor(score);
   const r = 15, circ = 2*Math.PI*r, offset = circ - (score/100)*circ;
   return (
     <div onClick={onClick}
-      style={{ display:"flex", alignItems:"center", gap:7,
+      style={{ display:"flex", alignItems:"center", gap:8,
         background: score>=80?"#f0fdf4": score>=50?"#fffbeb":"#fef2f2",
         border:`1px solid ${c}28`, borderRadius:8, padding:"5px 10px",
         cursor: onClick?"pointer":"default" }}>
       <svg width="36" height="36" viewBox="0 0 36 36">
-        <circle cx="18" cy="18" r={r} fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+        <circle cx="18" cy="18" r={r} fill="none" stroke={t?.border||"#e5e7eb"} strokeWidth="3"/>
         <circle cx="18" cy="18" r={r} fill="none" stroke={c} strokeWidth="3"
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
           style={{ transform:"rotate(-90deg)", transformOrigin:"50% 50%", transition:"stroke-dashoffset 1s" }}/>
@@ -48,71 +160,61 @@ function TrustBadge({ score, onClick }) {
   );
 }
 
-function StatusBadge({ status }) {
-  return (
-    <span style={{ background:statusBg[status]||"#f8fafc", color:statusColor[status]||"#64748b",
-      border:`1px solid ${statusColor[status]||"#e2e8f0"}28`,
-      borderRadius:4, padding:"3px 9px", fontSize:10, fontWeight:700,
-      letterSpacing:"0.06em", textTransform:"uppercase" }}>
-      {status}
-    </span>
-  );
-}
-
-function StatCard({ label, value, sub, accent }) {
-  return (
-    <div style={{ background:"white", borderRadius:10, padding:"20px 22px",
-      border:"1px solid #e2e8f0", borderLeft:`3px solid ${accent}` }}>
-      <div style={{ fontSize:24, fontWeight:800, color:"#0f172a",
-        fontFamily:"'IBM Plex Mono',monospace", lineHeight:1 }}>{value}</div>
-      <div style={{ fontSize:11, fontWeight:600, color:"#1e293b",
-        letterSpacing:"0.05em", textTransform:"uppercase", marginTop:6 }}>{label}</div>
-      {sub && <div style={{ fontSize:10, color:"#94a3b8", marginTop:2 }}>{sub}</div>}
-    </div>
-  );
-}
-
-function TrustModal({ user, onClose }) {
+// ── Trust Breakdown Modal ──────────────────────────────────────
+function TrustModal({ user, onClose, t }) {
   if (!user) return null;
   const bd = user.trustBreakdown || {};
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000,
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
       display:"flex", alignItems:"center", justifyContent:"center" }}
       onClick={onClose}>
-      <div style={{ background:"white", borderRadius:12, padding:28, width:400, maxWidth:"90vw",
-        border:"1px solid #e2e8f0", boxShadow:"0 20px 60px rgba(0,0,0,0.12)",
+      <div style={{ background:t.surface, borderRadius:14, padding:28, width:420, maxWidth:"92vw",
+        border:`1px solid ${t.border}`, boxShadow:"0 20px 60px rgba(0,0,0,0.2)",
         animation:"popIn 0.2s ease both" }}
         onClick={e=>e.stopPropagation()}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-          <h3 style={{ fontFamily:"'Sora',sans-serif", fontSize:15, fontWeight:700, color:"#0f172a" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
+          <h3 style={{ fontFamily:"'Baloo 2', cursive", fontSize:16, fontWeight:700, color:t.text }}>
             Trust Breakdown
           </h3>
-          <button onClick={onClose} style={{ background:"none", border:"1px solid #e2e8f0",
-            borderRadius:6, width:26, height:26, cursor:"pointer", color:"#64748b",
-            display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>✕</button>
+          <button onClick={onClose} style={{ background:"none", border:`1px solid ${t.border}`,
+            borderRadius:6, width:28, height:28, cursor:"pointer", color:t.textMuted,
+            display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>✕</button>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:12, background:"#f8fafc",
-          borderRadius:8, padding:"10px 14px", marginBottom:16 }}>
-          <TrustBadge score={user.trust_score||0}/>
+
+        {/* User info */}
+        <div style={{ display:"flex", alignItems:"center", gap:14, background:t.surface2,
+          borderRadius:10, padding:"12px 16px", marginBottom:20,
+          border:`1px solid ${t.border}` }}>
+          <TrustBadge score={user.trust_score||0} t={t}/>
           <div>
-            <div style={{ fontSize:13, fontWeight:600, color:"#0f172a" }}>{user.fullname}</div>
-            <div style={{ fontSize:11, color:"#94a3b8" }}>{user.email}</div>
+            <div style={{ fontSize:14, fontWeight:700, color:t.text }}>{user.fullname}</div>
+            <div style={{ fontSize:11, color:t.textMuted, marginTop:1 }}>{user.email}</div>
           </div>
         </div>
-        {Object.entries(bd).map(([key, val]) => (
-          <div key={key} style={{ marginBottom:12 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-              <span style={{ fontSize:11, fontWeight:600, color:"#334155", textTransform:"capitalize" }}>
+
+        {/* Breakdown items */}
+        {Object.keys(bd).length === 0 ? (
+          <p style={{ textAlign:"center", color:t.textMuted, fontSize:12, padding:"20px 0" }}>
+            No breakdown data available
+          </p>
+        ) : Object.entries(bd).map(([key, val]) => (
+          <div key={key} style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+              <span style={{ fontSize:12, fontWeight:600, color:t.text, textTransform:"capitalize" }}>
                 {key.replace(/([A-Z])/g," $1")}
               </span>
-              <span style={{ fontSize:11, fontWeight:700, color:val.pts>0?"#16a34a":"#dc2626",
-                fontFamily:"'IBM Plex Mono',monospace" }}>+{val.pts} pts</span>
+              <span style={{ fontSize:12, fontWeight:700,
+                color: val.pts>0?"#10b981":"#ef4444",
+                fontFamily:"'IBM Plex Mono',monospace" }}>
+                {val.pts>0?"+":""}{val.pts} pts
+              </span>
             </div>
-            <div style={{ background:"#f1f5f9", borderRadius:99, height:4, overflow:"hidden" }}>
-              <div style={{ height:"100%", width:`${(val.pts/30)*100}%`,
-                background:val.pts>0?"#16a34a":"#dc2626", borderRadius:99 }}/>
+            <div style={{ background:t.border, borderRadius:99, height:5, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${Math.max(0,Math.min(100,(val.pts/30)*100))}%`,
+                background: val.pts>0?"#10b981":"#ef4444", borderRadius:99,
+                transition:"width 0.8s ease" }}/>
             </div>
-            <div style={{ fontSize:10, color:"#94a3b8", marginTop:2 }}>{val.note}</div>
+            <div style={{ fontSize:10, color:t.textMuted, marginTop:3 }}>{val.note}</div>
           </div>
         ))}
       </div>
@@ -120,90 +222,81 @@ function TrustModal({ user, onClose }) {
   );
 }
 
-const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
-  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'Sora',sans-serif; background:#f8fafc; color:#0f172a; }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
-  @keyframes popIn  { from{opacity:0;transform:scale(0.96);}to{opacity:1;transform:scale(1);} }
-  @keyframes slideIn{ from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);} }
-  ::-webkit-scrollbar{width:5px;height:5px;}
-  ::-webkit-scrollbar-track{background:#f1f5f9;}
-  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px;}
-  .nav-link { padding:7px 13px; border:none; background:transparent; color:#64748b;
-    font-family:'Sora',sans-serif; font-size:13px; font-weight:500; cursor:pointer;
-    border-radius:6px; transition:all 0.15s; white-space:nowrap; }
-  .nav-link:hover { background:#f1f5f9; color:#0f172a; }
-  .nav-link.active { background:#0f172a; color:white; font-weight:600; }
-  .action-btn { padding:4px 10px; border-radius:5px; border:1px solid transparent;
-    cursor:pointer; font-size:10px; font-weight:700; font-family:'Sora',sans-serif;
-    transition:all 0.15s; letter-spacing:0.04em; text-transform:uppercase; }
-  .action-btn:hover { filter:brightness(0.93); }
-  .user-row:hover td { background:#f8fafc !important; }
-  th { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.09em;
-    text-transform:uppercase; color:#64748b; font-weight:600; }
-  input, select { font-family:'Sora',sans-serif; font-size:13px; color:#0f172a; }
-  input::placeholder { color:#94a3b8; }
-`;
+// ── Custom Tooltip ─────────────────────────────────────────────
+const makeTooltip = (t) => ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background:t.surface, border:`1px solid ${t.border}`, borderRadius:8,
+      padding:"10px 14px", fontSize:12, boxShadow:"0 4px 20px rgba(0,0,0,0.1)" }}>
+      {label && <div style={{ color:t.textMuted, marginBottom:6, fontSize:11 }}>{label}</div>}
+      {payload.map((p,i) => (
+        <div key={i} style={{ color:p.color||t.text, fontWeight:600 }}>
+          {p.name}: {p.value?.toLocaleString?.()??p.value}
+        </div>
+      ))}
+    </div>
+  );
+};
 
-// ── TABS ───────────────────────────────────────────────────────
-const TABS = [
-  { id:"overview", label:"Overview" },
-  { id:"users",    label:"User Management" },
-  { id:"trust",    label:"Trust Scores" },
-  { id:"sla",      label:"SLA Tracker" },
-];
-
+// ── Main Dashboard ──────────────────────────────────────────────
 export default function DashboardPage() {
   const { admin, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [darkMode, setDarkMode]   = useState(false);
+  const t = themes[darkMode?"dark":"light"];
+
   const [tab, setTab]             = useState("overview");
   const [users, setUsers]         = useState([]);
+  const [services, setServices]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterTrust, setFilterTrust]   = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast]         = useState(null);
-  const [bulkLoading, setBulkLoading] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [bulkLoading, setBulkLoading]     = useState(false);
+  const [showMenu, setShowMenu]   = useState(false);
+  const [serviceSort, setServiceSort] = useState("views");
+  const [earningSort, setEarningSort] = useState("estimated");
 
-  const fetchUsers = async () => {
+  const fetchAll = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await mainAPI.get("/Users");
-      const withScores = await Promise.all(res.data.map(async (u) => {
+      const [usersRes, servicesRes] = await Promise.all([
+        mainAPI.get("/Users"),
+        mainAPI.get("/api/services"),
+      ]);
+      const usersData = usersRes.data || [];
+      const withScores = await Promise.all(usersData.map(async (u) => {
         try {
           const tr = await mainAPI.get(`/Users/trust-score/${u.email}`);
-          return { ...u, trust_score: tr.data.score, trustBreakdown: tr.data.breakdown };
-        } catch { return { ...u, trust_score: u.trust_score || 0 }; }
+          return { ...u, trust_score: tr.data.score||0, trustBreakdown: tr.data.breakdown };
+        } catch { return { ...u, trust_score: u.trust_score||0 }; }
       }));
       setUsers(withScores);
-    } catch (err) { console.error(err); }
+      const svcData = servicesRes.data?.data || servicesRes.data || [];
+      setServices(svcData);
+    } catch (err) { showToast("Failed to load data","error"); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const showToast = (msg, type="success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
+  const handleLogout = async () => { await logout(); navigate("/login"); };
 
   const updateStatus = async (email, status) => {
     setActionLoading(email+status);
     try {
       await mainAPI.put(`/Users/${email}`, { verification_status: status });
       setUsers(prev => prev.map(u => u.email===email ? { ...u, verification_status:status } : u));
-      showToast(`User ${status} successfully`);
-    } catch { showToast("Action failed", "error"); }
+      showToast(`User ${status}`);
+    } catch { showToast("Action failed","error"); }
     finally { setActionLoading(null); }
   };
 
@@ -211,181 +304,245 @@ export default function DashboardPage() {
     if (!window.confirm(`Delete ${email}?`)) return;
     try {
       await mainAPI.delete(`/Users/${email}`);
-      setUsers(prev => prev.filter(u => u.email!==email));
+      setUsers(prev => prev.filter(u=>u.email!==email));
       showToast("User deleted");
-    } catch { showToast("Delete failed", "error"); }
+    } catch { showToast("Delete failed","error"); }
   };
 
   const bulkApprove = async () => {
-    const eligible = users.filter(u => u.verification_status==="pending" && (u.trust_score||0)>=80);
-    if (!eligible.length) { showToast("No high-trust pending users", "error"); return; }
+    const eligible = users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80);
+    if (!eligible.length) { showToast("No high-trust pending users","error"); return; }
     if (!window.confirm(`Bulk approve ${eligible.length} users?`)) return;
     setBulkLoading(true);
     try {
-      await Promise.all(eligible.map(u => mainAPI.put(`/Users/${u.email}`, { verification_status:"verified" })));
-      setUsers(prev => prev.map(u => eligible.find(e=>e.email===u.email) ? { ...u, verification_status:"verified" } : u));
+      await Promise.all(eligible.map(u=>mainAPI.put(`/Users/${u.email}`,{verification_status:"verified"})));
+      setUsers(prev=>prev.map(u=>eligible.find(e=>e.email===u.email)?{...u,verification_status:"verified"}:u));
       showToast(`${eligible.length} users approved`);
-    } catch { showToast("Bulk approve failed", "error"); }
+    } catch { showToast("Bulk approve failed","error"); }
     finally { setBulkLoading(false); }
   };
 
-  // ── Stats ────────────────────────────────────────────────────
-  const total     = users.length;
-  const verified  = users.filter(u=>u.verification_status==="verified").length;
-  const pending   = users.filter(u=>u.verification_status==="pending").length;
-  const rejected  = users.filter(u=>u.verification_status==="rejected").length;
-  const suspended = users.filter(u=>u.verification_status==="suspended").length;
-  const highTrust = users.filter(u=>(u.trust_score||0)>=80).length;
-  const lowTrust  = users.filter(u=>(u.trust_score||0)<50).length;
-  const avgTrust  = total ? Math.round(users.reduce((a,u)=>a+(u.trust_score||0),0)/total) : 0;
+  const analytics = useMemo(() => {
+    const total     = users.length;
+    const verified  = users.filter(u=>u.verification_status==="verified").length;
+    const pending   = users.filter(u=>u.verification_status==="pending").length;
+    const rejected  = users.filter(u=>u.verification_status==="rejected").length;
+    const suspended = users.filter(u=>u.verification_status==="suspended").length;
+    const publishedSvcs   = services.filter(s=>s.isPublished);
+    const unpublishedSvcs = services.filter(s=>!s.isPublished);
+    const totalViews      = services.reduce((a,s)=>a+(s.viewCount||0),0);
+    const totalBookings   = services.reduce((a,s)=>a+(s.reviewCount||0),0);
 
-  const statusPie = [
-    { name:"Verified", value:verified, color:"#16a34a" },
-    { name:"Pending",  value:pending,  color:"#d97706" },
-    { name:"Rejected", value:rejected, color:"#dc2626" },
-    { name:"Suspended",value:suspended,color:"#64748b" },
-  ].filter(d=>d.value>0);
+    const catMap = {};
+    services.forEach(s => {
+      const c = s.category||"Uncategorized";
+      if (!catMap[c]) catMap[c] = { category:c, count:0, views:0, bookings:0, totalRevenue:0 };
+      catMap[c].count++;
+      catMap[c].views    += s.viewCount||0;
+      catMap[c].bookings += s.reviewCount||0;
+      catMap[c].totalRevenue += (s.reviewCount||0)*(s.pricePerHour||0);
+    });
+    const categoryData = Object.values(catMap).sort((a,b)=>b.count-a.count);
 
-  const trustDist = [
-    { label:"High (80–100)", count:users.filter(u=>(u.trust_score||0)>=80).length, fill:"#16a34a" },
-    { label:"Med (50–79)",   count:users.filter(u=>(u.trust_score||0)>=50&&(u.trust_score||0)<80).length, fill:"#d97706" },
-    { label:"Low (0–49)",    count:users.filter(u=>(u.trust_score||0)<50).length, fill:"#dc2626" },
-  ];
+    const earningsMap = {};
+    services.forEach(s => {
+      const oid = s.ownerId?._id || s.ownerId;
+      if (!oid) return;
+      const key = String(oid);
+      if (!earningsMap[key]) earningsMap[key] = {
+        userId:key, name:s.ownerId?.fullname||"Unknown",
+        university:s.ownerId?.university_name||"—",
+        services:0, totalViews:0, totalBookings:0, estimated:0,
+      };
+      earningsMap[key].services++;
+      earningsMap[key].totalViews    += s.viewCount||0;
+      earningsMap[key].totalBookings += s.reviewCount||0;
+      earningsMap[key].estimated     += (s.reviewCount||0)*(s.pricePerHour||0);
+    });
+    const earningsData = Object.values(earningsMap).sort((a,b)=>b.estimated-a.estimated);
 
-  const uniBar = Object.entries(users.reduce((acc,u)=>{
-    const k=u.university_name||"Unknown"; acc[k]=(acc[k]||0)+1; return acc;
-  },{})).map(([uni,count])=>({ uni:uni.length>18?uni.slice(0,18)+"…":uni, count }))
-    .sort((a,b)=>b.count-a.count).slice(0,6);
+    const trending = [...services].map(s=>({
+      ...s, trendScore:(s.viewCount||0)+(s.reviewCount||0)*5
+    })).sort((a,b)=>b.trendScore-a.trendScore).slice(0,8);
 
-  const gradLine = Object.entries(users.reduce((acc,u)=>{
-    const y=u.graduate_year||"Unknown"; acc[y]=(acc[y]||0)+1; return acc;
-  },{})).map(([year,count])=>({ year, count })).sort((a,b)=>a.year-b.year);
+    const priceBuckets = [
+      {range:"0–500",   min:0,   max:500,       count:0},
+      {range:"500–1k",  min:500, max:1000,       count:0},
+      {range:"1k–2k",   min:1000,max:2000,       count:0},
+      {range:"2k–5k",   min:2000,max:5000,       count:0},
+      {range:"5k+",     min:5000,max:Infinity,   count:0},
+    ];
+    services.forEach(s=>{
+      const b=priceBuckets.find(b=>s.pricePerHour>=b.min&&s.pricePerHour<b.max);
+      if(b) b.count++;
+    });
 
-  const filtered = users.filter(u => {
+    const online   = services.filter(s=>s.locationMode==="Online").length;
+    const oncampus = services.filter(s=>s.locationMode==="On-Campus").length;
+    const statusPie = [
+      {name:"Verified", value:verified, color:"#10b981"},
+      {name:"Pending",  value:pending,  color:"#f59e0b"},
+      {name:"Rejected", value:rejected, color:"#ef4444"},
+      {name:"Suspended",value:suspended,color:"#64748b"},
+    ].filter(d=>d.value>0);
+    const totalRevenue = earningsData.reduce((a,e)=>a+e.estimated,0);
+
+    return { total, verified, pending, rejected, suspended,
+      publishedSvcs, unpublishedSvcs, totalViews, totalBookings,
+      categoryData, earningsData, trending, priceBuckets,
+      online, oncampus, statusPie, totalRevenue };
+  }, [users, services]);
+
+  const filteredUsers = useMemo(() => users.filter(u => {
     const s = search.toLowerCase();
-    const ms = !s || u.fullname?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s)
-      || u.student_id?.toLowerCase().includes(s) || u.university_name?.toLowerCase().includes(s);
+    const ms = !s || [u.fullname,u.email,u.student_id,u.university_name].some(f=>f?.toLowerCase().includes(s));
     const mst = filterStatus==="all" || u.verification_status===filterStatus;
-    const mt  = filterTrust==="all" ? true
-      : filterTrust==="high"   ? (u.trust_score||0)>=80
-      : filterTrust==="medium" ? (u.trust_score||0)>=50&&(u.trust_score||0)<80
-      : (u.trust_score||0)<50;
-    return ms&&mst&&mt;
-  });
+    return ms&&mst;
+  }), [users, search, filterStatus]);
 
-  const roleColors = { super_admin:"#7c3aed", admin:"#0284c7", moderator:"#64748b" };
+  const sortedServices = useMemo(() => [...services].sort((a,b)=>{
+    if(serviceSort==="views")    return (b.viewCount||0)-(a.viewCount||0);
+    if(serviceSort==="bookings") return (b.reviewCount||0)-(a.reviewCount||0);
+    if(serviceSort==="price")    return (b.pricePerHour||0)-(a.pricePerHour||0);
+    return b.createdAt>a.createdAt?1:-1;
+  }), [services, serviceSort]);
+
+  const sortedEarnings = useMemo(()=>[...analytics.earningsData].sort((a,b)=>{
+    if(earningSort==="estimated") return b.estimated-a.estimated;
+    if(earningSort==="bookings")  return b.totalBookings-a.totalBookings;
+    if(earningSort==="views")     return b.totalViews-a.totalViews;
+    return b.services-a.services;
+  }), [analytics.earningsData, earningSort]);
+
+  const DarkTooltip = makeTooltip(t);
+
+  const CSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Baloo 2', cursive; background:${t.bg}; color:${t.text}; transition:background 0.3s,color 0.3s; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);} }
+    @keyframes popIn  { from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);} }
+    @keyframes pulse  { 0%,100%{opacity:1;}50%{opacity:0.5;} }
+    @keyframes spin   { to{transform:rotate(360deg);} }
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-track{background:${t.scrollTrack};}
+    ::-webkit-scrollbar-thumb{background:${t.scrollThumb};border-radius:99px;}
+    .nav-tab { padding:8px 16px; border:none; background:transparent; color:${t.textMuted};
+      font-family:'Baloo 2', cursive; font-size:12px; font-weight:600; cursor:pointer;
+      border-radius:8px; transition:all 0.15s; white-space:nowrap; }
+    .nav-tab:hover { background:${t.surface2}; color:${t.text}; }
+    .nav-tab.active { background:#6366f1; color:white; }
+    .action-btn { padding:5px 11px; border-radius:6px; border:1px solid transparent;
+      cursor:pointer; font-size:10px; font-weight:700; font-family:'Baloo 2', cursive;
+      transition:all 0.15s; letter-spacing:0.04em; text-transform:uppercase; }
+    .action-btn:hover { filter:brightness(${darkMode?"1.15":"0.92"}); }
+    .row-hover:hover td { background:${t.rowHover} !important; }
+    th { font-family:'Baloo 2', cursive; font-size:10px; letter-spacing:0.1em;
+      text-transform:uppercase; color:${t.textFaint}; font-weight:600; }
+  `;
 
   return (
     <>
       <style>{CSS}</style>
 
+      {/* Toast */}
       {toast && (
         <div style={{ position:"fixed", top:20, right:20, zIndex:9999,
-          background:toast.type==="error"?"#fef2f2":"#f0fdf4",
-          border:`1px solid ${toast.type==="error"?"#fca5a5":"#86efac"}`,
-          borderRadius:8, padding:"10px 16px", fontSize:12, fontWeight:600,
-          color:toast.type==="error"?"#dc2626":"#16a34a",
-          boxShadow:"0 4px 20px rgba(0,0,0,0.1)", animation:"popIn 0.2s ease both" }}>
+          background: toast.type==="error"?t.toastErrBg:t.toastSuccBg,
+          border:`1px solid ${toast.type==="error"?"#ef444440":"#10b98140"}`,
+          borderRadius:10, padding:"10px 18px", fontSize:12, fontWeight:600,
+          color: toast.type==="error"?"#ef4444":"#10b981",
+          boxShadow:"0 8px 30px rgba(0,0,0,0.15)", animation:"popIn 0.2s ease both" }}>
           {toast.msg}
         </div>
       )}
 
-      <TrustModal user={selectedUser} onClose={()=>setSelectedUser(null)}/>
+      {/* Trust Modal */}
+      <TrustModal user={selectedUser} onClose={()=>setSelectedUser(null)} t={t}/>
 
-      <div style={{ minHeight:"100vh", background:"#f8fafc" }}>
+      <div style={{ minHeight:"100vh", background:t.bg, transition:"background 0.3s" }}>
 
         {/* ── NAVBAR ── */}
         <header style={{ position:"sticky", top:0, zIndex:100,
-          background:"white", borderBottom:"1px solid #e2e8f0",
-          boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
-
-          {/* Top row */}
+          background:t.navBg, borderBottom:`1px solid ${t.navBorder}`,
+          boxShadow:`0 1px 20px rgba(0,0,0,${darkMode?"0.3":"0.06"})`,
+          transition:"background 0.3s, border-color 0.3s" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"0 28px", height:54, maxWidth:1600, margin:"0 auto" }}>
+            padding:"0 28px", height:56, maxWidth:1600, margin:"0 auto" }}>
 
             {/* Brand */}
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:30, height:30, background:"#0f172a", borderRadius:7,
-                display:"flex", alignItems:"center", justifyContent:"center" }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <rect x="1" y="1" width="5" height="5" rx="1" fill="white" opacity="0.9"/>
-                  <rect x="8" y="1" width="5" height="5" rx="1" fill="white" opacity="0.55"/>
-                  <rect x="1" y="8" width="5" height="5" rx="1" fill="white" opacity="0.55"/>
-                  <rect x="8" y="8" width="5" height="5" rx="1" fill="white" opacity="0.25"/>
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ width:32, height:32, background:"linear-gradient(135deg,#6366f1,#06b6d4)",
+                borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 2L14 5V11L8 14L2 11V5L8 2Z" stroke="white" strokeWidth="1.5" fill="none"/>
+                  <circle cx="8" cy="8" r="2" fill="white"/>
                 </svg>
               </div>
               <div>
-                <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:12, fontWeight:600,
-                  color:"#0f172a" }}>University Marketplace</div>
-                <div style={{ fontSize:9, color:"#94a3b8", letterSpacing:"0.14em",
+                <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:12, fontWeight:700,
+                  color:t.text }}>UniMarket</div>
+                <div style={{ fontSize:9, color:t.textFaint, letterSpacing:"0.16em",
                   textTransform:"uppercase", fontWeight:600 }}>Admin Console</div>
               </div>
             </div>
 
-            {/* Right: status + user menu */}
-            <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+            {/* Right */}
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <div style={{ width:6, height:6, borderRadius:"50%", background:"#16a34a" }}/>
-                <span style={{ fontSize:11, color:"#64748b", fontWeight:500 }}>Operational</span>
+                <div style={{ width:6, height:6, borderRadius:"50%", background:"#10b981",
+                  animation:"pulse 2s ease-in-out infinite" }}/>
+                <span style={{ fontSize:11, color:t.textMuted }}>Operational</span>
               </div>
+              <div style={{ width:1, height:18, background:t.border }}/>
 
-              <div style={{ width:1, height:18, background:"#e2e8f0" }}/>
+              {/* Dark mode toggle */}
+              <button onClick={()=>setDarkMode(d=>!d)}
+                title={darkMode?"Switch to Light Mode":"Switch to Dark Mode"}
+                style={{ background:t.surface2, border:`1px solid ${t.border}`,
+                  borderRadius:8, padding:"7px 12px", cursor:"pointer",
+                  fontSize:16, lineHeight:1, transition:"all 0.2s" }}>
+                {darkMode ? "☼" : "☽"}
+              </button>
 
-              {/* Admin user dropdown */}
+              {/* Admin menu */}
               <div style={{ position:"relative" }}>
-                <button
-                  onClick={()=>setShowUserMenu(p=>!p)}
-                  style={{ display:"flex", alignItems:"center", gap:9, background:"none",
-                    border:"1px solid #e2e8f0", borderRadius:8, padding:"6px 12px",
-                    cursor:"pointer", transition:"border-color 0.15s" }}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor="#0f172a"}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor="#e2e8f0"}>
-                  <div style={{ width:26, height:26, borderRadius:"50%", background:"#0f172a",
+                <button onClick={()=>setShowMenu(p=>!p)}
+                  style={{ display:"flex", alignItems:"center", gap:8,
+                    background:t.surface2, border:`1px solid ${t.border}`,
+                    borderRadius:8, padding:"7px 12px", cursor:"pointer" }}>
+                  <div style={{ width:24, height:24, borderRadius:"50%",
+                    background:"linear-gradient(135deg,#6366f1,#06b6d4)",
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:11, fontWeight:700, color:"white",
-                    fontFamily:"'IBM Plex Mono',monospace" }}>
-                    {admin?.fullname?.charAt(0)?.toUpperCase() || "A"}
+                    fontSize:10, fontWeight:700, color:"white" }}>
+                    {admin?.fullname?.charAt(0)?.toUpperCase()||"A"}
                   </div>
-                  <div style={{ textAlign:"left" }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:"#0f172a" }}>{admin?.fullname}</div>
-                    <div style={{ fontSize:10, color:"#94a3b8" }}>
-                      <span style={{ background:roleColors[admin?.role]||"#64748b",
-                        color:"white", padding:"1px 6px", borderRadius:3, fontSize:9,
-                        fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase" }}>
-                        {admin?.role?.replace("_"," ")}
-                      </span>
-                    </div>
-                  </div>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M3 4.5L6 7.5L9 4.5" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+                  <span style={{ fontSize:12, fontWeight:600, color:t.text }}>{admin?.fullname}</span>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 3.5L5 6.5L8 3.5" stroke={t.textMuted} strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                 </button>
-
-                {showUserMenu && (
+                {showMenu && (
                   <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0,
-                    background:"white", border:"1px solid #e2e8f0", borderRadius:10,
-                    boxShadow:"0 8px 30px rgba(0,0,0,0.1)", minWidth:220,
-                    animation:"popIn 0.15s ease both", zIndex:200 }}
-                    onMouseLeave={()=>setShowUserMenu(false)}>
-                    <div style={{ padding:"14px 16px", borderBottom:"1px solid #f1f5f9" }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:"#0f172a" }}>{admin?.fullname}</div>
-                      <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>{admin?.email}</div>
+                    background:t.surface, border:`1px solid ${t.border}`, borderRadius:10,
+                    boxShadow:"0 20px 60px rgba(0,0,0,0.15)", minWidth:200, zIndex:200,
+                    animation:"popIn 0.15s ease both" }}
+                    onMouseLeave={()=>setShowMenu(false)}>
+                    <div style={{ padding:"14px 16px", borderBottom:`1px solid ${t.border}` }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:t.text }}>{admin?.fullname}</div>
+                      <div style={{ fontSize:11, color:t.textMuted, marginTop:2 }}>{admin?.email}</div>
                       {admin?.lastLogin && (
-                        <div style={{ fontSize:10, color:"#cbd5e1", marginTop:4,
+                        <div style={{ fontSize:10, color:t.textFaint, marginTop:4,
                           fontFamily:"'IBM Plex Mono',monospace" }}>
-                          Last login: {new Date(admin.lastLogin).toLocaleString()}
+                          Last: {new Date(admin.lastLogin).toLocaleString()}
                         </div>
                       )}
                     </div>
                     <div style={{ padding:8 }}>
-                      <button
-                        onClick={handleLogout}
-                        style={{ width:"100%", textAlign:"left", background:"none",
-                          border:"none", padding:"9px 12px", cursor:"pointer",
-                          fontSize:12, fontWeight:600, color:"#dc2626", borderRadius:6,
-                          fontFamily:"'Sora',sans-serif", transition:"background 0.1s" }}
-                        onMouseEnter={e=>e.currentTarget.style.background="#fef2f2"}
-                        onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                      <button onClick={handleLogout}
+                        style={{ width:"100%", textAlign:"left", background:"none", border:"none",
+                          padding:"9px 12px", cursor:"pointer", fontSize:12, fontWeight:600,
+                          color:"#ef4444", borderRadius:6, fontFamily:"'Baloo 2', cursive" }}>
                         Sign Out
                       </button>
                     </div>
@@ -393,195 +550,514 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <button onClick={fetchUsers}
-                style={{ background:"#0f172a", color:"white", border:"none",
-                  borderRadius:7, padding:"7px 14px", cursor:"pointer",
-                  fontSize:11, fontWeight:600, fontFamily:"'Sora',sans-serif",
-                  letterSpacing:"0.04em" }}>
-                Refresh
+              <button onClick={fetchAll}
+                style={{ background:"#6366f1", color:"white", border:"none", borderRadius:8,
+                  padding:"8px 16px", cursor:"pointer", fontSize:11, fontWeight:700,
+                  fontFamily:"'Baloo 2', cursive", boxShadow:"0 0 20px rgba(99,102,241,0.25)" }}>
+                ↻
               </button>
             </div>
           </div>
 
-          {/* Tab row */}
-          <div style={{ display:"flex", alignItems:"center", gap:2,
-            padding:"0 28px", height:40, maxWidth:1600, margin:"0 auto",
-            borderTop:"1px solid #f1f5f9" }}>
-            {TABS.map(t => (
-              <button key={t.id} className={`nav-link ${tab===t.id?"active":""}`}
-                onClick={()=>setTab(t.id)}>
-                {t.label}
-              </button>
+          {/* Tabs */}
+          <div style={{ display:"flex", alignItems:"center", gap:4,
+            padding:"0 28px", height:44, maxWidth:1600, margin:"0 auto",
+            borderTop:`1px solid ${t.navBorder}` }}>
+            {TABS.map(tb=>(
+              <button key={tb.id} className={`nav-tab ${tab===tb.id?"active":""}`}
+                onClick={()=>setTab(tb.id)}>{tb.label}</button>
             ))}
-            <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6 }}>
-              <span style={{ fontSize:10, color:"#cbd5e1", fontFamily:"'IBM Plex Mono',monospace" }}>admin</span>
-              <span style={{ fontSize:10, color:"#cbd5e1" }}>/</span>
-              <span style={{ fontSize:10, color:"#64748b", fontFamily:"'IBM Plex Mono',monospace", fontWeight:600 }}>{tab}</span>
+            <div style={{ marginLeft:"auto", fontFamily:"'IBM Plex Mono',monospace",
+              fontSize:10, color:t.textFaint }}>
+              admin / {tab}
             </div>
           </div>
         </header>
 
         {/* ── MAIN ── */}
-        <main style={{ maxWidth:1600, margin:"0 auto", padding:"26px 28px" }}>
-          <div style={{ marginBottom:22, paddingBottom:18, borderBottom:"1px solid #e2e8f0" }}>
-            <h1 style={{ fontFamily:"'Sora',sans-serif", fontSize:20, fontWeight:700,
-              color:"#0f172a", letterSpacing:"-0.03em" }}>
-              {{ overview:"Dashboard Overview", users:"User Management",
-                trust:"Trust Score Analysis", sla:"Verification SLA Tracker" }[tab]}
-            </h1>
-            <p style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>
-              University Marketplace — Admin Control Panel
-            </p>
-          </div>
-
+        <main style={{ maxWidth:1600, margin:"0 auto", padding:"28px 28px" }}>
           {loading ? (
-            <div style={{ textAlign:"center", padding:80 }}>
-              <div style={{ width:32, height:32, border:"2.5px solid #e2e8f0",
-                borderTop:"2.5px solid #0f172a", borderRadius:"50%",
+            <div style={{ textAlign:"center", padding:100 }}>
+              <div style={{ width:36, height:36, border:`3px solid ${t.border}`,
+                borderTop:"3px solid #6366f1", borderRadius:"50%",
                 animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }}/>
-              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-              <p style={{ fontSize:13, color:"#94a3b8" }}>Loading data...</p>
+              <p style={{ fontSize:13, color:t.textMuted }}>Loading analytics...</p>
             </div>
           ) : (
             <>
-              {/* OVERVIEW */}
+
+              {/* ════════ OVERVIEW ════════ */}
               {tab==="overview" && (
                 <div style={{ animation:"fadeUp 0.35s ease both" }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:12, marginBottom:20 }}>
-                    <StatCard label="Total Users"  value={total}    accent="#0ea5e9" sub="Registered"/>
-                    <StatCard label="Verified"     value={verified}  accent="#16a34a" sub={`${total?Math.round(verified/total*100):0}%`}/>
-                    <StatCard label="Pending"      value={pending}   accent="#d97706" sub="Awaiting"/>
-                    <StatCard label="Rejected"     value={rejected}  accent="#dc2626" sub="Not approved"/>
-                    <StatCard label="Avg Trust"    value={avgTrust}  accent="#7c3aed" sub="Out of 100"/>
-                    <StatCard label="High Trust"   value={highTrust} accent="#16a34a" sub="Score ≥ 80"/>
-                    <StatCard label="Low Trust"    value={lowTrust}  accent="#dc2626" sub="Score < 50"/>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",
+                    gap:12, marginBottom:24 }}>
+                    <StatCard label="Total Users"    value={analytics.total}    accent="#6366f1" t={t} sub="Registered"/>
+                    <StatCard label="Verified"       value={analytics.verified} accent="#10b981" t={t} sub={`${analytics.total?Math.round(analytics.verified/analytics.total*100):0}% rate`}/>
+                    <StatCard label="Pending"        value={analytics.pending}  accent="#f59e0b" t={t} sub="Awaiting"/>
+                    <StatCard label="Services"       value={services.length}    accent="#06b6d4" t={t} sub={`${analytics.publishedSvcs.length} published`}/>
+                    <StatCard label="Total Views"    value={analytics.totalViews.toLocaleString()} accent="#8b5cf6" t={t}/>
+                    <StatCard label="Total Bookings" value={analytics.totalBookings} accent="#ec4899" t={t}/>
+                    <StatCard label="Est. Revenue"   value={`LKR ${(analytics.totalRevenue/1000).toFixed(0)}k`} accent="#10b981" t={t} sub="Bookings × price"/>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
-                    {[
-                      { title:"Verification Status", chart:(
-                        <PieChart>
-                          <Pie data={statusPie} cx="50%" cy="50%" innerRadius={50} outerRadius={78}
-                            paddingAngle={4} dataKey="value"
-                            label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
-                            {statusPie.map((e,i)=><Cell key={i} fill={e.color}/>)}
-                          </Pie>
-                          <Tooltip contentStyle={{ borderRadius:8, border:"1px solid #e2e8f0", fontSize:12 }}/>
-                        </PieChart>
-                      )},
-                      { title:"Trust Distribution", chart:(
-                        <BarChart data={trustDist} barSize={34}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
-                          <XAxis dataKey="label" tick={{ fontSize:10, fill:"#64748b" }} tickLine={false} axisLine={false}/>
-                          <YAxis tick={{ fontSize:10, fill:"#64748b" }} tickLine={false} axisLine={false}/>
-                          <Tooltip contentStyle={{ borderRadius:8, border:"1px solid #e2e8f0", fontSize:12 }}/>
-                          <Bar dataKey="count" radius={[5,5,0,0]}>{trustDist.map((e,i)=><Cell key={i} fill={e.fill}/>)}</Bar>
-                        </BarChart>
-                      )},
-                    ].map(({ title, chart }) => (
-                      <div key={title} style={{ background:"white", borderRadius:10, padding:20, border:"1px solid #e2e8f0" }}>
-                        <h3 style={{ fontSize:13, fontWeight:700, color:"#0f172a", marginBottom:14 }}>{title}</h3>
-                        <ResponsiveContainer width="100%" height={200}>{chart}</ResponsiveContainer>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-                    <div style={{ background:"white", borderRadius:10, padding:20, border:"1px solid #e2e8f0" }}>
-                      <h3 style={{ fontSize:13, fontWeight:700, color:"#0f172a", marginBottom:14 }}>Users by University</h3>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:14, marginBottom:14 }}>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Services by Category" sub="Total services per category" t={t}/>
                       <ResponsiveContainer width="100%" height={200}>
-                        <BarChart data={uniBar} layout="vertical" barSize={13}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false}/>
-                          <XAxis type="number" tick={{ fontSize:10, fill:"#64748b" }} tickLine={false} axisLine={false}/>
-                          <YAxis type="category" dataKey="uni" tick={{ fontSize:10, fill:"#64748b" }} width={115} tickLine={false} axisLine={false}/>
-                          <Tooltip contentStyle={{ borderRadius:8, border:"1px solid #e2e8f0", fontSize:12 }}/>
-                          <Bar dataKey="count" fill="#334155" radius={[0,5,5,0]}/>
+                        <BarChart data={analytics.categoryData} barSize={28}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} vertical={false}/>
+                          <XAxis dataKey="category" tick={{ fontSize:9, fill:t.textMuted }}
+                            tickLine={false} axisLine={false}
+                            tickFormatter={v=>v.split(" ")[0]}/>
+                          <YAxis tick={{ fontSize:10, fill:t.textMuted }} tickLine={false} axisLine={false}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Bar dataKey="count" radius={[6,6,0,0]} name="Services">
+                            {analytics.categoryData.map((e,i)=><Cell key={i} fill={catColor(e.category)}/>)}
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div style={{ background:"white", borderRadius:10, padding:20, border:"1px solid #e2e8f0" }}>
-                      <h3 style={{ fontSize:13, fontWeight:700, color:"#0f172a", marginBottom:14 }}>Graduate Year</h3>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="User Status" sub="Verification breakdown" t={t}/>
                       <ResponsiveContainer width="100%" height={200}>
-                        <LineChart data={gradLine}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
-                          <XAxis dataKey="year" tick={{ fontSize:10, fill:"#64748b" }} tickLine={false} axisLine={false}/>
-                          <YAxis tick={{ fontSize:10, fill:"#64748b" }} tickLine={false} axisLine={false}/>
-                          <Tooltip contentStyle={{ borderRadius:8, border:"1px solid #e2e8f0", fontSize:12 }}/>
-                          <Line type="monotone" dataKey="count" stroke="#0f172a" strokeWidth={2}
-                            dot={{ fill:"#0f172a", r:3 }} activeDot={{ r:5 }}/>
-                        </LineChart>
+                        <PieChart>
+                          <Pie data={analytics.statusPie} cx="50%" cy="50%"
+                            innerRadius={52} outerRadius={78} paddingAngle={4} dataKey="value"
+                            label={({name,percent})=>`${(percent*100).toFixed(0)}%`} labelLine={false}>
+                            {analytics.statusPie.map((e,i)=><Cell key={i} fill={e.color}/>)}
+                          </Pie>
+                          <Tooltip content={<DarkTooltip/>}/>
+                        </PieChart>
                       </ResponsiveContainer>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6, justifyContent:"center", marginTop:6 }}>
+                        {analytics.statusPie.map(e=>(
+                          <div key={e.name} style={{ display:"flex", alignItems:"center", gap:4 }}>
+                            <div style={{ width:8, height:8, borderRadius:"50%", background:e.color }}/>
+                            <span style={{ fontSize:10, color:t.textMuted }}>{e.name} ({e.value})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Est. Revenue by Category" sub="Bookings × hourly rate" t={t}/>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={analytics.categoryData} layout="vertical" barSize={14}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} horizontal={false}/>
+                          <XAxis type="number" tick={{ fontSize:9, fill:t.textMuted }}
+                            tickLine={false} axisLine={false}
+                            tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                          <YAxis type="category" dataKey="category" width={110}
+                            tick={{ fontSize:9, fill:t.textMuted }} tickLine={false} axisLine={false}
+                            tickFormatter={v=>v.length>16?v.slice(0,16)+"…":v}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Bar dataKey="totalRevenue" name="LKR" radius={[0,6,6,0]}>
+                            {analytics.categoryData.map((e,i)=><Cell key={i} fill={catColor(e.category)}/>)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Price Distribution (LKR/hr)" sub="How services are priced" t={t}/>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={analytics.priceBuckets} barSize={36}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} vertical={false}/>
+                          <XAxis dataKey="range" tick={{ fontSize:10, fill:t.textMuted }} tickLine={false} axisLine={false}/>
+                          <YAxis tick={{ fontSize:10, fill:t.textMuted }} tickLine={false} axisLine={false}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Bar dataKey="count" fill="#06b6d4" radius={[6,6,0,0]} name="Services"/>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:14 }}>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="🔥 Trending Services" sub="Ranked by views + bookings×5" t={t}/>
+                      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                        {analytics.trending.slice(0,6).map((s,i)=>(
+                          <div key={s._id} style={{ display:"flex", alignItems:"center", gap:12,
+                            padding:"10px 12px", background:t.surface2, borderRadius:10,
+                            border:`1px solid ${i===0?"#6366f130":t.border}` }}>
+                            <div style={{ width:28, height:28, borderRadius:8, flexShrink:0,
+                              background: i===0?"linear-gradient(135deg,#f59e0b,#ef4444)":
+                                          i===1?"linear-gradient(135deg,#6366f1,#8b5cf6)":
+                                          i===2?"linear-gradient(135deg,#06b6d4,#10b981)":t.border,
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                              fontSize:12, fontWeight:800, color: i<3?"white":t.textMuted,
+                              fontFamily:"'IBM Plex Mono',monospace" }}>{i+1}</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:600, color:t.text,
+                                whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s.title}</div>
+                              <div style={{ fontSize:10, color:t.textMuted, marginTop:1 }}>{s.category} · {s.locationMode}</div>
+                            </div>
+                            <div style={{ textAlign:"right", flexShrink:0 }}>
+                              <div style={{ fontSize:11, fontWeight:700, color:"#6366f1",
+                                fontFamily:"'IBM Plex Mono',monospace" }}>{(s.viewCount||0).toLocaleString()} views</div>
+                              <div style={{ fontSize:10, color:t.textMuted }}>{s.reviewCount||0} bookings</div>
+                            </div>
+                            <div style={{ fontSize:11, fontWeight:700, color:"#10b981",
+                              fontFamily:"'IBM Plex Mono',monospace", flexShrink:0 }}>
+                              {fmtLKR(s.pricePerHour)}/hr
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                      <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                        <SectionHeader title="Location Mode" t={t}/>
+                        {[
+                          {label:"Online",    value:analytics.online,   color:"#6366f1"},
+                          {label:"On-Campus", value:analytics.oncampus, color:"#10b981"},
+                        ].map(item=>(
+                          <div key={item.label} style={{ marginBottom:12 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                              <span style={{ fontSize:11, color:t.textMuted, fontWeight:600 }}>{item.label}</span>
+                              <span style={{ fontSize:11, color:item.color, fontWeight:700,
+                                fontFamily:"'IBM Plex Mono',monospace" }}>
+                                {item.value} ({services.length?Math.round(item.value/services.length*100):0}%)
+                              </span>
+                            </div>
+                            <div style={{ background:t.border, borderRadius:99, height:6 }}>
+                              <div style={{ height:"100%", borderRadius:99, background:item.color,
+                                width:`${services.length?Math.round(item.value/services.length*100):0}%`,
+                                transition:"width 1s ease" }}/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                        <SectionHeader title="Quick Stats" t={t}/>
+                        {[
+                          {label:"Avg price/hr", value:`LKR ${services.length?Math.round(services.reduce((a,s)=>a+(s.pricePerHour||0),0)/services.length).toLocaleString():0}`},
+                          {label:"Published rate", value:`${services.length?Math.round(analytics.publishedSvcs.length/services.length*100):0}%`},
+                          {label:"Avg reviews", value:services.length?(services.reduce((a,s)=>a+(s.reviewCount||0),0)/services.length).toFixed(1):"0"},
+                          {label:"Avg views/service", value:services.length?Math.round(analytics.totalViews/services.length).toLocaleString():"0"},
+                        ].map(item=>(
+                          <div key={item.label} style={{ display:"flex", justifyContent:"space-between",
+                            alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${t.border2}` }}>
+                            <span style={{ fontSize:11, color:t.textMuted }}>{item.label}</span>
+                            <span style={{ fontSize:12, fontWeight:700, color:t.text,
+                              fontFamily:"'IBM Plex Mono',monospace" }}>{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* USERS */}
+              {tab==="services" && (
+                <div style={{ animation:"fadeUp 0.35s ease both" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",
+                    gap:12, marginBottom:20 }}>
+                    <StatCard label="Total" value={services.length} accent="#6366f1" t={t}/>
+                    <StatCard label="Published" value={analytics.publishedSvcs.length} accent="#10b981" t={t}/>
+                    <StatCard label="Draft" value={analytics.unpublishedSvcs.length} accent="#94a3b8" t={t}/>
+                    <StatCard label="Total Views" value={analytics.totalViews.toLocaleString()} accent="#8b5cf6" t={t}/>
+                    <StatCard label="Bookings" value={analytics.totalBookings} accent="#ec4899" t={t}/>
+                    <StatCard label="Categories" value={analytics.categoryData.length} accent="#06b6d4" t={t}/>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Category Radar" sub="Services vs Views vs Bookings" t={t}/>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <RadarChart data={analytics.categoryData.slice(0,7)}>
+                          <PolarGrid stroke={t.border}/>
+                          <PolarAngleAxis dataKey="category" tick={{ fontSize:9, fill:t.textMuted }}
+                            tickFormatter={v=>v.split(" ")[0]}/>
+                          <Radar name="Services" dataKey="count" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2}/>
+                          <Radar name="Views" dataKey="views" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.15}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Legend wrapperStyle={{ fontSize:10, color:t.textMuted }}/>
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Views vs Bookings by Category" t={t}/>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={analytics.categoryData} barSize={14}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} vertical={false}/>
+                          <XAxis dataKey="category" tick={{ fontSize:8, fill:t.textMuted }}
+                            tickLine={false} axisLine={false} tickFormatter={v=>v.split(" ")[0]}/>
+                          <YAxis tick={{ fontSize:9, fill:t.textMuted }} tickLine={false} axisLine={false}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Legend wrapperStyle={{ fontSize:10, color:t.textMuted }}/>
+                          <Bar dataKey="views" name="Views" fill="#6366f1" radius={[4,4,0,0]}/>
+                          <Bar dataKey="bookings" name="Bookings" fill="#10b981" radius={[4,4,0,0]}/>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div style={{ background:t.surface, borderRadius:12, overflow:"hidden", border:`1px solid ${t.border}` }}>
+                    <div style={{ padding:"16px 20px", borderBottom:`1px solid ${t.border}`,
+                      display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
+                      <h3 style={{ fontSize:13, fontWeight:700, color:t.text }}>All Services</h3>
+                      <div style={{ display:"flex", gap:8 }}>
+                        {[["views","Most Viewed"],["bookings","Most Booked"],["price","Highest Price"],["newest","Newest"]].map(([v,l])=>(
+                          <button key={v} onClick={()=>setServiceSort(v)}
+                            style={{ padding:"5px 11px", borderRadius:6, border:"1px solid",
+                              borderColor: serviceSort===v?"#6366f1":t.border,
+                              background: serviceSort===v?"#6366f115":"transparent",
+                              color: serviceSort===v?"#6366f1":t.textMuted,
+                              fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"'Baloo 2', cursive" }}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ overflowX:"auto" }}>
+                      <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
+                        <thead>
+                          <tr style={{ background:t.tablehead, borderBottom:`1px solid ${t.border}` }}>
+                            {["Service","Category","Provider","Price/hr","Views","Bookings","Status","Location"].map(h=>(
+                              <th key={h} style={{ padding:"10px 14px", textAlign:"left" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedServices.map(s=>(
+                            <tr key={s._id} className="row-hover" style={{ borderBottom:`1px solid ${t.border2}` }}>
+                              <td style={{ padding:"12px 14px" }}>
+                                <div style={{ fontSize:12, fontWeight:600, color:t.text,
+                                  maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                  {s.title}
+                                </div>
+                              </td>
+                              <td style={{ padding:"12px 14px" }}>
+                                <span style={{ background:`${catColor(s.category)}18`, color:catColor(s.category),
+                                  border:`1px solid ${catColor(s.category)}30`,
+                                  borderRadius:99, padding:"3px 10px", fontSize:10, fontWeight:700 }}>
+                                  {s.category}
+                                </span>
+                              </td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:t.textMuted }}>
+                                {s.ownerId?.fullname||"—"}
+                              </td>
+                              <td style={{ padding:"12px 14px", fontSize:11, fontWeight:700,
+                                color:"#10b981", fontFamily:"'IBM Plex Mono',monospace" }}>
+                                {fmtLKR(s.pricePerHour)}
+                              </td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:"#6366f1",
+                                fontFamily:"'IBM Plex Mono',monospace", fontWeight:600 }}>
+                                {(s.viewCount||0).toLocaleString()}
+                              </td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:"#ec4899",
+                                fontFamily:"'IBM Plex Mono',monospace", fontWeight:600 }}>
+                                {s.reviewCount||0}
+                              </td>
+                              <td style={{ padding:"12px 14px" }}>
+                                <span style={{ background:s.isPublished?"#ecfdf5":"#f8fafc",
+                                  color:s.isPublished?"#10b981":"#64748b",
+                                  border:`1px solid ${s.isPublished?"#10b98130":"#e2e8f0"}`,
+                                  borderRadius:4, padding:"3px 9px", fontSize:10, fontWeight:700 }}>
+                                  {s.isPublished?"Published":"Draft"}
+                                </span>
+                              </td>
+                              <td style={{ padding:"12px 14px", fontSize:10, color:t.textMuted }}>{s.locationMode}</td>
+                            </tr>
+                          ))}
+                          {!sortedServices.length && (
+                            <tr><td colSpan={8} style={{ textAlign:"center", padding:40, color:t.textMuted }}>No services found</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tab==="earnings" && (
+                <div style={{ animation:"fadeUp 0.35s ease both" }}>
+                  <div style={{ background:t.glassBg, border:`1px solid ${t.glassBorder}`,
+                    borderRadius:12, padding:"14px 20px", marginBottom:20,
+                    display:"flex", alignItems:"center", gap:12 }}>
+                    <span style={{ fontSize:20 }}>💡</span>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:700, color:t.text }}>Estimated Earnings</div>
+                      <div style={{ fontSize:11, color:t.textMuted, marginTop:1 }}>
+                        Calculated as <code style={{ background:t.codeBg, padding:"1px 6px",
+                          borderRadius:4, color:"#6366f1", fontSize:10 }}>reviewCount × pricePerHour</code> per service.
+                        Real payment data will appear once the payment system is integrated.
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",
+                    gap:12, marginBottom:20 }}>
+                    <StatCard label="Total Est. Revenue" value={fmtLKR(analytics.totalRevenue)} accent="#10b981" t={t}/>
+                    <StatCard label="Active Providers" value={analytics.earningsData.length} accent="#6366f1" t={t}/>
+                    <StatCard label="Top Earner" value={fmtLKR(analytics.earningsData[0]?.estimated||0)} accent="#f59e0b" t={t}/>
+                    <StatCard label="Avg per Provider" value={fmtLKR(analytics.earningsData.length?analytics.totalRevenue/analytics.earningsData.length:0)} accent="#06b6d4" t={t}/>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Top 8 Earners" sub="Estimated revenue" t={t}/>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={analytics.earningsData.slice(0,8)} layout="vertical" barSize={16}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} horizontal={false}/>
+                          <XAxis type="number" tick={{ fontSize:9, fill:t.textMuted }}
+                            tickLine={false} axisLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                          <YAxis type="category" dataKey="name" width={90}
+                            tick={{ fontSize:9, fill:t.textMuted }} tickLine={false} axisLine={false}
+                            tickFormatter={v=>v.length>12?v.slice(0,12)+"…":v}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Bar dataKey="estimated" name="LKR" fill="#10b981" radius={[0,6,6,0]}/>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ background:t.surface, borderRadius:12, padding:20, border:`1px solid ${t.border}` }}>
+                      <SectionHeader title="Bookings per Provider" t={t}/>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={[...analytics.earningsData].sort((a,b)=>b.totalBookings-a.totalBookings).slice(0,8)} layout="vertical" barSize={16}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} horizontal={false}/>
+                          <XAxis type="number" tick={{ fontSize:9, fill:t.textMuted }} tickLine={false} axisLine={false}/>
+                          <YAxis type="category" dataKey="name" width={90}
+                            tick={{ fontSize:9, fill:t.textMuted }} tickLine={false} axisLine={false}
+                            tickFormatter={v=>v.length>12?v.slice(0,12)+"…":v}/>
+                          <Tooltip content={<DarkTooltip/>}/>
+                          <Bar dataKey="totalBookings" name="Bookings" fill="#ec4899" radius={[0,6,6,0]}/>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div style={{ background:t.surface, borderRadius:12, overflow:"hidden", border:`1px solid ${t.border}` }}>
+                    <div style={{ padding:"16px 20px", borderBottom:`1px solid ${t.border}`,
+                      display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
+                      <div>
+                        <h3 style={{ fontSize:13, fontWeight:700, color:t.text }}>💰 Earnings Leaderboard</h3>
+                        <p style={{ fontSize:11, color:t.textFaint, marginTop:2 }}>Person-wise earnings breakdown</p>
+                      </div>
+                      <div style={{ display:"flex", gap:8 }}>
+                        {[["estimated","Revenue"],["bookings","Bookings"],["views","Views"],["services","Services"]].map(([v,l])=>(
+                          <button key={v} onClick={()=>setEarningSort(v)}
+                            style={{ padding:"5px 11px", borderRadius:6, border:"1px solid",
+                              borderColor: earningSort===v?"#10b981":t.border,
+                              background: earningSort===v?"#10b98115":"transparent",
+                              color: earningSort===v?"#10b981":t.textMuted,
+                              fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"'Baloo 2', cursive" }}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ overflowX:"auto" }}>
+                      <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                        <thead>
+                          <tr style={{ background:t.tablehead, borderBottom:`1px solid ${t.border}` }}>
+                            {["Rank","Provider","University","Services","Views","Bookings","Est. Earnings"].map(h=>(
+                              <th key={h} style={{ padding:"10px 14px", textAlign:"left" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedEarnings.map((e,i)=>(
+                            <tr key={e.userId} className="row-hover" style={{ borderBottom:`1px solid ${t.border2}` }}>
+                              <td style={{ padding:"12px 14px" }}>
+                                <div style={{ width:28, height:28, borderRadius:8,
+                                  background: i===0?"linear-gradient(135deg,#f59e0b,#ef4444)":
+                                              i===1?"linear-gradient(135deg,#6366f1,#8b5cf6)":
+                                              i===2?"linear-gradient(135deg,#06b6d4,#10b981)":t.surface2,
+                                  display:"flex", alignItems:"center", justifyContent:"center",
+                                  fontSize:11, fontWeight:800, color:i<3?"white":t.textMuted,
+                                  fontFamily:"'IBM Plex Mono',monospace" }}>{i+1}</div>
+                              </td>
+                              <td style={{ padding:"12px 14px", fontSize:12, fontWeight:600, color:t.text }}>{e.name}</td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:t.textMuted }}>{e.university}</td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:"#6366f1",
+                                fontFamily:"'IBM Plex Mono',monospace", fontWeight:700 }}>{e.services}</td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:t.textMuted,
+                                fontFamily:"'IBM Plex Mono',monospace" }}>{e.totalViews.toLocaleString()}</td>
+                              <td style={{ padding:"12px 14px", fontSize:11, color:"#ec4899",
+                                fontFamily:"'IBM Plex Mono',monospace", fontWeight:700 }}>{e.totalBookings}</td>
+                              <td style={{ padding:"12px 14px" }}>
+                                <div style={{ fontSize:13, fontWeight:800, color:"#10b981",
+                                  fontFamily:"'IBM Plex Mono',monospace" }}>{fmtLKR(e.estimated)}</div>
+                                <div style={{ fontSize:9, color:t.textFaint, marginTop:1 }}>estimated</div>
+                              </td>
+                            </tr>
+                          ))}
+                          {!sortedEarnings.length && (
+                            <tr><td colSpan={7} style={{ textAlign:"center", padding:40, color:t.textMuted }}>No provider data</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {tab==="users" && (
                 <div style={{ animation:"fadeUp 0.35s ease both" }}>
                   <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap" }}>
                     <input value={search} onChange={e=>setSearch(e.target.value)}
                       placeholder="Search name, email, student ID, university..."
                       style={{ flex:1, minWidth:240, padding:"9px 14px",
-                        border:"1px solid #e2e8f0", borderRadius:7, outline:"none" }}/>
-                    {[
-                      { val:filterStatus, set:setFilterStatus, opts:[["all","All Status"],["pending","Pending"],["verified","Verified"],["rejected","Rejected"],["suspended","Suspended"]] },
-                      { val:filterTrust,  set:setFilterTrust,  opts:[["all","All Trust"],["high","High"],["medium","Medium"],["low","Low"]] },
-                    ].map(({ val, set, opts }, i) => (
-                      <select key={i} value={val} onChange={e=>set(e.target.value)}
-                        style={{ padding:"9px 12px", border:"1px solid #e2e8f0",
-                          borderRadius:7, outline:"none", background:"white", cursor:"pointer" }}>
-                        {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-                      </select>
-                    ))}
+                        background:t.inputBg, border:`1px solid ${t.border}`,
+                        borderRadius:8, outline:"none", color:t.text, fontSize:13 }}/>
+                    <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}
+                      style={{ padding:"9px 14px", background:t.inputBg, border:`1px solid ${t.border}`,
+                        borderRadius:8, outline:"none", color:t.text, cursor:"pointer" }}>
+                      {[["all","All Status"],["pending","Pending"],["verified","Verified"],
+                        ["rejected","Rejected"],["suspended","Suspended"]].map(([v,l])=>(
+                        <option key={v} value={v}>{l}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div style={{ fontSize:10, color:"#94a3b8", marginBottom:10,
+                  <div style={{ fontSize:10, color:t.textFaint, marginBottom:10,
                     fontFamily:"'IBM Plex Mono',monospace" }}>
-                    {filtered.length} / {total} users
+                    {filteredUsers.length} / {users.length} users
                   </div>
-                  <div style={{ background:"white", borderRadius:10, overflow:"hidden", border:"1px solid #e2e8f0" }}>
+                  <div style={{ background:t.surface, borderRadius:12, overflow:"hidden", border:`1px solid ${t.border}` }}>
                     <div style={{ overflowX:"auto" }}>
                       <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
                         <thead>
-                          <tr style={{ background:"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
+                          <tr style={{ background:t.tablehead, borderBottom:`1px solid ${t.border}` }}>
                             {["User","University","Student ID","Trust","Status","ID File","Actions"].map(h=>(
-                              <th key={h} style={{ padding:"11px 14px", textAlign:"left", whiteSpace:"nowrap" }}>{h}</th>
+                              <th key={h} style={{ padding:"11px 14px", textAlign:"left" }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {filtered.length===0 ? (
-                            <tr><td colSpan={7} style={{ textAlign:"center", padding:40, color:"#94a3b8", fontSize:13 }}>No users found</td></tr>
-                          ) : filtered.map((u,i) => (
-                            <tr key={u.email} className="user-row" style={{ borderBottom:"1px solid #f1f5f9" }}>
+                          {filteredUsers.length===0 ? (
+                            <tr><td colSpan={7} style={{ textAlign:"center", padding:40, color:t.textMuted }}>No users found</td></tr>
+                          ) : filteredUsers.map(u=>(
+                            <tr key={u.email} className="row-hover" style={{ borderBottom:`1px solid ${t.border2}` }}>
                               <td style={{ padding:"12px 14px" }}>
-                                <div style={{ fontWeight:600, fontSize:13, color:"#0f172a" }}>{u.fullname}</div>
-                                <div style={{ fontSize:11, color:"#94a3b8" }}>{u.email}</div>
-                                <div style={{ fontSize:10, color:"#cbd5e1", fontFamily:"'IBM Plex Mono',monospace" }}>
-                                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                                <div style={{ fontWeight:600, fontSize:13, color:t.text }}>{u.fullname}</div>
+                                <div style={{ fontSize:11, color:t.textMuted }}>{u.email}</div>
+                                <div style={{ fontSize:10, color:t.textFaint, fontFamily:"'IBM Plex Mono',monospace" }}>
+                                  {u.createdAt?new Date(u.createdAt).toLocaleDateString():"—"}
                                 </div>
                               </td>
-                              <td style={{ padding:"12px 14px", fontSize:12, color:"#334155", maxWidth:150 }}>{u.university_name||"—"}</td>
+                              <td style={{ padding:"12px 14px", fontSize:12, color:t.textMuted }}>{u.university_name||"—"}</td>
                               <td style={{ padding:"12px 14px" }}>
-                                <code style={{ background:"#f1f5f9", color:"#334155",
-                                  padding:"2px 7px", borderRadius:4, fontSize:11, fontWeight:600,
+                                <code style={{ background:t.codeBg, color:t.textMuted,
+                                  padding:"2px 7px", borderRadius:4, fontSize:11,
                                   fontFamily:"'IBM Plex Mono',monospace" }}>{u.student_id}</code>
-                                <div style={{ fontSize:10, color:"#94a3b8", marginTop:2 }}>Grad: {u.graduate_year||"—"}</div>
+                                <div style={{ fontSize:10, color:t.textFaint, marginTop:2 }}>Grad: {u.graduate_year||"—"}</div>
                               </td>
                               <td style={{ padding:"12px 14px" }}>
-                                <TrustBadge score={u.trust_score||0} onClick={()=>setSelectedUser(u)}/>
+                                <TrustBadge score={u.trust_score||0} onClick={()=>setSelectedUser(u)} t={t}/>
                               </td>
                               <td style={{ padding:"12px 14px" }}><StatusBadge status={u.verification_status}/></td>
                               <td style={{ padding:"12px 14px" }}>
                                 {u.student_id_pic
-                                  ? <button className="action-btn" style={{ background:"#f0f9ff", color:"#0284c7", borderColor:"#bae6fd" }}
-                                      onClick={()=>window.open(`http://localhost:5000/uploads/${u.student_id_pic.replace("uploads/","")}`, "_blank")}>View</button>
-                                  : <span style={{ fontSize:11, color:"#cbd5e1" }}>None</span>}
+                                  ? <button className="action-btn"
+                                      style={{ background:"#eff6ff", color:"#3b82f6", borderColor:"#bfdbfe" }}
+                                      onClick={()=>window.open(`http://localhost:5000/uploads/${u.student_id_pic.replace("uploads/","")}`, "_blank")}>
+                                      View
+                                    </button>
+                                  : <span style={{ fontSize:11, color:t.textFaint }}>None</span>}
                               </td>
                               <td style={{ padding:"12px 14px" }}>
                                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-                                  {u.verification_status!=="verified"  && <button className="action-btn" style={{ background:"#f0fdf4", color:"#16a34a", borderColor:"#bbf7d0" }} onClick={()=>updateStatus(u.email,"verified")}>Approve</button>}
-                                  {u.verification_status!=="rejected"  && <button className="action-btn" style={{ background:"#fef2f2", color:"#dc2626", borderColor:"#fecaca" }} onClick={()=>updateStatus(u.email,"rejected")}>Reject</button>}
+                                  {u.verification_status!=="verified"  && <button className="action-btn" style={{ background:"#f0fdf4", color:"#10b981", borderColor:"#bbf7d0" }} onClick={()=>updateStatus(u.email,"verified")}>Approve</button>}
+                                  {u.verification_status!=="rejected"  && <button className="action-btn" style={{ background:"#fef2f2", color:"#ef4444", borderColor:"#fecaca" }} onClick={()=>updateStatus(u.email,"rejected")}>Reject</button>}
                                   {u.verification_status!=="suspended" && <button className="action-btn" style={{ background:"#f8fafc", color:"#64748b", borderColor:"#e2e8f0" }} onClick={()=>updateStatus(u.email,"suspended")}>Suspend</button>}
-                                  <button className="action-btn" style={{ background:"#fef2f2", color:"#dc2626", borderColor:"#fecaca" }} onClick={()=>deleteUser(u.email)}>Delete</button>
+                                  <button className="action-btn" style={{ background:"#fef2f2", color:"#ef4444", borderColor:"#fecaca" }} onClick={()=>deleteUser(u.email)}>Delete</button>
                                 </div>
                               </td>
                             </tr>
@@ -593,45 +1069,45 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* SLA */}
+              {/* ════════ SLA ════════ */}
               {tab==="sla" && (
                 <div style={{ animation:"fadeUp 0.35s ease both" }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:12, marginBottom:20 }}>
-                    <StatCard label="Pending"         value={pending}  accent="#d97706" sub="Total"/>
-                    <StatCard label="On Time"          value={users.filter(u=>u.verification_status==="pending"&&getSLAInfo(u.createdAt).urgency===0).length} accent="#16a34a" sub="< 24h"/>
-                    <StatCard label="Warning"          value={users.filter(u=>u.verification_status==="pending"&&getSLAInfo(u.createdAt).urgency===1).length} accent="#d97706" sub="24–48h"/>
-                    <StatCard label="Overdue"          value={users.filter(u=>u.verification_status==="pending"&&getSLAInfo(u.createdAt).urgency===2).length} accent="#dc2626" sub="> 48h"/>
-                    <StatCard label="High-Trust Queue" value={users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80).length} accent="#7c3aed" sub="Safe to approve"/>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",
+                    gap:12, marginBottom:20 }}>
+                    <StatCard label="Pending"          value={analytics.pending}  accent="#f59e0b" t={t}/>
+                    <StatCard label="On Time"          value={users.filter(u=>u.verification_status==="pending"&&getSLAInfo(u.createdAt).urgency===0).length} accent="#10b981" t={t} sub="< 24h"/>
+                    <StatCard label="Warning"          value={users.filter(u=>u.verification_status==="pending"&&getSLAInfo(u.createdAt).urgency===1).length} accent="#f59e0b" t={t} sub="24–48h"/>
+                    <StatCard label="Overdue"          value={users.filter(u=>u.verification_status==="pending"&&getSLAInfo(u.createdAt).urgency===2).length} accent="#ef4444" t={t} sub="> 48h"/>
+                    <StatCard label="High-Trust Queue" value={users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80).length} accent="#6366f1" t={t} sub="Safe to approve"/>
                   </div>
                   {users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80).length>0 && (
-                    <div style={{ background:"#f0fdf4", border:"1px solid #86efac",
-                      borderRadius:10, padding:"16px 20px", marginBottom:18,
+                    <div style={{ background:t.glassBg, border:`1px solid ${t.glassBorder}`,
+                      borderRadius:12, padding:"16px 20px", marginBottom:18,
                       display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, flexWrap:"wrap" }}>
                       <div>
-                        <div style={{ fontSize:13, fontWeight:700, color:"#15803d", marginBottom:2 }}>Quick Action Available</div>
-                        <div style={{ fontSize:12, color:"#16a34a" }}>
-                          <strong>{users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80).length} high-trust users</strong> pending — score ≥ 80, safe to approve.
+                        <div style={{ fontSize:13, fontWeight:700, color:"#10b981", marginBottom:2 }}>Quick Action Available</div>
+                        <div style={{ fontSize:12, color:t.textMuted }}>
+                          <strong style={{ color:t.text }}>{users.filter(u=>u.verification_status==="pending"&&(u.trust_score||0)>=80).length} high-trust users</strong> pending — score ≥ 80
                         </div>
                       </div>
                       <button disabled={bulkLoading} onClick={bulkApprove}
-                        style={{ background:"#15803d", color:"white", border:"none",
-                          borderRadius:7, padding:"9px 18px", cursor:"pointer",
-                          fontFamily:"'Sora',sans-serif", fontSize:12, fontWeight:700,
-                          opacity:bulkLoading?0.7:1 }}>
-                        {bulkLoading ? "Approving..." : "Bulk Approve All"}
+                        style={{ background:"#10b981", color:"white", border:"none", borderRadius:8,
+                          padding:"9px 20px", cursor:"pointer", fontFamily:"'Baloo 2', cursive",
+                          fontSize:12, fontWeight:700, boxShadow:"0 0 20px rgba(16,185,129,0.2)" }}>
+                        {bulkLoading?"Approving...":"⚡ Bulk Approve All"}
                       </button>
                     </div>
                   )}
-                  <div style={{ background:"white", borderRadius:10, overflow:"hidden", border:"1px solid #e2e8f0", marginBottom:16 }}>
-                    <div style={{ padding:"14px 20px", borderBottom:"1px solid #e2e8f0",
+                  <div style={{ background:t.surface, borderRadius:12, overflow:"hidden", border:`1px solid ${t.border}` }}>
+                    <div style={{ padding:"14px 20px", borderBottom:`1px solid ${t.border}`,
                       display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                      <h3 style={{ fontSize:13, fontWeight:700, color:"#0f172a" }}>Pending Queue</h3>
-                      <span style={{ fontSize:10, color:"#94a3b8", fontFamily:"'IBM Plex Mono',monospace" }}>Sorted by wait time</span>
+                      <h3 style={{ fontSize:13, fontWeight:700, color:t.text }}>Pending Queue</h3>
+                      <span style={{ fontSize:10, color:t.textFaint, fontFamily:"'IBM Plex Mono',monospace" }}>Sorted by wait time ↓</span>
                     </div>
                     <div style={{ overflowX:"auto" }}>
                       <table style={{ width:"100%", borderCollapse:"collapse", minWidth:800 }}>
                         <thead>
-                          <tr style={{ background:"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
+                          <tr style={{ background:t.tablehead, borderBottom:`1px solid ${t.border}` }}>
                             {["User","University","Trust","Wait Time","SLA","Progress","Actions"].map(h=>(
                               <th key={h} style={{ padding:"10px 14px", textAlign:"left" }}>{h}</th>
                             ))}
@@ -640,47 +1116,49 @@ export default function DashboardPage() {
                         <tbody>
                           {users.filter(u=>u.verification_status==="pending")
                             .sort((a,b)=>getSLAInfo(b.createdAt).hrs-getSLAInfo(a.createdAt).hrs)
-                            .map(u => {
+                            .map(u=>{
                               const sla=getSLAInfo(u.createdAt);
                               return (
-                                <tr key={u.email} className="user-row"
-                                  style={{ borderBottom:"1px solid #f1f5f9",
-                                    background:sla.urgency===2?"#fff5f5":sla.urgency===1?"#fffdf0":"white" }}>
+                                <tr key={u.email} className="row-hover" style={{ borderBottom:`1px solid ${t.border2}` }}>
                                   <td style={{ padding:"12px 14px" }}>
-                                    <div style={{ fontWeight:600, fontSize:12, color:"#0f172a" }}>{u.fullname}</div>
-                                    <div style={{ fontSize:10, color:"#94a3b8" }}>{u.email}</div>
+                                    <div style={{ fontWeight:600, fontSize:12, color:t.text }}>{u.fullname}</div>
+                                    <div style={{ fontSize:10, color:t.textMuted }}>{u.email}</div>
                                   </td>
-                                  <td style={{ padding:"12px 14px", fontSize:11, color:"#334155" }}>{u.university_name||"—"}</td>
-                                  <td style={{ padding:"12px 14px" }}><TrustBadge score={u.trust_score||0} onClick={()=>setSelectedUser(u)}/></td>
+                                  <td style={{ padding:"12px 14px", fontSize:11, color:t.textMuted }}>{u.university_name||"—"}</td>
                                   <td style={{ padding:"12px 14px" }}>
-                                    <div style={{ fontSize:12, fontWeight:700, color:sla.color, fontFamily:"'IBM Plex Mono',monospace" }}>{formatWait(sla.hrs)}</div>
-                                    <div style={{ fontSize:10, color:"#94a3b8" }}>{new Date(u.createdAt).toLocaleDateString()}</div>
+                                    <TrustBadge score={u.trust_score||0} onClick={()=>setSelectedUser(u)} t={t}/>
                                   </td>
                                   <td style={{ padding:"12px 14px" }}>
-                                    <span style={{ background:sla.bg, border:`1px solid ${sla.border}`, color:sla.color,
-                                      borderRadius:4, padding:"2px 7px", fontSize:9, fontWeight:700,
-                                      textTransform:"uppercase", letterSpacing:"0.06em" }}>{sla.label}</span>
+                                    <div style={{ fontSize:12, fontWeight:700, color:sla.color,
+                                      fontFamily:"'IBM Plex Mono',monospace" }}>{formatWait(sla.hrs)}</div>
+                                    <div style={{ fontSize:10, color:t.textMuted }}>{new Date(u.createdAt).toLocaleDateString()}</div>
                                   </td>
-                                  <td style={{ padding:"12px 14px", minWidth:110 }}>
-                                    <div style={{ background:"#f1f5f9", borderRadius:99, height:4 }}>
+                                  <td style={{ padding:"12px 14px" }}>
+                                    <span style={{ background:sla.bg, border:`1px solid ${sla.border}`,
+                                      color:sla.color, borderRadius:4, padding:"3px 8px",
+                                      fontSize:9, fontWeight:700, textTransform:"uppercase" }}>{sla.label}</span>
+                                  </td>
+                                  <td style={{ padding:"12px 14px", minWidth:120 }}>
+                                    <div style={{ background:t.border, borderRadius:99, height:5 }}>
                                       <div style={{ height:"100%", width:`${Math.min(100,(sla.hrs/72)*100)}%`,
                                         background:sla.color, borderRadius:99 }}/>
                                     </div>
-                                    <div style={{ fontSize:9, color:"#94a3b8", marginTop:3, fontFamily:"'IBM Plex Mono',monospace" }}>
+                                    <div style={{ fontSize:9, color:t.textFaint, marginTop:3,
+                                      fontFamily:"'IBM Plex Mono',monospace" }}>
                                       {Math.min(100,Math.round((sla.hrs/72)*100))}% of 72h
                                     </div>
                                   </td>
                                   <td style={{ padding:"12px 14px" }}>
                                     <div style={{ display:"flex", gap:4 }}>
-                                      <button className="action-btn" style={{ background:"#f0fdf4", color:"#16a34a", borderColor:"#bbf7d0" }} onClick={()=>updateStatus(u.email,"verified")}>Approve</button>
-                                      <button className="action-btn" style={{ background:"#fef2f2", color:"#dc2626", borderColor:"#fecaca" }} onClick={()=>updateStatus(u.email,"rejected")}>Reject</button>
+                                      <button className="action-btn" style={{ background:"#f0fdf4", color:"#10b981", borderColor:"#bbf7d0" }} onClick={()=>updateStatus(u.email,"verified")}>Approve</button>
+                                      <button className="action-btn" style={{ background:"#fef2f2", color:"#ef4444", borderColor:"#fecaca" }} onClick={()=>updateStatus(u.email,"rejected")}>Reject</button>
                                     </div>
                                   </td>
                                 </tr>
                               );
                             })}
                           {!users.filter(u=>u.verification_status==="pending").length && (
-                            <tr><td colSpan={7} style={{ textAlign:"center", padding:40, color:"#94a3b8", fontSize:13 }}>No pending verifications.</td></tr>
+                            <tr><td colSpan={7} style={{ textAlign:"center", padding:40, color:t.textMuted }}>No pending verifications 🎉</td></tr>
                           )}
                         </tbody>
                       </table>
@@ -689,66 +1167,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* TRUST */}
-              {tab==="trust" && (
-                <div style={{ animation:"fadeUp 0.35s ease both" }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:12, marginBottom:20 }}>
-                    <StatCard label="Avg Trust"    value={avgTrust}  accent="#7c3aed" sub="System-wide"/>
-                    <StatCard label="High Trust"   value={highTrust} accent="#16a34a" sub="≥ 80"/>
-                    <StatCard label="Medium Trust" value={users.filter(u=>(u.trust_score||0)>=50&&(u.trust_score||0)<80).length} accent="#d97706" sub="50–79"/>
-                    <StatCard label="Low Trust"    value={lowTrust}  accent="#dc2626" sub="< 50"/>
-                  </div>
-                  <div style={{ background:"white", borderRadius:10, overflow:"hidden", border:"1px solid #e2e8f0" }}>
-                    <div style={{ padding:"14px 20px", borderBottom:"1px solid #e2e8f0",
-                      display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                      <h3 style={{ fontSize:13, fontWeight:700, color:"#0f172a" }}>All Trust Scores</h3>
-                      <span style={{ fontSize:10, color:"#94a3b8", fontFamily:"'IBM Plex Mono',monospace" }}>Click score for breakdown</span>
-                    </div>
-                    <div style={{ overflowX:"auto" }}>
-                      <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                        <thead>
-                          <tr style={{ background:"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
-                            {["User","Score","Email Domain","Student ID","University","Completeness","Verdict"].map(h=>(
-                              <th key={h} style={{ padding:"10px 14px", textAlign:"left" }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[...users].sort((a,b)=>(b.trust_score||0)-(a.trust_score||0)).map((u,i)=>{
-                            const bd=u.trustBreakdown||{}, ts=u.trust_score||0;
-                            return (
-                              <tr key={u.email} className="user-row" style={{ borderBottom:"1px solid #f1f5f9" }}>
-                                <td style={{ padding:"11px 14px" }}>
-                                  <div style={{ fontWeight:600, fontSize:12, color:"#0f172a" }}>{u.fullname}</div>
-                                  <div style={{ fontSize:10, color:"#94a3b8", fontFamily:"'IBM Plex Mono',monospace" }}>{u.student_id}</div>
-                                </td>
-                                <td style={{ padding:"11px 14px" }}><TrustBadge score={ts} onClick={()=>setSelectedUser(u)}/></td>
-                                {["emailDomain","studentId","universityName","completeness"].map(k=>(
-                                  <td key={k} style={{ padding:"11px 14px", textAlign:"center" }}>
-                                    <span style={{ background:bd[k]?.pts>0?"#f0fdf4":"#fef2f2",
-                                      color:bd[k]?.pts>0?"#16a34a":"#dc2626",
-                                      padding:"2px 7px", borderRadius:4, fontSize:10, fontWeight:700,
-                                      fontFamily:"'IBM Plex Mono',monospace" }}>
-                                      {bd[k]?.pts>0?`+${bd[k].pts}`:"0"}
-                                    </span>
-                                  </td>
-                                ))}
-                                <td style={{ padding:"11px 14px" }}>
-                                  <span style={{ background:ts>=80?"#f0fdf4":ts>=50?"#fffbeb":"#fef2f2",
-                                    color:trustColor(ts), padding:"2px 9px", borderRadius:4,
-                                    fontSize:10, fontWeight:700, letterSpacing:"0.05em", textTransform:"uppercase" }}>
-                                    {ts>=80?"Safe":ts>=50?"Review":"High Risk"}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </main>
