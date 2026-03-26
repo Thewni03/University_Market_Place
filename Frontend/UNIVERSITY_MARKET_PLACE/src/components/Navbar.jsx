@@ -7,7 +7,9 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 
 const navLinks = [
   { label: "Marketplace", path: "/" },
-  { label: "User Dashboard", path: "/dashboard" },
+            
+            
+  { label: "Talk Space", path: "/dashboard" },
   { label: "Create Service", path: "/create-service" },
   { label: "Post Request", path: "/post-request" },
 ];

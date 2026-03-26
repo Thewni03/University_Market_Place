@@ -54,6 +54,11 @@ const userSchema = new Schema({
     default: null
   },
 
+  profilePic: {
+    type: String,
+    default: ""
+  },
+
   reset_token: {
     type: String,
     default: null
