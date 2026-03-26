@@ -1,6 +1,7 @@
 // src/notifications/components/NotificationItem.jsx
 import { useNotifications } from '../context/NotificationContext';
 import { X, ShoppingCart, MessageCircle, Gift, Settings, Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const TYPE_ICONS = {
   order:   { icon: ShoppingCart, color: 'text-blue-500',  bg: 'bg-blue-500/10'   },
@@ -18,17 +19,35 @@ const timeAgo = (date) => {
 };
 
 export default function NotificationItem({ notification }) {
+  const navigate = useNavigate();
   const { markRead, deleteNotification } = useNotifications();
-  const { _id, type, title, body, isRead, createdAt } = notification;
+  const { _id, type, title, body, isRead, createdAt, metadata } = notification;
 
   const config = TYPE_ICONS[type] || { icon: Bell, color: 'text-primary', bg: 'bg-primary/10' };
   const Icon = config.icon;
+
+  const handleOpen = () => {
+    if (!isRead) {
+      markRead(_id);
+    }
+
+    if (type === 'message' && metadata?.senderId) {
+      navigate('/dashboard', {
+        state: {
+          openChatUser: {
+            _id: metadata.senderId,
+            fullname: metadata.senderName || title,
+          },
+        },
+      });
+    }
+  };
 
   return (
     <div
       className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-border/50 last:border-0 group
         ${!isRead ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-secondary/50'}`}
-      onClick={() => !isRead && markRead(_id)}
+      onClick={handleOpen}
     >
       {/* Icon */}
       <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center mt-0.5 ${config.bg}`}>

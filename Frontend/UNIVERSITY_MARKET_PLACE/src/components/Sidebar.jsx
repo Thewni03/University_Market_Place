@@ -28,7 +28,7 @@ const Sidebar = () => {
   if (isUsersLoading) return <SidebarSkeleton />;
 
   return (
-    <aside className="h-full w-20 rounded-l-[28px] border-r border-slate-200/80 bg-[linear-gradient(180deg,_#ffffff,_#f7fbfa)] sm:w-24 lg:w-[340px]">
+    <aside className="h-full w-20 rounded-l-[28px] border-r border-slate-200/80 bg-[linear-gradient(180deg,_#f3f7f4,_#eaf1ed)] sm:w-24 lg:w-[340px]">
       <div className="flex h-full flex-col">
         <div className="border-b border-slate-200 p-4 lg:p-6">
           <div className="flex items-center justify-center lg:justify-between">
@@ -104,9 +104,9 @@ const Sidebar = () => {
                 className={`
                   mb-2 flex min-h-[78px] w-full items-center gap-3 rounded-3xl border border-transparent px-3 py-3 text-left transition-all duration-200
                   ${isSelected
-                    ? "border-emerald-200 bg-emerald-50 shadow-sm"
+                    ? "border-emerald-200 bg-[#e1efe7] shadow-sm"
                     : hasUnread
-                      ? "bg-emerald-50/80 ring-1 ring-emerald-100 hover:bg-emerald-50"
+                      ? "bg-[#edf6f1] ring-1 ring-emerald-100 hover:bg-[#e7f2ec]"
                       : "hover:bg-slate-50"
                   }
                 `}
@@ -117,6 +117,11 @@ const Sidebar = () => {
                     alt={displayName}
                     className="size-12 rounded-2xl object-cover ring-1 ring-slate-200"
                   />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#25d366] px-1.5 py-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                   {isOnline && (
                     <span
                       className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 ring-2 ring-white"

@@ -38,7 +38,7 @@ const ChatContainer = () => {
 
   if (isMessagesLoading) {
     return (
-      <div className="flex-1 flex flex-col overflow-auto bg-[linear-gradient(180deg,_#ffffff,_#f8fbf9)]">
+      <div className="flex-1 flex flex-col overflow-auto bg-[linear-gradient(180deg,_#fcfdfc,_#f6f8f7)]">
         <ChatHeader />
         <MessageSkeleton />
         <MessageInput />
@@ -47,7 +47,7 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[linear-gradient(180deg,_#ffffff,_#f8fbf9)]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[linear-gradient(180deg,_#fcfdfc,_#f6f8f7)]">
       <ChatHeader />
 
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
