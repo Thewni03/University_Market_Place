@@ -7,7 +7,7 @@ import { Badge } from "./ui/badge";
 export default function ServiceCard({ service }) {
   const price = Number(service.pricePerHour || service.price || 0);
   const score = Number(service.rankingScore || 0).toFixed(2);
-  const views = Number(service.viewsCount ?? service.views ?? 0);
+  const views = Number(service.viewCount ?? service.viewsCount ?? service.views ?? 0);
   const bookings = Number(service.bookingsCount ?? service.bookingCount ?? 0);
 
   return (
@@ -104,8 +104,11 @@ export default function ServiceCard({ service }) {
 function WhyShownLink({ service }) {
   const [open, setOpen] = useState(false);
 
-  const clickThrough = service?.views
-    ? Math.round((service.clicks / service.views) * 100)
+  const totalViews = Number(service?.viewCount ?? service?.viewsCount ?? service?.views ?? 0);
+  const totalClicks = Number(service?.clicks || 0);
+
+  const clickThrough = totalViews > 0
+    ? Math.round((totalClicks / totalViews) * 100)
     : 0;
 
   const factors = [

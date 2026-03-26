@@ -117,6 +117,11 @@ const Sidebar = () => {
                     alt={displayName}
                     className="size-12 rounded-2xl object-cover ring-1 ring-slate-200"
                   />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#25d366] px-1.5 py-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                   {isOnline && (
                     <span
                       className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 ring-2 ring-white"
