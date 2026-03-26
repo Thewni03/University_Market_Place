@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Admin auth API (port 5001)
 export const adminAuthAPI = axios.create({
-  baseURL: "http://localhost:5001/api/admin/auth",
+  baseURL: "http://localhost:5000/api/admin/auth",
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });
@@ -31,7 +31,7 @@ adminAuthAPI.interceptors.response.use(
 
 // Main app API (port 5000) — for reading users etc.
 export const mainAPI = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: "http://localhost:5001",
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });
