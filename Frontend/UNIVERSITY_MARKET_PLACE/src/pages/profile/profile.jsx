@@ -19,6 +19,8 @@ import {
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import StatsCard from "../../components/StatusCard";
+import { useAuthStore } from "../../store/useAuthStore";
+import toast from "react-hot-toast";
 
 export default function Profile() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
@@ -45,8 +47,6 @@ export default function Profile() {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [apiMessage, setApiMessage] = useState("");
-  const [showSavedToast, setShowSavedToast] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
   const [myServices, setMyServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(false);
@@ -84,14 +84,13 @@ export default function Profile() {
     totalRevenue: 0,
     points: [],
   });
-  const [revenueFiltersTouched, setRevenueFiltersTouched] = useState(false);
-
   const [selectedChartIndex, setSelectedChartIndex] = useState(null);
   const [selectedRevenueIndex, setSelectedRevenueIndex] = useState(null);
 
   const [name, setName] = useState(defaultName);
   const [education, setEducation] = useState(defaultEducation);
   const [bio, setBio] = useState(defaultBio);
+  const [profileStats, setProfileStats] = useState({ avgRating: 0, totalReviews: 0 });
   const [skills, setSkills] = useState([]);
   const [skillInput, setSkillInput] = useState("");
   const [profilePhoto, setProfilePhoto] = useState("");
@@ -165,6 +164,7 @@ export default function Profile() {
     if (!profile) {
       setHasProfile(false);
       setName(""); setEducation(""); setBio("");
+      setProfileStats({ avgRating: 0, totalReviews: 0 });
       setSkills([]); setProfilePhoto(""); setSampleWork([]);
       setDraft({ bio: "" });
       return;
@@ -174,6 +174,10 @@ export default function Profile() {
     setName(user.fullname || "");
     setEducation([user.university_name, user.graduate_year].filter(Boolean).join(" • "));
     setBio(profile.bio || "");
+    setProfileStats({
+      avgRating: Number(profile.avg_rating || 0),
+      totalReviews: Number(profile.total_reviews || 0),
+    });
     setSkills(Array.isArray(profile.skills) ? profile.skills : []);
     setProfilePhoto(profile.profile_picture || "");
     setSampleWork(normalizeSampleWork(profile.sample_work, []));
@@ -184,11 +188,10 @@ export default function Profile() {
   useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
-      setApiMessage("");
       try {
         await fetchProfileFromApi();
       } catch (error) {
-        setApiMessage(error.message || "Unable to fetch profile.");
+        toast.error(error.message || "Unable to fetch profile.");
       } finally {
         setLoading(false);
       }
@@ -206,7 +209,7 @@ export default function Profile() {
       if (!response.ok) throw new Error(result.error || result.message || "Failed to load services.");
       setMyServices(Array.isArray(result.data) ? result.data : []);
     } catch (error) {
-      setApiMessage(error.message || "Unable to load your services.");
+      toast.error(error.message || "Unable to load your services.");
     } finally {
       setServicesLoading(false);
     }
@@ -216,8 +219,8 @@ export default function Profile() {
     fetchOwnerServices();
   }, [API_BASE_URL, profileUserId]);
 
-  const fetchOwnerViewAnalytics = async (mode) => {
-    setViewsLoading(true);
+  const fetchOwnerViewAnalytics = async (mode, options = {}) => {
+    if (!options.silent) setViewsLoading(true);
     try {
       const monthParam = mode === "week" ? `&month=${encodeURIComponent(selectedMonth)}` : "";
       const response = await fetch(
@@ -238,32 +241,19 @@ export default function Profile() {
             }))
           : [],
       });
-      if (!revenueFiltersTouched) {
-        setRevenueAnalytics({
-          totalViews: Number(result?.data?.totalViews || 0),
-          totalBookings: Number(result?.data?.totalBookings || 0),
-          totalRevenue: Number(result?.data?.totalRevenue || 0),
-          points: Array.isArray(result?.data?.points)
-            ? result.data.points.map((p) => ({
-                key: p.key, label: p.label, range: p.range,
-                views: Number(p.views || 0),
-                bookings: Number(p.bookings || 0),
-                revenue: Number(p.revenue || 0),
-              }))
-            : [],
-        });
-      }
       setSelectedChartIndex(null);
     } catch (error) {
-      setApiMessage(error.message || "Unable to load view analytics.");
+      if (!options.silent) {
+        toast.error(error.message || "Unable to load view analytics.");
+      }
     } finally {
-      setViewsLoading(false);
+      if (!options.silent) setViewsLoading(false);
     }
   };
 
   // ← ADDED: dedicated revenue analytics fetcher (independent mode/month from views chart)
-  const fetchOwnerRevenueAnalytics = async (mode) => {
-    setRevenueLoading(true);
+  const fetchOwnerRevenueAnalytics = async (mode, options = {}) => {
+    if (!options.silent) setRevenueLoading(true);
     try {
       const monthParam = mode === "week" ? `&month=${encodeURIComponent(selectedRevenueMonth)}` : "";
       const response = await fetch(
@@ -286,9 +276,11 @@ export default function Profile() {
       });
       setSelectedRevenueIndex(null);
     } catch (error) {
-      setApiMessage(error.message || "Unable to load revenue analytics.");
+      if (!options.silent) {
+        toast.error(error.message || "Unable to load revenue analytics.");
+      }
     } finally {
-      setRevenueLoading(false);
+      if (!options.silent) setRevenueLoading(false);
     }
   };
 
@@ -296,21 +288,29 @@ export default function Profile() {
     fetchOwnerViewAnalytics(viewMode);
   }, [API_BASE_URL, profileUserId, viewMode, selectedMonth]);
 
-  // ← ADDED: separate effect so revenue chart re-fetches on its own mode/month changes
   useEffect(() => {
-    if (!revenueFiltersTouched) return;
     fetchOwnerRevenueAnalytics(revenueMode);
-  }, [API_BASE_URL, profileUserId, revenueMode, selectedRevenueMonth, revenueFiltersTouched]);
+  }, [API_BASE_URL, profileUserId, revenueMode, selectedRevenueMonth]);
 
   useEffect(() => {
-    if (!showSavedToast) return;
-    const timer = setTimeout(() => setShowSavedToast(false), 3000);
-    return () => clearTimeout(timer);
-  }, [showSavedToast]);
+    if (!profileUserId) return;
+
+    const intervalId = setInterval(() => {
+      fetchOwnerViewAnalytics(viewMode, { silent: true });
+      fetchOwnerRevenueAnalytics(revenueMode, { silent: true });
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [
+    profileUserId,
+    viewMode,
+    selectedMonth,
+    revenueMode,
+    selectedRevenueMonth,
+  ]);
 
   const saveEdit = async () => {
     setSaving(true);
-    setApiMessage("");
     const payload = {
       bio: draft.bio,
       profile_picture: profilePhoto || null,
@@ -328,11 +328,34 @@ export default function Profile() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Failed to save profile.");
       await fetchProfileFromApi();
+      if (profilePhoto || result?.data?.profile_picture) {
+        const stored = JSON.parse(localStorage.getItem("user") || "null");
+        const nextProfilePic = result?.data?.profile_picture || profilePhoto;
+        if (stored) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              ...stored,
+              profilePic: nextProfilePic,
+              profile_picture: nextProfilePic,
+            })
+          );
+        }
+        useAuthStore.setState((state) => ({
+          ...state,
+          authUser: state.authUser
+            ? {
+                ...state.authUser,
+                profilePic: nextProfilePic,
+                profile_picture: nextProfilePic,
+              }
+            : state.authUser,
+        }));
+      }
       setEditMode(false);
-      setApiMessage("");
-      setShowSavedToast(true);
+      toast.success("Profile saved successfully");
     } catch (error) {
-      setApiMessage(error.message || "Unable to save profile.");
+      toast.error(error.message || "Unable to save profile.");
     } finally {
       setSaving(false);
     }
@@ -340,7 +363,6 @@ export default function Profile() {
 
   const startEdit = () => {
     setDraft({ bio });
-    setApiMessage("");
     setEditMode(true);
   };
 
@@ -376,7 +398,7 @@ export default function Profile() {
         )
       );
     } catch (error) {
-      setApiMessage(error.message || "Unable to update service status.");
+      toast.error(error.message || "Unable to update service status.");
     }
   };
 
@@ -390,29 +412,18 @@ export default function Profile() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || result.message || "Failed to delete service.");
       setMyServices((prev) => prev.filter((item) => item._id !== serviceId));
+      toast.success("Service deleted successfully");
     } catch (error) {
-      setApiMessage(error.message || "Unable to delete service.");
+      toast.error(error.message || "Unable to delete service.");
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="page-container py-6">
-        {showSavedToast && (
-          <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-lg">
-            Profile saved successfully
-          </div>
-        )}
-
         {loading && (
           <div className="mb-4 rounded-lg border border-border bg-card p-3 text-left text-sm text-muted-foreground">
             Loading profile...
-          </div>
-        )}
-
-        {apiMessage && (
-          <div className="mb-4 rounded-lg border border-border bg-card p-3 text-left text-sm text-muted-foreground">
-            {apiMessage}
           </div>
         )}
 
@@ -607,10 +618,10 @@ export default function Profile() {
         {/* Stats */}
         <h2 className="font-display text-lg font-bold text-foreground mb-4">Provider Dashboard</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatsCard icon={<DollarSign className="h-5 w-5" />} label="Revenue" value={`LKR ${viewAnalytics.totalRevenue.toLocaleString()}`} change="From chart data" positive iconToneClass="bg-emerald-500/10 text-emerald-600" />
-          <StatsCard icon={<Calendar className="h-5 w-5" />} label="Bookings" value={viewAnalytics.totalBookings.toLocaleString()} change="From chart data" positive iconToneClass="bg-cyan-500/10 text-cyan-600" />
+          <StatsCard icon={<DollarSign className="h-5 w-5" />} label="Revenue" value={`LKR ${viewAnalytics.totalRevenue.toLocaleString()}`} change="Current total" positive iconToneClass="bg-emerald-500/10 text-emerald-600" />
+          <StatsCard icon={<Calendar className="h-5 w-5" />} label="Bookings" value={viewAnalytics.totalBookings.toLocaleString()} change="Current total" positive iconToneClass="bg-cyan-500/10 text-cyan-600" />
           <StatsCard icon={<Eye className="h-5 w-5" />} label="Total Views" value={viewAnalytics.totalViews.toLocaleString()} change={viewMode === "week" ? "Weekly chart active" : viewMode === "month" ? "Monthly chart active" : "Daily chart active"} positive iconToneClass="bg-violet-500/10 text-violet-600" />
-          <StatsCard icon={<Star className="h-5 w-5" />} label="Rating" value="4.9" change="Top 5%" positive iconToneClass="bg-amber-500/10 text-amber-600" />
+          <StatsCard icon={<Star className="h-5 w-5" />} label="Rating" value={profileStats.avgRating > 0 ? profileStats.avgRating.toFixed(1) : "0.0"} change={`${profileStats.totalReviews} review${profileStats.totalReviews === 1 ? "" : "s"}`} positive={profileStats.avgRating > 0} iconToneClass="bg-amber-500/10 text-amber-600" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
@@ -730,10 +741,7 @@ export default function Profile() {
                   <button
                     key={m}
                     type="button"
-                    onClick={() => {
-                      setRevenueFiltersTouched(true);
-                      setRevenueMode(m);
-                    }}
+                    onClick={() => setRevenueMode(m)}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${revenueMode === m ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary text-secondary-foreground border border-border"}`}>
                     {m === "day" ? "Everyday" : m.charAt(0).toUpperCase() + m.slice(1)}
                   </button>
@@ -748,10 +756,7 @@ export default function Profile() {
                 <input
                   type="month"
                   value={selectedRevenueMonth}
-                  onChange={(e) => {
-                    setRevenueFiltersTouched(true);
-                    setSelectedRevenueMonth(e.target.value);
-                  }}
+                  onChange={(e) => setSelectedRevenueMonth(e.target.value)}
                   className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground"
                 />
               </div>

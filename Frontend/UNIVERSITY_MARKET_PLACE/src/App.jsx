@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/navber";
 
@@ -9,7 +9,8 @@ import CreateService from "./pages/CreateService/CreateService";       // ← KE
 import EditService from "./pages/services/editservice";
 import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";       // ← KEPT: path from file 2
 import PostRequest from "./pages/PostRequest/PostRequest";             // ← ADDED from file 2
-import RequestDetail from "./pages/RequestDetail/RequestDetail";       // ← ADDED from file 2
+import RequestDetail from "./pages/RequestDetail/RequestDetail"; 
+import Chat from "./pages/Chat/chat.jsx"      // ← ADDED from file 2
 
 // ── Components ─────────────────────────────────────────────────────────────
 import BookingForm from "./components/BookingForm/BookingForm";        // ← KEPT: path from file 2
@@ -29,9 +30,13 @@ import Verificationstatushandler from "./components/Verificationstatushandler/Ve
 
 // ── Notifications ──────────────────────────────────────────────────────────
 import { NotificationProvider } from "./notifications/context/NotificationContext";
+import { useAuthStore } from "./store/useAuthStore";
 
 function App() {
   const location = useLocation();
+  const authUser = useAuthStore((state) => state.authUser);
+  const connectSocket = useAuthStore((state) => state.connectSocket);
+  const disconnectSocket = useAuthStore((state) => state.disconnectSocket);
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const hideNavbar =
     normalizedPath === "/" ||
@@ -39,6 +44,15 @@ function App() {
     normalizedPath === "/register" ||
     normalizedPath === "/verificationstatushandler" ||
     normalizedPath === "/pending";
+
+  useEffect(() => {
+    if (authUser?._id) {
+      connectSocket();
+      return;
+    }
+
+    disconnectSocket();
+  }, [authUser?._id, connectSocket, disconnectSocket]);
 
   return (
     // ← KEPT: NotificationProvider wraps everything (from file 1)
@@ -50,7 +64,7 @@ function App() {
         {/* Core */}
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/dashboard" element={<Profile />} />
+        <Route path="/dashboard" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
 
         {/* Services */}

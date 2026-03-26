@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { calculateTrustScore } from "../Utils/trustScore.js";
 
+
 // get all
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -189,5 +190,8 @@ const getTrustScore = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
 
 export default { getAllUsers, addUsers, getByEmail, updateUser, deleteUser, loginUser, getTrustScore };

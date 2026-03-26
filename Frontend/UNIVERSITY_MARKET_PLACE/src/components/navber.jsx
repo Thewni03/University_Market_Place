@@ -12,7 +12,7 @@ import NotificationDropdown from "../notifications/components/NotificationDropdo
 
 const navLinks = [
   { label: "Marketplace", path: "/home" },
-  { label: "User Dashboard", path: "/dashboard" },
+  { label: "Talk Space", path: "/dashboard" },
   { label: "Offer a Service", path: "/create-service" }, // ← KEPT: label from file 1
   { label: "Post Request", path: "/post-request" },
 ];
@@ -143,9 +143,6 @@ export default function Navbar() {
 
   const isLinkActive = (path) => {
     if (path === "/home") return location.pathname === "/home";
-    if (path === "/dashboard") {
-      return location.pathname === "/dashboard" || location.pathname === "/profile";
-    }
     return location.pathname === path;
   };
 

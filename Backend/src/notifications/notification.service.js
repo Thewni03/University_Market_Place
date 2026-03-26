@@ -5,7 +5,7 @@ import { sendEmail } from './channels/email.channel.js';
 import { sendPush }  from './channels/push.channel.js';
 import { sendSMS }   from './channels/sms.channel.js';
 import User from '../models/RegisterModel.js';     // ← FIXED: correct model file
-import { io } from '../server.js';
+import { getIo } from '../config/io.js';
 
 /**
  * Main entry point — call this anywhere in your app.
@@ -22,6 +22,7 @@ export const notify = async ({ userId, type, title, body, channels = ['in-app'],
   });
 
   // ── Step 2: Emit real-time event via Socket.io ───────────────────────────
+  const io = getIo();
   if (io) {
     io.to(userId.toString()).emit('new_notification', notification);
     console.log(`🔔 Real-time notification emitted to user: ${userId}`);

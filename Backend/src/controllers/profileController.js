@@ -2,6 +2,7 @@ import Profile from "../models/profile.js";
 import "../models/RegisterModel.js";
 import User from "../models/RegisterModel.js";
 import mongoose from "mongoose";
+import cloudinary from "../Utils/cloudinary.js";
 
 /**
  * Helper: always use logged-in user's id
@@ -16,6 +17,27 @@ const normalizeSampleWork = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (typeof value === "string" && value.trim()) return [value.trim()];
   return [];
+};
+
+const uploadIfNeeded = async (value, folder) => {
+  if (!value || typeof value !== "string") return value ?? null;
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  if (value.startsWith("data:")) {
+    const uploadResponse = await cloudinary.uploader.upload(value, { folder });
+    return uploadResponse.secure_url;
+  }
+
+  return value;
+};
+
+const uploadSampleWork = async (sampleWork) => {
+  const normalized = normalizeSampleWork(sampleWork);
+  const uploads = normalized.map((item) => uploadIfNeeded(item, "university-marketplace/sample-work"));
+  return Promise.all(uploads);
 };
 
 /**
@@ -47,16 +69,26 @@ export const createMyProfile = async (req, res) => {
       return res.status(400).json({ message: "Skills must have at least 2 items." });
     }
 
+    const uploadedProfilePicture = await uploadIfNeeded(
+      profile_picture ?? null,
+      "university-marketplace/profile-pictures"
+    );
+    const uploadedSampleWork = await uploadSampleWork(sample_work);
+
     const profile = await Profile.create({
       user_id: userId,
       bio: bio ?? null,
       portfolio_url: portfolio_url ?? null,
-      sample_work: normalizeSampleWork(sample_work),
+      sample_work: uploadedSampleWork,
       linkedin_url: linkedin_url ?? null,
-      profile_picture: profile_picture ?? null,
+      profile_picture: uploadedProfilePicture,
       skills: Array.isArray(skills) ? skills : []
       // avg_rating + total_reviews remain defaults or computed elsewhere
     });
+
+    if (uploadedProfilePicture) {
+      await User.findByIdAndUpdate(userId, { profilePic: uploadedProfilePicture });
+    }
 
     return res.status(201).json({ success: true, data: profile });
   } catch (error) {
@@ -126,6 +158,15 @@ export const updateMyProfile = async (req, res) => {
 
     const updates = {};
 
+    // Support either a direct URL/base64 profile image or normal profile fields.
+    const incomingProfilePic = req.body.profilePic ?? req.body.profile_picture;
+    if (incomingProfilePic) {
+      updates.profile_picture = await uploadIfNeeded(
+        incomingProfilePic,
+        "university-marketplace/profile-pictures"
+      );
+    }
+
     // allow only these fields to be updated
     const allowedFields = [
       "bio",
@@ -141,7 +182,7 @@ export const updateMyProfile = async (req, res) => {
     }
 
     if (updates.sample_work !== undefined) {
-      updates.sample_work = normalizeSampleWork(updates.sample_work);
+      updates.sample_work = await uploadSampleWork(updates.sample_work);
     }
 
     // OPTIONAL: enforce minimum skills count (ex: at least 2)
@@ -159,6 +200,12 @@ export const updateMyProfile = async (req, res) => {
       { $set: updates, $setOnInsert: { user_id: userId } },
       { returnDocument: "after", runValidators: true, upsert: true }
     );
+
+    if (updates.profile_picture) {
+      await User.findByIdAndUpdate(userId, {
+        profilePic: updates.profile_picture,
+      });
+    }
 
     return res.json({ success: true, data: updatedProfile });
   } catch (error) {

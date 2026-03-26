@@ -196,8 +196,8 @@ export default function Home() {
         </div>
 
         <div className="mb-16">
-          <h2 className="font-display text-[17px] font-bold text-slate-600 mb-6 pl-2">Popular Categories</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+          <h2 className="mb-6 text-center font-display text-[17px] font-bold text-slate-600">Popular Categories</h2>
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x md:justify-center">
             {[
               { icon: <MonitorSmartphone className="w-10 h-10 mb-3 text-slate-600 drop-shadow-sm" strokeWidth={1.5} />, name: "Web Design", color: "bg-slate-200" },
               { icon: <BookOpen className="w-10 h-10 mb-3 text-blue-600 drop-shadow-sm" strokeWidth={1.5} />, name: "Tutoring", color: "bg-slate-200" },

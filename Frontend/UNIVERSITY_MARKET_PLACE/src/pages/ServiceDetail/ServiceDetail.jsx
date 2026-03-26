@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Star, Eye, CalendarCheck, MapPin, User, Loader2 } from 'lucide-react';
+import { Star, Eye, CalendarCheck, MapPin, User, Loader2, MessageCircle } from 'lucide-react';
 
 export default function ServiceDetail() {
     const { id } = useParams();
@@ -49,6 +49,7 @@ export default function ServiceDetail() {
         : "0.0";
     const bookingsCount = Number(service?.bookingCount || reviewCount);
     const ownerName = service?.ownerId?.fullname || service?.ownerName || "Service Provider";
+    const ownerId = service?.ownerId?._id || service?.ownerId || "";
     const ownerPicture = (() => {
         const value = service?.ownerProfilePicture;
         if (!value || typeof value !== "string") return "";
@@ -63,6 +64,7 @@ export default function ServiceDetail() {
         if (value.startsWith("/")) return `${API_BASE_URL}${value}`;
         return "";
     })();
+    const canContactProvider = ownerId && ownerId !== currentUserId;
 
     if (loading) {
         return (
@@ -129,6 +131,28 @@ export default function ServiceDetail() {
                             <MapPin className="w-4 h-4 text-slate-400" />
                             <span>{service.locationMode}</span>
                         </div>
+                        {canContactProvider && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    navigate("/dashboard", {
+                                        state: {
+                                            openChatUser: {
+                                                _id: ownerId,
+                                                fullname: ownerName,
+                                                fullName: ownerName,
+                                                profilePic: ownerPicture,
+                                                profile_picture: ownerPicture,
+                                            },
+                                        },
+                                    })
+                                }
+                                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                                Contact Service Provider
+                            </button>
+                        )}
                     </div>
                 </div>
 
