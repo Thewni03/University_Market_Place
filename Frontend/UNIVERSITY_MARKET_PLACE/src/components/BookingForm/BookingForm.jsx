@@ -12,7 +12,7 @@ const BookingForm = () => {
     timeSlot: '',
     persons: 1,
     specialRequests: '',
-    documents: [] // New field for uploaded documents
+    documents: []
   });
 
   const [dragActive, setDragActive] = useState(false);
@@ -29,7 +29,6 @@ const BookingForm = () => {
     }));
   };
 
-  // New functions for document handling
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -55,7 +54,6 @@ const BookingForm = () => {
   };
 
   const handleFiles = (files) => {
-    // Filter for images and PDFs
     const validFiles = files.filter(file => 
       file.type.startsWith('image/') || file.type === 'application/pdf'
     );
@@ -63,7 +61,7 @@ const BookingForm = () => {
     const newDocuments = validFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       name: file.name,
-      size: (file.size / 1024).toFixed(2), // Convert to KB
+      size: (file.size / 1024).toFixed(2),
       type: file.type,
       file: file
     }));
@@ -86,349 +84,513 @@ const BookingForm = () => {
     return (size / 1024).toFixed(2) + ' MB';
   };
 
+  // Add CSS animations
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(0) translateX(0);
+        }
+        25% {
+          transform: translateY(-30px) translateX(15px);
+        }
+        50% {
+          transform: translateY(-15px) translateX(-15px);
+        }
+        75% {
+          transform: translateY(-45px) translateX(10px);
+        }
+      }
+
+      @keyframes float-subtle {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      @keyframes bounce-subtle {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      @keyframes pulse-subtle {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -1000px 0;
+        }
+        100% {
+          background-position: 1000px 0;
+        }
+      }
+
+      .animate-fadeIn {
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      .animate-slideIn {
+        animation: slideIn 0.6s ease-out forwards;
+        opacity: 0;
+      }
+
+      .animate-float {
+        animation: float 25s infinite ease-in-out;
+      }
+
+      .animate-float-subtle {
+        animation: float-subtle 4s infinite ease-in-out;
+      }
+
+      .animate-bounce-subtle {
+        animation: bounce-subtle 0.5s ease-in-out;
+      }
+
+      .animate-pulse-subtle {
+        animation: pulse-subtle 2s infinite ease-in-out;
+      }
+
+      .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradientShift 15s ease infinite;
+      }
+
+      .drop-shadow-glow {
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  const FloatingParticles = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(30)].map((_, i) => {
+        const colors = [
+          'from-[#3B82F6]/10 to-[#8B5CF6]/10',
+          'from-[#06B6D4]/10 to-[#3B82F6]/10',
+          'from-[#8B5CF6]/10 to-[#D946EF]/10',
+          'from-[#10B981]/10 to-[#3B82F6]/10',
+          'from-[#F59E0B]/10 to-[#EF4444]/10',
+          'from-[#EC4899]/10 to-[#8B5CF6]/10'
+        ];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+        return (
+          <div
+            key={i}
+            className={`absolute rounded-full bg-gradient-to-r ${randomColor} animate-float`}
+            style={{
+              width: Math.random() * 15 + 5 + 'px',
+              height: Math.random() * 15 + 5 + 'px',
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+              animationDelay: Math.random() * 8 + 's',
+              animationDuration: Math.random() * 20 + 20 + 's',
+              filter: 'blur(2px)'
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1120] via-[#1a2942] to-[#0f1a2f] p-4 sm:p-6 lg:p-10 text-white relative font-[-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,sans-serif]">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#F8F9FF] via-[#F0F3FF] to-[#E9ECFF] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Animated Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#3B82F6]/5 via-[#8B5CF6]/5 to-[#EC4899]/5 animate-gradient"></div>
       
-      {/* Navigation */}
-      <nav className="flex flex-col sm:flex-row justify-between items-center gap-4 py-5 border-b border-white/10 mb-8">
-        <div className="text-2xl font-bold bg-gradient-to-r from-[#60a5fa] to-[#a78bfa] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(96,165,250,0.3)]">
-          UniMarket
-        </div>
-        <div className="flex gap-2 text-sm text-[#94a3b8]">
-          <span className="cursor-pointer hover:text-[#3b82f6] transition-colors">Home</span>
-          <span className="text-[#4a5568]">›</span>
-          <span className="cursor-pointer hover:text-[#3b82f6] transition-colors">Services</span>
-          <span className="text-[#4a5568]">›</span>
-          <span className="text-white cursor-pointer hover:text-[#3b82f6] transition-colors">Booking Form</span>
-        </div>
-        <div className="w-10 h-10 bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6] rounded-full flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-          👤
-        </div>
-      </nav>
+      {/* Floating Particles Background */}
+      <FloatingParticles />
 
       {/* Page Header */}
-      <div className="mb-10">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-2">Customer Booking Form</h1>
-        <p className="text-base text-[#94a3b8] mb-4">Please fill in your details to confirm your booking.</p>
-        <div className="w-20 h-1 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
+      <div className="max-w-7xl mx-auto relative z-10 animate-fadeIn">
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-4 animate-slideIn">
+            Customer Booking Form
+          </h1>
+          <p className="text-base text-[#6B7280] mb-4">Please fill in your details to confirm your booking.</p>
+          <div className="w-20 h-1 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-full mx-auto shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Side - Form (spans 2 columns) */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Customer Details */}
-          <div className="bg-[rgba(15,23,42,0.6)] backdrop-blur border border-white/10 rounded-2xl p-5 lg:p-6 transition-all hover:border-white/20">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-[#3b82f6] mb-2">Customer Details</h2>
-              <div className="w-16 h-1 bg-gradient-to-r from-[#3b82f6] to-transparent rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-              {/* Left Column */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">👤</span>
-                  <input
-                    type="text"
-                    name="fullName"
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#3b82f6] focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all placeholder:text-[#64748b]"
-                  />
-                </div>
-
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">📞</span>
-                  <input
-                    type="tel"
-                    name="contact"
-                    placeholder="Enter your phone number"
-                    value={formData.contact}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#3b82f6] focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all placeholder:text-[#64748b]"
-                  />
-                </div>
-
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">🆔</span>
-                  <input
-                    type="text"
-                    name="nic"
-                    placeholder="Enter NIC or Passport number"
-                    value={formData.nic}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#3b82f6] focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all placeholder:text-[#64748b]"
-                  />
-                </div>
-                
-                <div className="flex items-center gap-1.5 text-xs text-[#60a5fa] opacity-80 -mt-2">
-                  <span>ℹ️</span>
-                  Required if applicable
-                </div>
+          {/* Left Side - Form (spans 2 columns) */}
+          <div className="lg:col-span-2 space-y-6 animate-slideIn" style={{ animationDelay: '150ms' }}>
+            
+            {/* Customer Details */}
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(59,130,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.3)] transition-all duration-500">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
+                  Customer Details
+                </h2>
+                <div className="w-16 h-1 bg-gradient-to-r from-[#3B82F6] to-transparent rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
               </div>
 
-              {/* Right Column */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">✉️</span>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#3b82f6] focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all placeholder:text-[#64748b]"
-                  />
-                </div>
-
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">📍</span>
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="Enter your address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#3b82f6] focus:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all placeholder:text-[#64748b]"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Service Details with Document Upload */}
-          <div className="bg-[rgba(15,23,42,0.6)] backdrop-blur border border-white/10 rounded-2xl p-5 lg:p-6 transition-all hover:border-white/20">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-[#8b5cf6] mb-2">Service Details</h2>
-              <div className="w-16 h-1 bg-gradient-to-r from-[#8b5cf6] to-transparent rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-              {/* Left Column */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">📅</span>
-                  <select
-                    name="service"
-                    value={formData.service}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-10 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#8b5cf6] focus:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="" className="bg-[#0f172a]">Select a service</option>
-                    <option value="premium" className="bg-[#0f172a]">Premium Package</option>
-                    <option value="standard" className="bg-[#0f172a]">Standard Package</option>
-                    <option value="basic" className="bg-[#0f172a]">Basic Package</option>
-                  </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#60a5fa] text-xs pointer-events-none">▼</span>
-                </div>
-
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">⏰</span>
-                  <select
-                    name="timeSlot"
-                    value={formData.timeSlot}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-10 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#8b5cf6] focus:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="" className="bg-[#0f172a]">Select time slot</option>
-                    <option value="9am" className="bg-[#0f172a]">9:00 AM - 11:00 AM</option>
-                    <option value="11am" className="bg-[#0f172a]">11:00 AM - 1:00 PM</option>
-                    <option value="2pm" className="bg-[#0f172a]">2:00 PM - 4:00 PM</option>
-                    <option value="4pm" className="bg-[#0f172a]">4:00 PM - 6:00 PM</option>
-                  </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#60a5fa] text-xs pointer-events-none">▼</span>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg z-10">📆</span>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="w-full py-3.5 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#8b5cf6] focus:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all [color-scheme:dark]"
-                  />
-                </div>
-
-                <div className="flex items-center bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-3xl p-1 relative">
-                  <span className="text-lg mx-2">👥</span>
-                  <button 
-                    className="w-10 h-10 bg-[rgba(59,130,246,0.2)] border border-[rgba(59,130,246,0.3)] rounded-full text-[#60a5fa] text-xl hover:bg-[rgba(59,130,246,0.4)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all"
-                    onClick={() => handlePersonsChange('decrement')}
-                  >−</button>
-                  <span className="flex-1 text-center text-lg font-semibold text-white">{formData.persons}</span>
-                  <button 
-                    className="w-10 h-10 bg-[rgba(59,130,246,0.2)] border border-[rgba(59,130,246,0.3)] rounded-full text-[#60a5fa] text-xl hover:bg-[rgba(59,130,246,0.4)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all"
-                    onClick={() => handlePersonsChange('increment')}
-                  >+</button>
-                </div>
-              </div>
-
-              {/* Full Width - Document Upload Section */}
-              <div className="md:col-span-2">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-                    📎 Attach Documents (Images or PDFs)
-                  </label>
-                  
-                  {/* Drag & Drop Area */}
-                  <div
-                    className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
-                      dragActive 
-                        ? 'border-[#8b5cf6] bg-[rgba(139,92,246,0.1)]' 
-                        : 'border-white/10 hover:border-[#8b5cf6]/50'
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                  >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">👤</span>
                     <input
-                      type="file"
-                      id="file-upload"
-                      multiple
-                      accept="image/*,.pdf"
-                      onChange={handleFileInput}
-                      className="hidden"
+                      type="text"
+                      name="fullName"
+                      placeholder="Enter your full name"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
                     />
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📞</span>
+                    <input
+                      type="tel"
+                      name="contact"
+                      placeholder="Enter your phone number"
+                      value={formData.contact}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">🆔</span>
+                    <input
+                      type="text"
+                      name="nic"
+                      placeholder="Enter NIC or Passport number"
+                      value={formData.nic}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">✉️</span>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📍</span>
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="Enter your address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Service Details with Document Upload */}
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-2">
+                  Service Details
+                </h2>
+                <div className="w-16 h-1 bg-gradient-to-r from-[#8B5CF6] to-transparent rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]"></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📅</span>
+                    <select
+                      name="service"
+                      value={formData.service}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-10 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">Select a service</option>
+                      <option value="premium">Premium Package</option>
+                      <option value="standard">Standard Package</option>
+                      <option value="basic">Basic Package</option>
+                    </select>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B5CF6] text-xs pointer-events-none">▼</span>
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">⏰</span>
+                    <select
+                      name="timeSlot"
+                      value={formData.timeSlot}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-10 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">Select time slot</option>
+                      <option value="9am">9:00 AM - 11:00 AM</option>
+                      <option value="11am">11:00 AM - 1:00 PM</option>
+                      <option value="2pm">2:00 PM - 4:00 PM</option>
+                      <option value="4pm">4:00 PM - 6:00 PM</option>
+                    </select>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B5CF6] text-xs pointer-events-none">▼</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📆</span>
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all"
+                    />
+                  </div>
+
+                  <div className="flex items-center bg-gray-50/80 border border-gray-200 rounded-xl p-1 relative">
+                    <span className="text-xl mx-3">👥</span>
+                    <button 
+                      className="w-10 h-10 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border border-[#3B82F6]/20 rounded-full text-[#3B82F6] text-xl hover:bg-gradient-to-r hover:from-[#3B82F6]/20 hover:to-[#8B5CF6]/20 transition-all duration-300 hover:scale-105"
+                      onClick={() => handlePersonsChange('decrement')}
+                    >−</button>
+                    <span className="flex-1 text-center text-xl font-semibold text-[#1F2937]">{formData.persons}</span>
+                    <button 
+                      className="w-10 h-10 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border border-[#3B82F6]/20 rounded-full text-[#3B82F6] text-xl hover:bg-gradient-to-r hover:from-[#3B82F6]/20 hover:to-[#8B5CF6]/20 transition-all duration-300 hover:scale-105"
+                      onClick={() => handlePersonsChange('increment')}
+                    >+</button>
+                  </div>
+                </div>
+
+                {/* Full Width - Document Upload Section */}
+                <div className="md:col-span-2">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-[#4B5563] mb-2">
+                      📎 Attach Documents (Images or PDFs)
+                    </label>
                     
-                    <div className="text-center">
-                      <div className="text-4xl mb-3">📄</div>
-                      <p className="text-[#94a3b8] mb-2">
-                        Drag & drop files here or{' '}
-                        <label 
-                          htmlFor="file-upload" 
-                          className="text-[#8b5cf6] cursor-pointer hover:text-[#60a5fa] transition-colors"
-                        >
-                          browse
-                        </label>
-                      </p>
-                      <p className="text-xs text-[#64748b]">
-                        Supported formats: JPEG, PNG, GIF, PDF (Max 10MB each)
-                      </p>
+                    <div
+                      className={`relative border-2 border-dashed rounded-xl p-8 transition-all duration-300 ${
+                        dragActive 
+                          ? 'border-[#8B5CF6] bg-[rgba(139,92,246,0.05)]' 
+                          : 'border-gray-200 hover:border-[#8B5CF6]/50'
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                    >
+                      <input
+                        type="file"
+                        id="file-upload"
+                        multiple
+                        accept="image/*,.pdf"
+                        onChange={handleFileInput}
+                        className="hidden"
+                      />
+                      
+                      <div className="text-center">
+                        <div className="text-5xl mb-3 animate-float-subtle">📄</div>
+                        <p className="text-[#6B7280] mb-2">
+                          Drag & drop files here or{' '}
+                          <label 
+                            htmlFor="file-upload" 
+                            className="text-[#8B5CF6] cursor-pointer hover:text-[#3B82F6] transition-colors font-medium"
+                          >
+                            browse
+                          </label>
+                        </p>
+                        <p className="text-xs text-[#9CA3AF]">
+                          Supported formats: JPEG, PNG, GIF, PDF (Max 10MB each)
+                        </p>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Uploaded Files List */}
+                  {formData.documents.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-sm font-medium text-[#4B5563] mb-3">
+                        Uploaded Documents ({formData.documents.length})
+                      </h4>
+                      {formData.documents.map((doc) => (
+                        <div 
+                          key={doc.id}
+                          className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-xl p-3 group hover:border-[#8B5CF6]/50 hover:shadow-md transition-all duration-300"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">
+                              {doc.type.startsWith('image/') ? '🖼️' : '📄'}
+                            </span>
+                            <div>
+                              <p className="text-sm text-[#1F2937] font-medium truncate max-w-[200px]">
+                                {doc.name}
+                              </p>
+                              <p className="text-xs text-[#9CA3AF]">
+                                {formatFileSize(doc.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeDocument(doc.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-500 p-2 hover:scale-110 transition-all"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Uploaded Files List */}
-                {formData.documents.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
-                      Uploaded Documents ({formData.documents.length})
-                    </h4>
-                    {formData.documents.map((doc) => (
-                      <div 
-                        key={doc.id}
-                        className="flex items-center justify-between bg-[rgba(15,23,42,0.8)] border border-white/10 rounded-lg p-3 group hover:border-[#8b5cf6]/50 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">
-                            {doc.type.startsWith('image/') ? '🖼️' : '📄'}
-                          </span>
-                          <div>
-                            <p className="text-sm text-white font-medium truncate max-w-[200px]">
-                              {doc.name}
-                            </p>
-                            <p className="text-xs text-[#64748b]">
-                              {formatFileSize(doc.size)}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeDocument(doc.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-1"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                {/* Full Width - Textarea */}
+                <div className="md:col-span-2">
+                  <div className="relative">
+                    <span className="absolute left-4 top-5 text-xl z-10">💬</span>
+                    <textarea
+                      name="specialRequests"
+                      placeholder="Any special requests or notes..."
+                      value={formData.specialRequests}
+                      onChange={handleInputChange}
+                      className="w-full py-4 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all placeholder:text-[#9CA3AF] resize-y min-h-[100px]"
+                      rows="4"
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Full Width - Textarea */}
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <span className="absolute left-4 top-5 text-lg z-10">💬</span>
-                  <textarea
-                    name="specialRequests"
-                    placeholder="Any special requests or notes..."
-                    value={formData.specialRequests}
-                    onChange={handleInputChange}
-                    className="w-full py-4 pl-12 pr-4 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#8b5cf6] focus:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all placeholder:text-[#64748b] resize-y min-h-[100px]"
-                    rows="4"
-                  />
                 </div>
               </div>
             </div>
+
+            <button className="w-full py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white text-lg font-semibold shadow-lg shadow-[#3B82F6]/30 hover:shadow-xl hover:shadow-[#3B82F6]/40 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 group">
+              <span>Confirm Booking</span>
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
 
-          <button className="w-full h-14 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] border-none rounded-xl text-white text-lg font-semibold cursor-pointer shadow-[0_8px_20px_rgba(59,130,246,0.4)] hover:translate-y-[-2px] hover:scale-[1.02] hover:shadow-[0_12px_30px_rgba(59,130,246,0.6)] transition-all mt-2">
-            Confirm Booking
-          </button>
-        </div>
+          {/* Right Side - Summary */}
+          <div className="lg:sticky lg:top-5 h-fit animate-slideIn" style={{ animationDelay: '300ms' }}>
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.2)] transition-all duration-500">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-6">
+                Booking Summary
+              </h3>
 
-        {/* Right Side - Summary */}
-        <div className="lg:sticky lg:top-5 h-fit">
-          <div className="bg-[rgba(15,23,42,0.8)] backdrop-blur border border-white/10 rounded-2xl p-5 lg:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <h3 className="text-xl font-semibold bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent mb-5">
-              Booking Summary
-            </h3>
+              {/* Service Preview */}
+              <div className="bg-gradient-to-br from-[#3B82F6]/5 to-[#8B5CF6]/5 rounded-2xl p-5 mb-6 border border-[#3B82F6]/10">
+                <h4 className="text-lg font-bold text-[#1F2937] mb-1">Premium Package</h4>
+                <p className="text-sm text-[#6B7280] mb-3">Complete service solution</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[#F59E0B] text-sm tracking-wider">⭐⭐⭐⭐⭐</span>
+                  <span className="text-sm text-[#6B7280]">4.9 (127 reviews)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] rounded-full flex items-center justify-center text-white font-bold">
+                    JP
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#1F2937]">John Professional</p>
+                    <p className="text-xs text-[#9CA3AF]">Expert Service Provider</p>
+                  </div>
+                </div>
+              </div>
 
-            {/* Service Preview */}
-            <div className="bg-white/5 rounded-xl p-4 mb-5">
-              <h4 className="text-lg font-bold text-white mb-1">Premium Package</h4>
-              <p className="text-sm text-[#94a3b8] mb-2">Complete service solution</p>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[#fbbf24] text-sm tracking-wider">⭐⭐⭐⭐⭐</span>
-                <span className="text-sm text-white">4.9 (127 reviews)</span>
+              {/* Price Breakdown */}
+              <div className="mb-6">
+                <div className="flex justify-between text-[#6B7280] mb-3">
+                  <span>Service Fee</span>
+                  <span className="font-medium">LKR 299.00</span>
+                </div>
+                <div className="flex justify-between text-[#6B7280] mb-3">
+                  <span>Platform Fee</span>
+                  <span className="font-medium">LKR 19.00</span>
+                </div>
+                <div className="flex justify-between text-[#6B7280] mb-3">
+                  <span>Tax (5%)</span>
+                  <span className="font-medium">LKR 15.90</span>
+                </div>
+                
+                <div className="h-px bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent my-4"></div>
+                
+                <div className="flex justify-between items-baseline">
+                  <span className="text-lg font-semibold text-[#1F2937]">Total Amount</span>
+                  <span className="text-3xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">LKR 333.90</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6] rounded-full"></div>
-                <span className="text-sm text-[#94a3b8]">John Professional</span>
-              </div>
-            </div>
 
-            {/* Price Breakdown */}
-            <div className="mb-5">
-              <div className="flex justify-between text-[#94a3b8] mb-3">
-                <span>Service Fee</span>
-                <span>LKR 299.00</span>
+              {/* Timeline */}
+              <div className="bg-gradient-to-r from-[#10B981]/10 to-[#059669]/10 border border-[#10B981]/20 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#10B981] text-xl">⏱️</span>
+                    <span className="text-[#10B981] font-medium">Estimated Timeline</span>
+                  </div>
+                  <span className="text-[#1F2937] font-semibold">2-3 hours</span>
+                </div>
+                <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#10B981] to-[#059669] h-1.5 rounded-full animate-pulse-subtle" style={{ width: '75%' }}></div>
+                </div>
               </div>
-              <div className="flex justify-between text-[#94a3b8] mb-3">
-                <span>Platform Fee</span>
-                <span>LKR 19.00</span>
-              </div>
-              
-              <div className="h-px bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent my-4"></div>
-              
-              <div className="flex justify-between text-lg font-semibold text-white">
-                <span>Total Amount</span>
-                <span className="text-2xl font-bold text-[#60a5fa] drop-shadow-[0_0_20px_rgba(96,165,250,0.5)]">LKR 318.00</span>
-              </div>
-            </div>
 
-            {/* Timeline */}
-            <div className="bg-[rgba(16,185,129,0.1)] border border-[#10b981] rounded-3xl p-3 flex justify-between items-center mb-5">
-              <span className="text-[#10b981] font-medium">⏱️ Estimated Timeline</span>
-              <span className="text-white text-sm">2-3 hours completion</span>
-            </div>
-
-            {/* Security */}
-            <div className="text-center">
-              <div className="bg-[rgba(16,185,129,0.1)] border border-[#10b981] rounded-full px-4 py-2 inline-block mb-4 text-[#10b981] text-sm">
-                <span>🔒 Secure Payment Protected</span>
+              {/* Security */}
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#10B981]/10 border border-[#10B981]/20 rounded-full">
+                  <span className="text-[#10B981]">🔒</span>
+                  <span className="text-sm text-[#10B981] font-medium">Secure Payment Protected</span>
+                </div>
+                <div>
+                  <a href="#" className="text-[#3B82F6] text-sm hover:text-[#8B5CF6] transition-colors inline-flex items-center gap-1 group">
+                    Terms and Conditions
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                </div>
               </div>
-              <a href="#" className="block text-[#60a5fa] text-sm hover:underline hover:text-[#3b82f6] transition-all">
-                Terms and Conditions →
-              </a>
             </div>
           </div>
         </div>

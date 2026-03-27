@@ -19,9 +19,11 @@ const RatingReview = () => {
   const averageRating = totalReviews > 0 ? (Object.entries(ratings).reduce((acc, [stars, count]) =>
     acc + (parseInt(stars) * count), 0) / totalReviews).toFixed(1) : "0.0";
 
+  const API_BASE_URL = 'http://localhost:5001';
+
   const fetchReviews = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/reviews');
+      const response = await fetch(`${API_BASE_URL}/api/reviews`);
       if (response.ok) {
         const data = await response.json();
         const mappedData = data.map(r => ({ ...r, id: r._id }));
@@ -47,18 +49,33 @@ const RatingReview = () => {
       const animals = ['🦊', '🐼', '🦁', '🐨', '🐧', '🦉', '🐰', '🦝'];
       const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
       try {
-        const response = await fetch('http://localhost:5000/api/reviews', {
+        const response = await fetch(`${API_BASE_URL}/api/reviews`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rating: newRating, comment: newReview, name: 'You', avatar: randomAnimal, avatarBg: 'bg-gradient-to-br from-[#667EEA] to-[#764BA2]', isOwn: true })
+          body: JSON.stringify({ 
+            rating: newRating, 
+            comment: newReview, 
+            name: 'You', 
+            avatar: randomAnimal, 
+            avatarBg: 'bg-gradient-to-br from-[#667EEA] to-[#764BA2]', 
+            isOwn: true 
+          })
         });
         if (response.ok) {
-          fetchReviews(); setNewReview(''); setNewRating(0);
+          fetchReviews();
+          setNewReview(''); 
+          setNewRating(0);
+          alert('Review submitted successfully!');
         } else {
           const errorData = await response.json();
           alert(errorData.message || 'Failed to submit review');
         }
-      } catch (error) { console.error('Error:', error); }
+      } catch (error) { 
+        console.error('Error submitting review:', error);
+        alert('Error connecting to server. Make sure backend is running on port 5001');
+      }
+    } else {
+      alert('Please provide both a rating and a review comment.');
     }
   };
 
@@ -68,10 +85,14 @@ const RatingReview = () => {
     const isLiking = !review.liked;
     setReviews(reviews.map(r => r.id === reviewId ? { ...r, likes: isLiking ? r.likes + 1 : Math.max(0, r.likes - 1), liked: isLiking } : r));
     try {
-      await fetch(`http://localhost:5000/api/reviews/${reviewId}/like`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ increment: isLiking })
+      await fetch(`${API_BASE_URL}/api/reviews/${reviewId}/like`, {
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ increment: isLiking })
       });
-    } catch (error) { console.error('Error:', error); }
+    } catch (error) { 
+      console.error('Error liking review:', error);
+    }
   };
 
   const handleReplyClick = (reviewId) => {
@@ -84,51 +105,70 @@ const RatingReview = () => {
       const animals = ['🦊', '🐼', '🦁', '🐨', '🐧', '🦉', '🐰', '🦝'];
       const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
       try {
-        const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}/reply`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comment: replyText, name: 'You', avatar: randomAnimal, avatarBg: 'bg-gradient-to-br from-[#667EEA] to-[#764BA2]' })
+        const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}/reply`, {
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            comment: replyText, 
+            name: 'You', 
+            avatar: randomAnimal, 
+            avatarBg: 'bg-gradient-to-br from-[#667EEA] to-[#764BA2]' 
+          })
         });
-        if (response.ok) { fetchReviews(); setActiveReplyId(null); setReplyText(''); }
-        else {
+        if (response.ok) { 
+          fetchReviews(); 
+          setActiveReplyId(null); 
+          setReplyText(''); 
+        } else {
           const errorData = await response.json();
           alert(errorData.message || 'Failed to submit reply');
         }
-      } catch (error) { console.error('Error:', error); }
+      } catch (error) { 
+        console.error('Error submitting reply:', error);
+      }
     }
   };
 
   const handleEditClick = (review) => { setEditingReview(review.id); };
   const handleEditCancel = () => { setEditingReview(null); };
 
-  const handleEditSave = async (reviewId, oldRating, newText, newRating) => {
-    if (newText.trim() && newRating > 0) {
+  const handleEditSave = async (reviewId, oldRating, newText, newRatingValue) => {
+    if (newText.trim() && newRatingValue > 0) {
       try {
-        const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rating: newRating, comment: newText })
+        const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}`, {
+          method: 'PUT', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating: newRatingValue, comment: newText })
         });
-        if (response.ok) { fetchReviews(); setEditingReview(null); }
-        else {
+        if (response.ok) { 
+          fetchReviews(); 
+          setEditingReview(null); 
+        } else {
           const errorData = await response.json();
           alert(errorData.message || 'Failed to update review');
         }
-      } catch (error) { console.error('Error:', error); }
+      } catch (error) { 
+        console.error('Error updating review:', error);
+      }
     }
   };
 
   const handleDeleteReview = async (reviewId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, { method: 'DELETE' });
-      if (response.ok) { fetchReviews(); setDeleteConfirm(null); }
-    } catch (error) { console.error('Error:', error); }
+      const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}`, { method: 'DELETE' });
+      if (response.ok) { 
+        fetchReviews(); 
+        setDeleteConfirm(null); 
+      }
+    } catch (error) { 
+      console.error('Error deleting review:', error);
+    }
   };
 
-  // Handle see more reviews
   const handleSeeMore = () => {
     setVisibleReviews(prev => prev + 3);
   };
 
-  // Star rating component
   const StarRating = ({ rating, interactive = false, size = "small", onRatingChange, hoveredStar: externalHoveredStar, setHoveredStar: externalSetHoveredStar }) => {
     const starSize = size === "large" ? "w-6 h-6" : "w-4 h-4";
     const [internalHoveredStar, setInternalHoveredStar] = useState(null);
@@ -167,7 +207,6 @@ const RatingReview = () => {
     );
   };
 
-  // Add CSS animations
   useEffect(() => {
     const style = document.createElement('style');
     style.innerHTML = `
@@ -280,7 +319,6 @@ const RatingReview = () => {
     };
   }, []);
 
-  // Floating particles component with 2026 colors
   const FloatingParticles = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {[...Array(30)].map((_, i) => {
@@ -313,7 +351,6 @@ const RatingReview = () => {
     </div>
   );
 
-  // Delete Confirmation Modal
   const DeleteConfirmationModal = ({ reviewId, rating, onConfirm, onCancel }) => (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
       <div className="bg-white rounded-2xl p-6 max-w-sm mx-4 shadow-2xl border border-gray-100">
@@ -342,7 +379,6 @@ const RatingReview = () => {
     </div>
   );
 
-  // Edit Review Modal
   const EditReviewModal = ({ review, onSave, onCancel }) => {
     const [localEditText, setLocalEditText] = useState(review.comment);
     const [localEditRating, setLocalEditRating] = useState(review.rating);
@@ -355,7 +391,6 @@ const RatingReview = () => {
             Edit Your Review
           </h3>
 
-          {/* Rating Selection */}
           <div className="mb-4">
             <label className="block text-sm text-gray-600 mb-2">Your Rating</label>
             <StarRating
@@ -368,7 +403,6 @@ const RatingReview = () => {
             />
           </div>
 
-          {/* Review Input */}
           <div className="mb-4">
             <label className="block text-sm text-gray-600 mb-2">Your Review</label>
             <textarea
@@ -380,7 +414,6 @@ const RatingReview = () => {
             />
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3 justify-end">
             <button
               onClick={onCancel}
@@ -410,13 +443,9 @@ const RatingReview = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#F8F9FF] via-[#F0F3FF] to-[#E9ECFF] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Animated Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B6B]/5 via-[#4ECDC4]/5 to-[#667EEA]/5 animate-gradient"></div>
-
-      {/* Floating Particles Background */}
       <FloatingParticles />
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <DeleteConfirmationModal
           reviewId={deleteConfirm.id}
@@ -426,7 +455,6 @@ const RatingReview = () => {
         />
       )}
 
-      {/* Edit Review Modal */}
       {editingReview && (
         <EditReviewModal
           review={reviews.find(r => r.id === editingReview)}
@@ -435,14 +463,10 @@ const RatingReview = () => {
         />
       )}
 
-      {/* Main Content */}
       <div className="max-w-4xl mx-auto relative z-10">
-        {/* Page Transition Effect */}
         <div className="animate-fadeIn">
-          {/* Rating Summary Card - Modern Glassmorphism with 2026 Colors */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(102,126,234,0.3)] p-8 mb-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(102,126,234,0.4)] transition-all duration-500">
             <div className="flex flex-col md:flex-row md:items-center gap-8">
-              {/* Average Rating */}
               <div className="text-center md:text-left">
                 <div className="flex items-center gap-4 justify-center md:justify-start">
                   <span className="text-6xl font-bold bg-gradient-to-r from-[#667EEA] via-[#764BA2] to-[#A06AB4] bg-clip-text text-transparent">
@@ -455,7 +479,6 @@ const RatingReview = () => {
                 </div>
               </div>
 
-              {/* Rating Breakdown Bars */}
               <div className="flex-1 space-y-3">
                 {[5, 4, 3, 2, 1].map((star) => {
                   const percentage = (ratings[star] / totalReviews) * 100;
@@ -485,7 +508,6 @@ const RatingReview = () => {
             </div>
           </div>
 
-          {/* Customer Reviews Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-[#1F2937]">Customer Reviews</h2>
             <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
@@ -493,13 +515,11 @@ const RatingReview = () => {
             </div>
           </div>
 
-          {/* Write Review Section */}
           <div className="mb-8 bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-[0_10px_40px_-10px_rgba(102,126,234,0.2)] border border-white/50 hover:shadow-[0_15px_50px_-10px_rgba(102,126,234,0.3)] transition-all duration-300">
             <h3 className="text-lg font-semibold bg-gradient-to-r from-[#667EEA] to-[#764BA2] bg-clip-text text-transparent mb-4">
               Write a Review
             </h3>
 
-            {/* Rating Selection */}
             <div className="mb-4">
               <label className="block text-sm text-[#4B5563] mb-2">Your Rating</label>
               <StarRating
@@ -513,7 +533,6 @@ const RatingReview = () => {
               )}
             </div>
 
-            {/* Review Input */}
             <div className="mb-4">
               <label className="block text-sm text-[#4B5563] mb-2">Your Review</label>
               <textarea
@@ -525,7 +544,6 @@ const RatingReview = () => {
               />
             </div>
 
-            {/* Send Button */}
             <div className="flex justify-end">
               <button
                 onClick={handleReviewSubmit}
@@ -543,7 +561,6 @@ const RatingReview = () => {
             </div>
           </div>
 
-          {/* Review Cards Grid */}
           <div className="space-y-6">
             {reviews.slice(0, visibleReviews).map((review, index) => (
               <div
@@ -551,7 +568,6 @@ const RatingReview = () => {
                 className="group bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_50px_-15px_rgba(102,126,234,0.3)] transition-all duration-500 hover:-translate-y-1 border border-white/50 animate-slideIn relative"
                 style={{ animationDelay: `${index * 150}ms` }}
               >
-                {/* Action Buttons - Only show for own reviews */}
                 {review.isOwn && (
                   <div className="absolute bottom-4 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                     <button
@@ -576,14 +592,11 @@ const RatingReview = () => {
                 )}
 
                 <div className="flex gap-4">
-                  {/* Avatar with animal */}
                   <div className={`w-12 h-12 rounded-2xl ${review.avatarBg} flex items-center justify-center text-2xl shadow-lg transform group-hover:scale-110 transition-transform duration-300 animate-float-subtle`}>
                     {review.avatar}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1">
-                    {/* Header */}
                     <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-3">
                         <h3 className="font-semibold text-[#1F2937]">{review.name}</h3>
@@ -601,17 +614,14 @@ const RatingReview = () => {
                       <span className="text-sm text-[#9CA3AF]">{review.date}</span>
                     </div>
 
-                    {/* Rating */}
                     <div className="mb-3">
                       <StarRating rating={review.rating} interactive={false} />
                     </div>
 
-                    {/* Comment */}
                     <p className="text-[#4B5563] leading-relaxed mb-4">
                       {review.comment}
                     </p>
 
-                    {/* Replies Section */}
                     {review.replies && review.replies.length > 0 && (
                       <div className="ml-8 mt-4 space-y-3 border-l-2 border-gradient-to-b from-gray-200 to-gray-100 pl-4">
                         {review.replies.map((reply) => (
@@ -634,7 +644,6 @@ const RatingReview = () => {
                       </div>
                     )}
 
-                    {/* Reply Input Box */}
                     {activeReplyId === review.id && (
                       <div className="mt-4 ml-8 animate-slideIn">
                         <div className="flex gap-3">
@@ -672,7 +681,6 @@ const RatingReview = () => {
                       </div>
                     )}
 
-                    {/* Actions - Like and Reply only */}
                     <div className="flex items-center gap-4 mt-4">
                       <button
                         onClick={() => handleLike(review.id)}
@@ -713,7 +721,6 @@ const RatingReview = () => {
             ))}
           </div>
 
-          {/* See Other Reviews Button */}
           {visibleReviews < reviews.length && (
             <div className="text-center mt-10">
               <button
