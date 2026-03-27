@@ -1,8 +1,11 @@
+import React from "react";
+
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useChatStore } from "../store/useChatStore.js";
 
 const getUserAvatar = (user) => user?.profilePic || user?.profile_picture || "/avatar.png";
+const normalizeId = (value) => (value ? value.toString() : "");
 
 const ChatHeader = () => {
   const { selectedUser, setSelecteduser } = useChatStore();
@@ -13,7 +16,7 @@ const ChatHeader = () => {
   }
 
   const displayName = selectedUser.fullName || selectedUser.fullname || "User";
-  const isOnline = onlineusers.includes(selectedUser._id);
+  const isOnline = onlineusers.some((userId) => normalizeId(userId) === normalizeId(selectedUser._id));
 
   return (
     <div className="border-b border-slate-200 bg-white/70 px-4 py-4 sm:px-6">

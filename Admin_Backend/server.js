@@ -9,7 +9,7 @@ const authRoutes = require("./routes/auth");
 
 const app    = express();
 const server = http.createServer(app);
-const PORT   = process.env.ADMIN_PORT || 5000;
+const PORT   = process.env.ADMIN_PORT || 5002;
 const ORIGIN = process.env.ADMIN_FRONTEND_ORIGIN || "http://localhost:5174";
 
 // ── Database Connection ────────────────────────────────────────
@@ -66,7 +66,7 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ── Root Route (Prevents 404 on http://localhost:5000/) ────────
+// ── Root Route (Prevents 404 on http://localhost:5002/) ────────
 app.get("/", (_req, res) => {
   res.send(`
     <div style="font-family: sans-serif; text-align: center; padding: 50px; background: #f8fafc; min-height: 100vh;">

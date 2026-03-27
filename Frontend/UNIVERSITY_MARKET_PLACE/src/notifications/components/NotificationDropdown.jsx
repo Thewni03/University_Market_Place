@@ -1,5 +1,5 @@
 // src/notifications/components/NotificationDropdown.jsx
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 import NotificationItem from './NotificationItem';
 import { Bell } from 'lucide-react';

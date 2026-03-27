@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";

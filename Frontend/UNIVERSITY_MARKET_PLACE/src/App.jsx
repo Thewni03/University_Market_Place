@@ -5,7 +5,7 @@ import Navbar from "./components/navber";
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
 import Profile from "./pages/profile/profile";
-import CreateService from "./pages/CreateService/CreateService";       // ← KEPT: path from file 2
+import CreateService from "./pages/CreateService/createservice";
 import EditService from "./pages/services/editservice";
 import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";       // ← KEPT: path from file 2
 import PostRequest from "./pages/PostRequest/PostRequest";             // ← ADDED from file 2

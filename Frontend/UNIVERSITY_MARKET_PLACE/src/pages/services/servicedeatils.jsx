@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Star, MapPin, Eye, BarChart3, ArrowLeft, CalendarDays } from "lucide-react";
 import { Badge } from "../../components/ui/badge";

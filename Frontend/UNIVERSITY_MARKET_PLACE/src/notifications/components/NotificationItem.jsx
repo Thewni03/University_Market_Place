@@ -1,4 +1,5 @@
 // src/notifications/components/NotificationItem.jsx
+import React from "react";
 import { useNotifications } from '../context/NotificationContext';
 import { X, ShoppingCart, MessageCircle, Gift, Settings, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

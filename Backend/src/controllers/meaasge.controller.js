@@ -2,7 +2,6 @@ import User from "../models/RegisterModel.js";
 import Profile from "../models/profile.js";
 import Message from "../models/message.model.js";
 import cloudinary from "../Utils/cloudinary.js";
-import { getReceiverSocketId } from "../Utils/socket.js";
 import { getIo } from "../config/io.js";
 import { notify } from "../notifications/notification.service.js";
 
@@ -179,13 +178,11 @@ export const sentMessage = async (req, res) => {
       },
     });
 
-    const receiverSocketID = getReceiverSocketId(receiverId);
     const io = getIo();
-    if (receiverSocketID) {
-      io.to(receiverSocketID).emit("new-message", newMessage);
+    if (io) {
+      io.to(receiverId.toString()).emit("new-message", newMessage);
     }
 
-    // TODO: realtime functionality goes here => socket.io
     return res.status(201).json(newMessage);
   } catch (error) {
     console.log("error in sending message", error.message);

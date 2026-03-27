@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/sidebarSkeletons.jsx";
 import { Search, Sparkles, Users } from "lucide-react";
 
 const getUserAvatar = (user) => user?.profilePic || user?.profile_picture || "/avatar.png";
+const normalizeId = (value) => (value ? value.toString() : "");
 
 const Sidebar = () => {
   const { getUsers, users, selectedUser, setSelecteduser, isUsersLoading } = useChatStore();
@@ -12,6 +13,7 @@ const Sidebar = () => {
   const { authUser, onlineusers: onlineUsers = [] } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const onlineUserIds = new Set((onlineUsers || []).map((userId) => normalizeId(userId)));
 
   useEffect(() => {
     if (!authUser?._id) return;
@@ -19,7 +21,7 @@ const Sidebar = () => {
   }, [authUser?._id, getUsers]);
 
   const filteredUsers = users.filter((user) => {
-    const matchesOnline = !showOnlineOnly || onlineUsers.includes(user._id);
+    const matchesOnline = !showOnlineOnly || onlineUserIds.has(normalizeId(user._id));
     const displayName = (user.fullName || user.fullname || "Unknown User").toLowerCase();
     const matchesSearch = displayName.includes(searchTerm.trim().toLowerCase());
     return matchesOnline && matchesSearch;
@@ -53,7 +55,7 @@ const Sidebar = () => {
                   Active now
                 </p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  {Math.max(onlineUsers.length - 1, 0)} people ready to chat right now.
+                  {Math.max(onlineUserIds.size - 1, 0)} people ready to chat right now.
                 </p>
               </div>
             </div>
@@ -91,7 +93,7 @@ const Sidebar = () => {
         <div className="overflow-y-auto px-2 py-3 lg:px-3">
           {filteredUsers.map((user) => {
             const displayName = user.fullName || user.fullname || "Unknown User";
-            const isOnline = onlineUsers.includes(user._id);
+            const isOnline = onlineUserIds.has(normalizeId(user._id));
             const isSelected = selectedUser?._id === user._id;
             const unreadCount = Number(user.unreadCount || 0);
             const hasUnread = unreadCount > 0 && !isSelected;

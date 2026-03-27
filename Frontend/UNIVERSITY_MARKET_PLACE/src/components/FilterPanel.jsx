@@ -1,3 +1,4 @@
+import React from "react";
 import { categories } from "../data/mockData.js";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Slider } from "./ui/slider";

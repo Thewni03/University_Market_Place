@@ -2,6 +2,8 @@
 import Service, { DAYS, TIMES } from "../models/service.js";
 import Profile from "../models/profile.js";
 import mongoose from "mongoose";
+import fs from "fs/promises";
+import cloudinary from "../Utils/cloudinary.js";
 
 const toUtcDateKey = (date = new Date()) => date.toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -132,6 +134,22 @@ const parseJsonMaybe = (value, fallback) => {
   }
 };
 
+const uploadServiceWorkSample = async (file) => {
+  if (!file?.path) return null;
+
+  const uploadResponse = await cloudinary.uploader.upload(file.path, {
+    folder: "university-marketplace/service-work-samples",
+    resource_type: "auto",
+  });
+
+  return {
+    url: uploadResponse.secure_url || uploadResponse.url,
+    filename: file.originalname || file.filename,
+    mimeType: file.mimetype || "application/octet-stream",
+    sizeBytes: Number(file.size || 0),
+  };
+};
+
 const ML_SCORE_TTL_MS = 10 * 60 * 1000;
 const mlPredictionCache = new Map();
 
@@ -169,12 +187,19 @@ export const createService = async (req, res) => {
       });
     }
     const uploadedFiles = Array.isArray(req.files) ? req.files : [];
-    const uploadedWorkSamples = uploadedFiles.map((file) => ({
-      url: `/uploads/${file.filename}`,
-      filename: file.originalname || file.filename,
-      mimeType: file.mimetype || "application/octet-stream",
-      sizeBytes: Number(file.size || 0),
-    }));
+    const uploadedWorkSamples = (
+      await Promise.all(
+        uploadedFiles.map(async (file) => {
+          try {
+            return await uploadServiceWorkSample(file);
+          } finally {
+            if (file?.path) {
+              await fs.unlink(file.path).catch(() => {});
+            }
+          }
+        })
+      )
+    ).filter(Boolean);
 
     const normalizedWorkSamples = [
       ...(Array.isArray(incomingWorkSamples) ? incomingWorkSamples : []),

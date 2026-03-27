@@ -1,8 +1,11 @@
 import axios from "axios";
 
-// Admin auth API (port 5001)
+const ADMIN_BACKEND_BASE_URL =
+  import.meta.env.VITE_ADMIN_API_BASE_URL || "http://localhost:5002";
+
+// Admin auth API
 export const adminAuthAPI = axios.create({
-  baseURL: "http://localhost:5000/api/admin/auth",
+  baseURL: `${ADMIN_BACKEND_BASE_URL}/api/admin/auth`,
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });
@@ -29,7 +32,7 @@ adminAuthAPI.interceptors.response.use(
   }
 );
 
-// Main app API (port 5000) — for reading users etc.
+// Main marketplace API — for reading users etc.
 export const mainAPI = axios.create({
   baseURL: "http://localhost:5001",
   headers: { "Content-Type": "application/json" },

@@ -21,6 +21,8 @@ const getStoredUser = () => {
   }
 };
 
+const normalizeId = (value) => (value ? value.toString() : "");
+
 export const useAuthStore = create((set,get) => ({
   authUser: getStoredUser(),
   isSigningUp: false,
@@ -127,7 +129,11 @@ export const useAuthStore = create((set,get) => ({
     socket.emit("join", authUser._id);
     set({ Socket: socket });
     socket.on("online-users", (users) => {
-      set({ onlineusers: users });
+      set({
+        onlineusers: Array.isArray(users)
+          ? [...new Set(users.map((userId) => normalizeId(userId)).filter(Boolean))]
+          : [],
+      });
     });
 
   },

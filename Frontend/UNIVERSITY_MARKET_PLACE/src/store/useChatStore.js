@@ -160,21 +160,30 @@ export const useChatStore = create((set, get) => ({
         }));
     },
     subscribeToMessages: () => {
-        const { selectedUser } = get();
-
         const socket = useAuthStore.getState().Socket;
         if (!socket) return;
         const currentUserId = getCurrentUserId();
+        const selectedUserId = get().selectedUser?._id;
 
         socket.off("new-message");
         socket.on("new-message", (newMessage) => {
             const latestSelectedUserId = get().selectedUser?._id;
-            const isOpenConversation =
-                normalizeId(newMessage.senderId) === normalizeId(latestSelectedUserId);
+            const normalizedCurrentUserId = normalizeId(currentUserId);
+            const normalizedSelectedUserId = normalizeId(latestSelectedUserId);
+            const normalizedSenderId = normalizeId(newMessage.senderId);
+            const normalizedReceiverId = normalizeId(newMessage.receiverId);
+            const belongsToOpenConversation =
+                normalizedSelectedUserId &&
+                (
+                    (normalizedSenderId === normalizedSelectedUserId &&
+                        normalizedReceiverId === normalizedCurrentUserId) ||
+                    (normalizedSenderId === normalizedCurrentUserId &&
+                        normalizedReceiverId === normalizedSelectedUserId)
+                );
 
             set((state) => ({
-                messages: isOpenConversation
-                    ? [...state.messages, newMessage]
+                messages: belongsToOpenConversation
+                    ? [...state.messages.filter((message) => normalizeId(message._id) !== normalizeId(newMessage._id)), newMessage]
                     : state.messages,
                 users: syncConversationMeta(
                     state.users,

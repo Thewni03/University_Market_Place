@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { Star, MapPin, Eye, TrendingUp, BadgeCheck, CalendarCheck2, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";

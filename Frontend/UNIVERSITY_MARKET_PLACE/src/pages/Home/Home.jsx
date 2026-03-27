@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal, Briefcase, Sparkles, TrendingUp, MonitorSmartphone, BookOpen, Video, PenTool, Camera, Loader2 } from "lucide-react";
 import { mockServices, mockRequests } from "../../data/mockData";
 import ServiceCard from "../../components/ServiceCard";

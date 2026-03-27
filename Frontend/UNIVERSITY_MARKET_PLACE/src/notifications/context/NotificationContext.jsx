@@ -1,5 +1,5 @@
 // src/notifications/context/NotificationContext.jsx
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';

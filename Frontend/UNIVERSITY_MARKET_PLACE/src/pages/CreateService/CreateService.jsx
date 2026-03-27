@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Camera, CheckCircle2, Clock, MapPin, Tag, X } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const categories = ["Tutoring", "Web Design", "Video Editing", "Writing", "Photography", "Development", "Design", "Music", "Marketing", "Fitness"];
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -79,7 +80,7 @@ export default function CreateService() {
             }
             const price = Number(formData.pricePerHour);
             if (price > 10000) {
-                alert("you cant add more than 10000");
+                toast.error("Price cannot be more than 10000");
                 setIsSubmitting(false);
                 return;
             }
@@ -98,11 +99,11 @@ export default function CreateService() {
             });
 
             await axios.post(`${API_BASE_URL}/api/services`, payload);
-            alert('Service created successfully!');
-            navigate('/');
+            toast.success('Service successfully added');
+            navigate('/home');
         } catch (error) {
             console.error("Error creating service:", error);
-            alert(error?.response?.data?.error || error?.message || 'Failed to create service.');
+            toast.error(error?.response?.data?.error || error?.message || 'Failed to create service.');
         } finally {
             setIsSubmitting(false);
         }

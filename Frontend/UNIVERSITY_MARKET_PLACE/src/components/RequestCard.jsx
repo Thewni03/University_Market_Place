@@ -1,3 +1,5 @@
+import React from "react";
+
 import { Calendar, DollarSign } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Link } from "react-router-dom";

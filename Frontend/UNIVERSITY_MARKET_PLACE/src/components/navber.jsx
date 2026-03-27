@@ -1,7 +1,7 @@
 // src/components/Navbar.jsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"; // ← KEPT: AvatarImage for profile pic

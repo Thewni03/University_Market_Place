@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
 import '../notifications.css';
