@@ -47,9 +47,8 @@ function BookingSuccess() {
                         </p>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons - Only Payment Button */}
                     <div className="space-y-3">
-                        {/* Payment Button - Changed from Go to Dashboard */}
                         <button
                             onClick={() => navigate('/payment')}
                             className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white font-bold py-3 px-8 rounded-xl text-sm transition-all duration-300 hover:shadow-lg hover:shadow-[#3B82F6]/30 hover:scale-[1.02] flex items-center justify-center gap-2 group"
@@ -59,22 +58,7 @@ function BookingSuccess() {
                             </svg>
                             Proceed to Payment
                         </button>
-                        
-                        <button
-                            onClick={() => navigate('/services')}
-                            className="w-full bg-white border-2 border-[#3B82F6] text-[#3B82F6] font-bold py-3 px-8 rounded-xl text-sm transition-all duration-300 hover:bg-[#3B82F6] hover:text-white hover:shadow-lg hover:shadow-[#3B82F6]/30 hover:scale-[1.02] flex items-center justify-center gap-2 group"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            Browse More Services
-                        </button>
                     </div>
-
-                    {/* Help Text */}
-                    <p className="text-xs text-[#9CA3AF] mt-6">
-                        Need assistance? Contact support@universitymarketplace.com
-                    </p>
                 </div>
             </div>
 

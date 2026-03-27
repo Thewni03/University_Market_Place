@@ -9,9 +9,9 @@ const BookingForm = () => {
     contact: '',
     address: '',
     nic: '',
-    service: '',
+    service: 'Premium Package',
     date: '',
-    timeSlot: '',
+    timeSlot: '9:00 AM - 11:00 AM',
     persons: 1,
     specialRequests: '',
     documents: []
@@ -62,11 +62,6 @@ const BookingForm = () => {
       }
     }
 
-    // Service validation
-    if (!formData.service) {
-      newErrors.service = 'Please select a service';
-    }
-
     // Date validation
     if (!formData.date) {
       newErrors.date = 'Please select a date';
@@ -77,11 +72,6 @@ const BookingForm = () => {
       if (selectedDate < today) {
         newErrors.date = 'Please select a future date';
       }
-    }
-
-    // Time slot validation
-    if (!formData.timeSlot) {
-      newErrors.timeSlot = 'Please select a time slot';
     }
 
     setErrors(newErrors);
@@ -272,15 +262,6 @@ const BookingForm = () => {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
-      }
-
-      @keyframes shimmer {
-        0% {
-          background-position: -1000px 0;
-        }
-        100% {
-          background-position: 1000px 0;
-        }
       }
 
       @keyframes spin {
@@ -513,7 +494,7 @@ const BookingForm = () => {
                 </div>
               </div>
 
-              {/* Service Details with Document Upload */}
+              {/* Service Details - Auto Populated */}
               <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
                 <div className="mb-6">
                   <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-2">
@@ -524,51 +505,22 @@ const BookingForm = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-4">
+                    {/* Service - Auto populated, read-only */}
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📅</span>
-                      <select
-                        name="service"
-                        value={formData.service}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-10 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer ${
-                          errors.service 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]'
-                        }`}
-                      >
-                        <option value="">Select a service</option>
-                        <option value="premium">Premium Package</option>
-                        <option value="standard">Standard Package</option>
-                        <option value="basic">Basic Package</option>
-                      </select>
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B5CF6] text-xs pointer-events-none">▼</span>
-                      {errors.service && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.service}</p>
-                      )}
+                      <div className="w-full py-3.5 pl-12 pr-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl text-[#1F2937] text-sm font-semibold">
+                        {formData.service}
+                      </div>
+                      <input type="hidden" name="service" value={formData.service} />
                     </div>
 
+                    {/* Time Slot - Auto populated, read-only */}
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">⏰</span>
-                      <select
-                        name="timeSlot"
-                        value={formData.timeSlot}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-10 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer ${
-                          errors.timeSlot 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]'
-                        }`}
-                      >
-                        <option value="">Select time slot</option>
-                        <option value="9am">9:00 AM - 11:00 AM</option>
-                        <option value="11am">11:00 AM - 1:00 PM</option>
-                        <option value="2pm">2:00 PM - 4:00 PM</option>
-                        <option value="4pm">4:00 PM - 6:00 PM</option>
-                      </select>
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B5CF6] text-xs pointer-events-none">▼</span>
-                      {errors.timeSlot && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.timeSlot}</p>
-                      )}
+                      <div className="w-full py-3.5 pl-12 pr-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl text-[#1F2937] text-sm font-semibold">
+                        {formData.timeSlot}
+                      </div>
+                      <input type="hidden" name="timeSlot" value={formData.timeSlot} />
                     </div>
                   </div>
 
@@ -739,7 +691,7 @@ const BookingForm = () => {
 
                 {/* Service Preview */}
                 <div className="bg-gradient-to-br from-[#3B82F6]/5 to-[#8B5CF6]/5 rounded-2xl p-5 mb-6 border border-[#3B82F6]/10">
-                  <h4 className="text-lg font-bold text-[#1F2937] mb-1">Premium Package</h4>
+                  <h4 className="text-lg font-bold text-[#1F2937] mb-1">{formData.service}</h4>
                   <p className="text-sm text-[#6B7280] mb-3">Complete service solution</p>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-[#F59E0B] text-sm tracking-wider">⭐⭐⭐⭐⭐</span>
@@ -776,6 +728,17 @@ const BookingForm = () => {
                   <div className="flex justify-between items-baseline">
                     <span className="text-lg font-semibold text-[#1F2937]">Total Amount</span>
                     <span className="text-3xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">LKR 333.90</span>
+                  </div>
+                </div>
+
+                {/* Time Slot Display */}
+                <div className="bg-gradient-to-r from-[#8B5CF6]/10 to-[#EC4899]/10 border border-[#8B5CF6]/20 rounded-xl p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#8B5CF6] text-xl">⏰</span>
+                      <span className="text-[#8B5CF6] font-medium">Selected Time Slot</span>
+                    </div>
+                    <span className="text-[#1F2937] font-semibold">{formData.timeSlot}</span>
                   </div>
                 </div>
 
