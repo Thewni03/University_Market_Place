@@ -94,7 +94,7 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
-    </NotificationProvider>
+    </NotificationProvider>  
   );
 }
 
