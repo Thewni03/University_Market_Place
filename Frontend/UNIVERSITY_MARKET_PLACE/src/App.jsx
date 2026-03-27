@@ -7,15 +7,16 @@ import Home from "./pages/Home/Home";
 import Profile from "./pages/profile/profile";
 import CreateService from "./pages/CreateService/createservice";
 import EditService from "./pages/services/editservice";
-import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";       // ← KEPT: path from file 2
-import PostRequest from "./pages/PostRequest/PostRequest";             // ← ADDED from file 2
-import RequestDetail from "./pages/RequestDetail/RequestDetail"; 
-import Chat from "./pages/Chat/chat.jsx"      // ← ADDED from file 2
+import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
+import PostRequest from "./pages/PostRequest/PostRequest";
+import RequestDetail from "./pages/RequestDetail/RequestDetail";
+import Chat from "./pages/Chat/chat.jsx";
 
 // ── Components ─────────────────────────────────────────────────────────────
-import BookingForm from "./components/BookingForm/BookingForm";        // ← KEPT: path from file 2
-import Payment from "./components/payment/payment";                    // ← KEPT: path from file 2
-import Reviewandrating from "./components/Reviewandrating/Reviewandrating"; // ← ADDED from file 2
+import BookingForm from "./components/BookingForm/BookingForm";
+import BookingSuccess from "./components/BookingForm/BookingSuccess";
+import Payment from "./components/payment/payment";
+import Reviewandrating from "./components/Reviewandrating/Reviewandrating";
 
 // ── Admin ──────────────────────────────────────────────────────────────────
 import UserManagement from "./Admin/UserManagement/UserManagement";
@@ -55,8 +56,6 @@ function App() {
   }, [authUser?._id, connectSocket, disconnectSocket]);
 
   return (
-    // ← KEPT: NotificationProvider wraps everything (from file 1)
-    // Keeps Socket.io alive for the whole session + gives useNotifications() to all components
     <NotificationProvider>
       {!hideNavbar && <Navbar />}
 
@@ -72,15 +71,16 @@ function App() {
         <Route path="/edit-service/:serviceId" element={<EditService />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
 
-        {/* ← ADDED from file 2: post & browse requests */}
+        {/* Requests */}
         <Route path="/post-request" element={<PostRequest />} />
         <Route path="/request/:id" element={<RequestDetail />} />
 
         {/* Booking & Payment */}
         <Route path="/booking-form" element={<BookingForm />} />
+        <Route path="/booking-success" element={<BookingSuccess />} />
         <Route path="/payment" element={<Payment />} />
 
-        {/* ← ADDED from file 2: reviews & ratings page */}
+        {/* Reviews & Ratings */}
         <Route path="/reviewandrating" element={<Reviewandrating />} />
 
         {/* Admin */}
@@ -94,7 +94,7 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
-    </NotificationProvider>  
+    </NotificationProvider>
   );
 }
 

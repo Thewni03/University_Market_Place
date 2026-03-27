@@ -10,11 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"; // ← KEPT: 
 import { useNotifications } from "../notifications/context/NotificationContext";
 import NotificationDropdown from "../notifications/components/NotificationDropdown";
 
-const navLinks = [
-  { label: "Marketplace", path: "/home" },
+const navLinks = [ 
   { label: "Talk Space", path: "/dashboard" },
   { label: "Offer a Service", path: "/create-service" }, // ← KEPT: label from file 1
   { label: "Post Request", path: "/post-request" },
+  { label: "Reviews", path: "/reviewandrating" },
 ];
 
 export default function Navbar() {
