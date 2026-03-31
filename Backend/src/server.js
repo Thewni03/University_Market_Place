@@ -13,7 +13,7 @@ import resetRoutes from "./routes/ResetRoute.js";
 import predictionRoutes from "./routes/predictionRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/message.js";
-import notificationRoutes from "./notifications/notification.routes.js";  // ← ADDED: notification routes
+import notificationRoutes from "./notifications/notification.routes.js";
 import { setIo } from "./config/io.js";
 import { registerSocketHandlers } from "./Utils/socket.js";
 import "./config/db.js";
@@ -59,6 +59,7 @@ app.use("/", predictionRoutes);
 app.use("/", resetRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/requests", serviceRequestRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/users", registerRoutes);

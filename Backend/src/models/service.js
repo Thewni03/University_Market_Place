@@ -109,6 +109,10 @@ ServiceSchema.pre("save", function (next) {
   if (this.isModified("isPublished")) {
     this.publishedAt = this.isPublished ? new Date() : null;
   }
+  next();
 });
+
+// TTL Index: automatically delete service 30 days after creation
+ServiceSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
 export default mongoose.model("Service", ServiceSchema);

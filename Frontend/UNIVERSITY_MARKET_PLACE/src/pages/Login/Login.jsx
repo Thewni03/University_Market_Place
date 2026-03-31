@@ -221,8 +221,13 @@ export default function Login() {
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
       navigate('/home')
-    } catch {
-      setError('Invalid email or password')
+    } catch (err) {
+      console.error("Login Error:", err);
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Network error or invalid email/password');
+      }
     }
 
     setLoading(false)

@@ -1,90 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const BookingForm = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     contact: '',
     address: '',
     nic: '',
-    service: 'Premium Package',
+    service: '',
     date: '',
-    timeSlot: '9:00 AM - 11:00 AM',
+    timeSlot: '',
     persons: 1,
     specialRequests: '',
     documents: []
   });
 
   const [dragActive, setDragActive] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    // Full Name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = 'Full name must be at least 3 characters';
-    } else if (!/^[a-zA-Z\s]+$/.test(formData.fullName.trim())) {
-      newErrors.fullName = 'Full name should only contain letters and spaces';
-    }
-
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Contact number validation
-    if (!formData.contact.trim()) {
-      newErrors.contact = 'Contact number is required';
-    } else if (!/^[0-9]{10,12}$/.test(formData.contact.replace(/\s/g, ''))) {
-      newErrors.contact = 'Please enter a valid phone number (10-12 digits)';
-    }
-
-    // Address validation
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    } else if (formData.address.trim().length < 5) {
-      newErrors.address = 'Address must be at least 5 characters';
-    }
-
-    // NIC validation (optional but if provided, validate format)
-    if (formData.nic.trim()) {
-      const nicRegex = /^([0-9]{9}[vVxX]|[0-9]{12})$/;
-      if (!nicRegex.test(formData.nic.trim())) {
-        newErrors.nic = 'Please enter a valid NIC (9 digits + V/X or 12 digits)';
-      }
-    }
-
-    // Date validation
-    if (!formData.date) {
-      newErrors.date = 'Please select a date';
-    } else {
-      const selectedDate = new Date(formData.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        newErrors.date = 'Please select a future date';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
   };
 
   const handlePersonsChange = (action) => {
@@ -123,13 +58,6 @@ const BookingForm = () => {
       file.type.startsWith('image/') || file.type === 'application/pdf'
     );
 
-    // File size validation (max 10MB)
-    const oversizedFiles = validFiles.filter(file => file.size > 10 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
-      alert('Some files exceed 10MB limit. Please upload smaller files.');
-      return;
-    }
-
     const newDocuments = validFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       name: file.name,
@@ -158,10 +86,7 @@ const BookingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate form
     if (!validateForm()) {
-      // Scroll to first error
       const firstError = Object.keys(errors)[0];
       if (firstError) {
         const element = document.querySelector(`[name="${firstError}"]`);
@@ -174,19 +99,9 @@ const BookingForm = () => {
     }
 
     setIsSubmitting(true);
-    
     try {
-      // Here you would make an API call to submit the booking
-      // const response = await fetch('/api/bookings', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
-      
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // After successful booking, navigate to booking success page
+      // navigate('/booking-success'); // Disabled temporarily if route is missing, but App.jsx has it.
       navigate('/booking-success');
     } catch (error) {
       console.error('Error submitting booking:', error);
@@ -264,15 +179,13 @@ const BookingForm = () => {
         100% { background-position: 0% 50%; }
       }
 
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-
-      @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
+      @keyframes shimmer {
+        0% {
+          background-position: -1000px 0;
+        }
+        100% {
+          background-position: 1000px 0;
+        }
       }
 
       .animate-fadeIn {
@@ -303,14 +216,6 @@ const BookingForm = () => {
       .animate-gradient {
         background-size: 200% 200%;
         animation: gradientShift 15s ease infinite;
-      }
-
-      .animate-spin {
-        animation: spin 1s linear infinite;
-      }
-
-      .animate-shake {
-        animation: shake 0.5s ease-in-out;
       }
 
       .drop-shadow-glow {
@@ -378,402 +283,345 @@ const BookingForm = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto relative z-10">
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left Side - Form (spans 2 columns) */}
+          <div className="lg:col-span-2 space-y-6 animate-slideIn" style={{ animationDelay: '150ms' }}>
             
-            {/* Left Side - Form (spans 2 columns) */}
-            <div className="lg:col-span-2 space-y-6 animate-slideIn" style={{ animationDelay: '150ms' }}>
-              
-              {/* Customer Details */}
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(59,130,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.3)] transition-all duration-500">
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
-                    Customer Details
-                  </h2>
-                  <div className="w-16 h-1 bg-gradient-to-r from-[#3B82F6] to-transparent rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
-                </div>
+            {/* Customer Details */}
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(59,130,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.3)] transition-all duration-500">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
+                  Customer Details
+                </h2>
+                <div className="w-16 h-1 bg-gradient-to-r from-[#3B82F6] to-transparent rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">👤</span>
-                      <input
-                        type="text"
-                        name="fullName"
-                        placeholder="Enter your full name"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#9CA3AF] ${
-                          errors.fullName 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]'
-                        }`}
-                      />
-                      {errors.fullName && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.fullName}</p>
-                      )}
-                    </div>
-
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📞</span>
-                      <input
-                        type="tel"
-                        name="contact"
-                        placeholder="Enter your phone number"
-                        value={formData.contact}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#9CA3AF] ${
-                          errors.contact 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]'
-                        }`}
-                      />
-                      {errors.contact && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.contact}</p>
-                      )}
-                    </div>
-
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">🆔</span>
-                      <input
-                        type="text"
-                        name="nic"
-                        placeholder="Enter NIC or Passport number (Optional)"
-                        value={formData.nic}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#9CA3AF] ${
-                          errors.nic 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]'
-                        }`}
-                      />
-                      {errors.nic && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.nic}</p>
-                      )}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">👤</span>
+                    <input
+                      type="text"
+                      name="fullName"
+                      placeholder="Enter your full name"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">✉️</span>
-                      <input
-                        type="email"
-                        name="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#9CA3AF] ${
-                          errors.email 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]'
-                        }`}
-                      />
-                      {errors.email && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.email}</p>
-                      )}
-                    </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📞</span>
+                    <input
+                      type="tel"
+                      name="contact"
+                      placeholder="Enter your phone number"
+                      value={formData.contact}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
 
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📍</span>
-                      <input
-                        type="text"
-                        name="address"
-                        placeholder="Enter your address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#9CA3AF] ${
-                          errors.address 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]'
-                        }`}
-                      />
-                      {errors.address && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.address}</p>
-                      )}
-                    </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">🆔</span>
+                    <input
+                      type="text"
+                      name="nic"
+                      placeholder="Enter NIC or Passport number"
+                      value={formData.nic}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">✉️</span>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📍</span>
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="Enter your address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6] transition-all placeholder:text-[#9CA3AF]"
+                    />
                   </div>
                 </div>
               </div>
-
-              {/* Service Details - Auto Populated */}
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-2">
-                    Service Details
-                  </h2>
-                  <div className="w-16 h-1 bg-gradient-to-r from-[#8B5CF6] to-transparent rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]"></div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-4">
-                    {/* Service - Auto populated, read-only */}
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📅</span>
-                      <div className="w-full py-3.5 pl-12 pr-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl text-[#1F2937] text-sm font-semibold">
-                        {formData.service}
-                      </div>
-                      <input type="hidden" name="service" value={formData.service} />
-                    </div>
-
-                    {/* Time Slot - Auto populated, read-only */}
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">⏰</span>
-                      <div className="w-full py-3.5 pl-12 pr-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl text-[#1F2937] text-sm font-semibold">
-                        {formData.timeSlot}
-                      </div>
-                      <input type="hidden" name="timeSlot" value={formData.timeSlot} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📆</span>
-                      <input
-                        type="date"
-                        name="date"
-                        value={formData.date}
-                        onChange={handleInputChange}
-                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.date 
-                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500' 
-                            : 'border-gray-200 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]'
-                        }`}
-                      />
-                      {errors.date && (
-                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.date}</p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center bg-gray-50/80 border border-gray-200 rounded-xl p-1 relative">
-                      <span className="text-xl mx-3">👥</span>
-                      <button 
-                        type="button"
-                        className="w-10 h-10 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border border-[#3B82F6]/20 rounded-full text-[#3B82F6] text-xl hover:bg-gradient-to-r hover:from-[#3B82F6]/20 hover:to-[#8B5CF6]/20 transition-all duration-300 hover:scale-105"
-                        onClick={() => handlePersonsChange('decrement')}
-                      >−</button>
-                      <span className="flex-1 text-center text-xl font-semibold text-[#1F2937]">{formData.persons}</span>
-                      <button 
-                        type="button"
-                        className="w-10 h-10 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border border-[#3B82F6]/20 rounded-full text-[#3B82F6] text-xl hover:bg-gradient-to-r hover:from-[#3B82F6]/20 hover:to-[#8B5CF6]/20 transition-all duration-300 hover:scale-105"
-                        onClick={() => handlePersonsChange('increment')}
-                      >+</button>
-                    </div>
-                  </div>
-
-                  {/* Full Width - Document Upload Section */}
-                  <div className="md:col-span-2">
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-[#4B5563] mb-2">
-                        📎 Attach Documents (Images or PDFs)
-                      </label>
-                      
-                      <div
-                        className={`relative border-2 border-dashed rounded-xl p-8 transition-all duration-300 ${
-                          dragActive 
-                            ? 'border-[#8B5CF6] bg-[rgba(139,92,246,0.05)]' 
-                            : 'border-gray-200 hover:border-[#8B5CF6]/50'
-                        }`}
-                        onDragEnter={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDragOver={handleDrag}
-                        onDrop={handleDrop}
-                      >
-                        <input
-                          type="file"
-                          id="file-upload"
-                          multiple
-                          accept="image/*,.pdf"
-                          onChange={handleFileInput}
-                          className="hidden"
-                        />
-                        
-                        <div className="text-center">
-                          <div className="text-5xl mb-3 animate-float-subtle">📄</div>
-                          <p className="text-[#6B7280] mb-2">
-                            Drag & drop files here or{' '}
-                            <label 
-                              htmlFor="file-upload" 
-                              className="text-[#8B5CF6] cursor-pointer hover:text-[#3B82F6] transition-colors font-medium"
-                            >
-                              browse
-                            </label>
-                          </p>
-                          <p className="text-xs text-[#9CA3AF]">
-                            Supported formats: JPEG, PNG, GIF, PDF (Max 10MB each)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Uploaded Files List */}
-                    {formData.documents.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <h4 className="text-sm font-medium text-[#4B5563] mb-3">
-                          Uploaded Documents ({formData.documents.length})
-                        </h4>
-                        {formData.documents.map((doc) => (
-                          <div 
-                            key={doc.id}
-                            className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-xl p-3 group hover:border-[#8B5CF6]/50 hover:shadow-md transition-all duration-300"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-2xl">
-                                {doc.type.startsWith('image/') ? '🖼️' : '📄'}
-                              </span>
-                              <div>
-                                <p className="text-sm text-[#1F2937] font-medium truncate max-w-[200px]">
-                                  {doc.name}
-                                </p>
-                                <p className="text-xs text-[#9CA3AF]">
-                                  {formatFileSize(doc.size)}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeDocument(doc.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-500 p-2 hover:scale-110 transition-all"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Full Width - Textarea */}
-                  <div className="md:col-span-2">
-                    <div className="relative">
-                      <span className="absolute left-4 top-5 text-xl z-10">💬</span>
-                      <textarea
-                        name="specialRequests"
-                        placeholder="Any special requests or notes..."
-                        value={formData.specialRequests}
-                        onChange={handleInputChange}
-                        className="w-full py-4 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all placeholder:text-[#9CA3AF] resize-y min-h-[100px]"
-                        rows="4"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white text-lg font-semibold shadow-lg shadow-[#3B82F6]/30 hover:shadow-xl hover:shadow-[#3B82F6]/40 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <span>Confirm Booking</span>
-                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </>
-                )}
-              </button>
             </div>
 
-            {/* Right Side - Summary */}
-            <div className="lg:sticky lg:top-5 h-fit animate-slideIn" style={{ animationDelay: '300ms' }}>
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.2)] transition-all duration-500">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-6">
-                  Booking Summary
-                </h3>
+            {/* Service Details with Document Upload */}
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-2">
+                  Service Details
+                </h2>
+                <div className="w-16 h-1 bg-gradient-to-r from-[#8B5CF6] to-transparent rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]"></div>
+              </div>
 
-                {/* Service Preview */}
-                <div className="bg-gradient-to-br from-[#3B82F6]/5 to-[#8B5CF6]/5 rounded-2xl p-5 mb-6 border border-[#3B82F6]/10">
-                  <h4 className="text-lg font-bold text-[#1F2937] mb-1">{formData.service}</h4>
-                  <p className="text-sm text-[#6B7280] mb-3">Complete service solution</p>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[#F59E0B] text-sm tracking-wider">⭐⭐⭐⭐⭐</span>
-                    <span className="text-sm text-[#6B7280]">4.9 (127 reviews)</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📅</span>
+                    <select
+                      name="service"
+                      value={formData.service}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-10 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">Select a service</option>
+                      <option value="premium">Premium Package</option>
+                      <option value="standard">Standard Package</option>
+                      <option value="basic">Basic Package</option>
+                    </select>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B5CF6] text-xs pointer-events-none">▼</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] rounded-full flex items-center justify-center text-white font-bold">
-                      JP
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#1F2937]">John Professional</p>
-                      <p className="text-xs text-[#9CA3AF]">Expert Service Provider</p>
-                    </div>
+
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">⏰</span>
+                    <select
+                      name="timeSlot"
+                      value={formData.timeSlot}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-10 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">Select time slot</option>
+                      <option value="9am">9:00 AM - 11:00 AM</option>
+                      <option value="11am">11:00 AM - 1:00 PM</option>
+                      <option value="2pm">2:00 PM - 4:00 PM</option>
+                      <option value="4pm">4:00 PM - 6:00 PM</option>
+                    </select>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B5CF6] text-xs pointer-events-none">▼</span>
                   </div>
                 </div>
 
-                {/* Price Breakdown */}
-                <div className="mb-6">
-                  <div className="flex justify-between text-[#6B7280] mb-3">
-                    <span>Service Fee</span>
-                    <span className="font-medium">LKR 299.00</span>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">📆</span>
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      className="w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all"
+                    />
                   </div>
-                  <div className="flex justify-between text-[#6B7280] mb-3">
-                    <span>Platform Fee</span>
-                    <span className="font-medium">LKR 19.00</span>
-                  </div>
-                  <div className="flex justify-between text-[#6B7280] mb-3">
-                    <span>Tax (5%)</span>
-                    <span className="font-medium">LKR 15.90</span>
-                  </div>
-                  
-                  <div className="h-px bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent my-4"></div>
-                  
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-lg font-semibold text-[#1F2937]">Total Amount</span>
-                    <span className="text-3xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">LKR 333.90</span>
+
+                  <div className="flex items-center bg-gray-50/80 border border-gray-200 rounded-xl p-1 relative">
+                    <span className="text-xl mx-3">👥</span>
+                    <button 
+                      className="w-10 h-10 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border border-[#3B82F6]/20 rounded-full text-[#3B82F6] text-xl hover:bg-gradient-to-r hover:from-[#3B82F6]/20 hover:to-[#8B5CF6]/20 transition-all duration-300 hover:scale-105"
+                      onClick={() => handlePersonsChange('decrement')}
+                    >−</button>
+                    <span className="flex-1 text-center text-xl font-semibold text-[#1F2937]">{formData.persons}</span>
+                    <button 
+                      className="w-10 h-10 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border border-[#3B82F6]/20 rounded-full text-[#3B82F6] text-xl hover:bg-gradient-to-r hover:from-[#3B82F6]/20 hover:to-[#8B5CF6]/20 transition-all duration-300 hover:scale-105"
+                      onClick={() => handlePersonsChange('increment')}
+                    >+</button>
                   </div>
                 </div>
 
-                {/* Time Slot Display */}
-                <div className="bg-gradient-to-r from-[#8B5CF6]/10 to-[#EC4899]/10 border border-[#8B5CF6]/20 rounded-xl p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#8B5CF6] text-xl">⏰</span>
-                      <span className="text-[#8B5CF6] font-medium">Selected Time Slot</span>
+                {/* Full Width - Document Upload Section */}
+                <div className="md:col-span-2">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-[#4B5563] mb-2">
+                      📎 Attach Documents (Images or PDFs)
+                    </label>
+                    
+                    <div
+                      className={`relative border-2 border-dashed rounded-xl p-8 transition-all duration-300 ${
+                        dragActive 
+                          ? 'border-[#8B5CF6] bg-[rgba(139,92,246,0.05)]' 
+                          : 'border-gray-200 hover:border-[#8B5CF6]/50'
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                    >
+                      <input
+                        type="file"
+                        id="file-upload"
+                        multiple
+                        accept="image/*,.pdf"
+                        onChange={handleFileInput}
+                        className="hidden"
+                      />
+                      
+                      <div className="text-center">
+                        <div className="text-5xl mb-3 animate-float-subtle">📄</div>
+                        <p className="text-[#6B7280] mb-2">
+                          Drag & drop files here or{' '}
+                          <label 
+                            htmlFor="file-upload" 
+                            className="text-[#8B5CF6] cursor-pointer hover:text-[#3B82F6] transition-colors font-medium"
+                          >
+                            browse
+                          </label>
+                        </p>
+                        <p className="text-xs text-[#9CA3AF]">
+                          Supported formats: JPEG, PNG, GIF, PDF (Max 10MB each)
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-[#1F2937] font-semibold">{formData.timeSlot}</span>
                   </div>
-                </div>
 
-                {/* Timeline */}
-                <div className="bg-gradient-to-r from-[#10B981]/10 to-[#059669]/10 border border-[#10B981]/20 rounded-xl p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#10B981] text-xl">⏱️</span>
-                      <span className="text-[#10B981] font-medium">Estimated Timeline</span>
+                  {/* Uploaded Files List */}
+                  {formData.documents.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-sm font-medium text-[#4B5563] mb-3">
+                        Uploaded Documents ({formData.documents.length})
+                      </h4>
+                      {formData.documents.map((doc) => (
+                        <div 
+                          key={doc.id}
+                          className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-xl p-3 group hover:border-[#8B5CF6]/50 hover:shadow-md transition-all duration-300"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">
+                              {doc.type.startsWith('image/') ? '🖼️' : '📄'}
+                            </span>
+                            <div>
+                              <p className="text-sm text-[#1F2937] font-medium truncate max-w-[200px]">
+                                {doc.name}
+                              </p>
+                              <p className="text-xs text-[#9CA3AF]">
+                                {formatFileSize(doc.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeDocument(doc.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-500 p-2 hover:scale-110 transition-all"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-[#1F2937] font-semibold">2-3 hours</span>
-                  </div>
-                  <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#10B981] to-[#059669] h-1.5 rounded-full animate-pulse-subtle" style={{ width: '75%' }}></div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Security */}
-                <div className="text-center space-y-4">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#10B981]/10 border border-[#10B981]/20 rounded-full">
-                    <span className="text-[#10B981]">🔒</span>
-                    <span className="text-sm text-[#10B981] font-medium">Secure Payment Protected</span>
+                {/* Full Width - Textarea */}
+                <div className="md:col-span-2">
+                  <div className="relative">
+                    <span className="absolute left-4 top-5 text-xl z-10">💬</span>
+                    <textarea
+                      name="specialRequests"
+                      placeholder="Any special requests or notes..."
+                      value={formData.specialRequests}
+                      onChange={handleInputChange}
+                      className="w-full py-4 pl-12 pr-4 bg-gray-50/80 border border-gray-200 rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6] transition-all placeholder:text-[#9CA3AF] resize-y min-h-[100px]"
+                      rows="4"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" className="w-full py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white text-lg font-semibold shadow-lg shadow-[#3B82F6]/30 hover:shadow-xl hover:shadow-[#3B82F6]/40 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 group">
+              <span>{isSubmitting ? 'Booking...' : 'Confirm Booking'}</span>
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Right Side - Summary */}
+          <div className="lg:sticky lg:top-5 h-fit animate-slideIn" style={{ animationDelay: '300ms' }}>
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.2)] transition-all duration-500">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-6">
+                Booking Summary
+              </h3>
+
+              {/* Service Preview */}
+              <div className="bg-gradient-to-br from-[#3B82F6]/5 to-[#8B5CF6]/5 rounded-2xl p-5 mb-6 border border-[#3B82F6]/10">
+                <h4 className="text-lg font-bold text-[#1F2937] mb-1">Premium Package</h4>
+                <p className="text-sm text-[#6B7280] mb-3">Complete service solution</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[#F59E0B] text-sm tracking-wider">⭐⭐⭐⭐⭐</span>
+                  <span className="text-sm text-[#6B7280]">4.9 (127 reviews)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] rounded-full flex items-center justify-center text-white font-bold">
+                    JP
                   </div>
                   <div>
-                    <a href="#" className="text-[#3B82F6] text-sm hover:text-[#8B5CF6] transition-colors inline-flex items-center gap-1 group">
-                      Terms and Conditions
-                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </a>
+                    <p className="text-sm font-medium text-[#1F2937]">John Professional</p>
+                    <p className="text-xs text-[#9CA3AF]">Expert Service Provider</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="mb-6">
+                <div className="flex justify-between text-[#6B7280] mb-3">
+                  <span>Service Fee</span>
+                  <span className="font-medium">LKR 299.00</span>
+                </div>
+                <div className="flex justify-between text-[#6B7280] mb-3">
+                  <span>Platform Fee</span>
+                  <span className="font-medium">LKR 19.00</span>
+                </div>
+                <div className="flex justify-between text-[#6B7280] mb-3">
+                  <span>Tax (5%)</span>
+                  <span className="font-medium">LKR 15.90</span>
+                </div>
+                
+                <div className="h-px bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent my-4"></div>
+                
+                <div className="flex justify-between items-baseline">
+                  <span className="text-lg font-semibold text-[#1F2937]">Total Amount</span>
+                  <span className="text-3xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">LKR 333.90</span>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="bg-gradient-to-r from-[#10B981]/10 to-[#059669]/10 border border-[#10B981]/20 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#10B981] text-xl">⏱️</span>
+                    <span className="text-[#10B981] font-medium">Estimated Timeline</span>
+                  </div>
+                  <span className="text-[#1F2937] font-semibold">2-3 hours</span>
+                </div>
+                <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#10B981] to-[#059669] h-1.5 rounded-full animate-pulse-subtle" style={{ width: '75%' }}></div>
+                </div>
+              </div>
+
+              {/* Security */}
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#10B981]/10 border border-[#10B981]/20 rounded-full">
+                  <span className="text-[#10B981]">🔒</span>
+                  <span className="text-sm text-[#10B981] font-medium">Secure Payment Protected</span>
+                </div>
+                <div>
+                  <a href="#" className="text-[#3B82F6] text-sm hover:text-[#8B5CF6] transition-colors inline-flex items-center gap-1 group">
+                    Terms and Conditions
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
           </div>
+        </div>
         </form>
       </div>
     </div>

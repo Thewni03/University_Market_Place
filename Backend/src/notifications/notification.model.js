@@ -12,4 +12,4 @@ const notificationSchema = new mongoose.Schema({
   metadata: { type: Map, of: String, default: {} },
 }, { timestamps: true });
 
-export default mongoose.model('Notification', notificationSchema);  // ← FIXED: export default instead of module.exports
+export default mongoose.models.Notification || mongoose.model('Notification', notificationSchema);  // ← FIXED: prevent overwrite

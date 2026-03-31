@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import Navbar from "./components/navber";
+import Navbar from "./components/Navbar";
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
@@ -94,7 +94,7 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
-    </NotificationProvider>
+    </NotificationProvider>  
   );
 }
 
