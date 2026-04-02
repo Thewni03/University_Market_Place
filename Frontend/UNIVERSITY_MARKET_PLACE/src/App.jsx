@@ -13,8 +13,9 @@ import RequestDetail from "./pages/RequestDetail/RequestDetail";
 import Chat from "./pages/Chat/chat.jsx";
 
 // ── Components ─────────────────────────────────────────────────────────────
-import BookingForm from "./components/BookingForm/BookingForm";
-import BookingSuccess from "./components/BookingForm/BookingSuccess";
+import BookingForm from "./components/Booking/BookingForm.jsx";
+import BookingSuccess from "./components/Booking/BookingSuccess.jsx";
+import BookingHistory from "./components/Booking/BookingHistory.jsx";
 import Payment from "./components/payment/payment";
 import Reviewandrating from "./components/Reviewandrating/Reviewandrating";
 
@@ -65,7 +66,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/dashboard" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
-
+        
         {/* Services */}
         <Route path="/create-service" element={<CreateService />} />
         <Route path="/edit-service/:serviceId" element={<EditService />} />
@@ -78,6 +79,7 @@ function App() {
         {/* Booking & Payment */}
         <Route path="/booking-form" element={<BookingForm />} />
         <Route path="/booking-success" element={<BookingSuccess />} />
+        <Route path="/booking-history" element={<BookingHistory />} />
         <Route path="/payment" element={<Payment />} />
 
         {/* Reviews & Ratings */}
@@ -98,4 +100,4 @@ function App() {
   );
 }
 
-export default App;
+export default App;   

@@ -8,7 +8,8 @@ import {
   deleteService,
   getServiceMeta,
   addServiceReview,
-  getOwnerViewsAnalytics
+  getOwnerViewsAnalytics,
+  calculatePayment
 } from '../controllers/serviceController.js';
 import upload from "../uploads/Uploads.js";
 
@@ -18,6 +19,7 @@ const router = express.Router();
 router.get('/', getAllServices);
 router.get('/ranked', getRankedServices);
 router.get('/meta', getServiceMeta);
+router.post('/calculate-payment', calculatePayment);
 router.get('/analytics/views', getOwnerViewsAnalytics);
 router.post('/', upload.array("workSampleFiles", 10), createService);
 router.get('/:id', getServiceById);

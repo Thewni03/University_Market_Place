@@ -14,6 +14,7 @@ import predictionRoutes from "./routes/predictionRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/message.js";
 import notificationRoutes from "./notifications/notification.routes.js";  // ← ADDED: notification routes
+import paymentRoutes from "./routes/paymentRoutes.js";
 import { setIo } from "./config/io.js";
 import { registerSocketHandlers } from "./Utils/socket.js";
 import "./config/db.js";
@@ -65,6 +66,7 @@ app.use("/users", registerRoutes);
 app.use("/Users", registerRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);  // ← ADDED: mount notification routes
+app.use("/api/payments", paymentRoutes);
 
 app.get("/", (_req, res) => {
   res.send("Marketplace Backend API is running");
