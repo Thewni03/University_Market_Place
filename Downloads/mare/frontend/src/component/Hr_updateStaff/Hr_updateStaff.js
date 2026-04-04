@@ -1,0 +1,144 @@
+import React,{ useEffect ,useState} from "react";
+import { useParams, useNavigate } from "react-router";
+import axios from "axios";
+
+function Hr_updateStaff() {
+
+    const {id} = useParams();
+    const [formData, setformData] = useState({
+
+        staffname:'',
+        department:'',
+      role:'',
+           date:'',
+        checkIn:'',
+       checkOut:'',
+            status:''
+
+    })
+
+    const [loading , setLoading] =useState(true);
+
+    const navigate = useNavigate();
+
+  useEffect(() => {
+    axios
+      .get(`http://localhost:8080/hr/${id}`)
+      .then((res) => {
+        setformData(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error loading attendaace:", err);
+        setLoading(false);
+      });
+  }, [id]);
+
+
+  if (loading) return <p> load wenawaaaaaa...</p>;
+
+
+  const onInputChange = (e) => {
+    setformData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      await axios.put(`http://localhost:8080/hr/${id}`, formData, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      alert("Appointment status updated!");
+      navigate("/attendance");
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("Update failed");
+    }
+  };
+    
+  return (
+    <div>
+
+
+<nav className="navbarHr">
+      <ul className="HrNav2">
+      <li><a href="/hrHome" className="nav-linkHr">HRHome</a></li>
+      <li>  <a href="/HrManageUsers" className="nav-linkHr">User Management</a></li>
+      <li><a href="/attendance" className="nav-linkHr">attendence</a></li>
+      <li><a href="/notes" className="nav-linkHr">Notes</a></li>
+      <li><a href="/calculator" className="nav-linkHr">calculator</a></li>
+      <li><a href="/salarySheet" className="nav-linkHr">Salary Sheet</a></li>
+      <li><a href="/displaySalesRecordAsHr" className="nav-linkHr">Sales Records</a></li>
+      <li><a href="/staffprofile" className="nav-linkHr">Profile</a></li>
+      <li><a href="/userlogin" className="nav-linkHr">Logout</a></li>
+      </ul>
+      </nav>
+
+<h1> update staff Attendance </h1>
+<form onSubmit={(e) => onSubmit(e)} > 
+<label> staffname</label><br/>
+<input type ='text' id='staffname' name='staffname' value={formData.staffname} onChange={onInputChange} />
+<br/><br/>
+
+<label> Department</label><br/>
+<select name="department"  id='department' value={formData.department} onChange={onInputChange} >
+
+<option value="" disabled> select Department</option>
+<option value="admin">adminTeam</option>
+<option value="sales">Sales </option>
+<option value="finance">Finance & Accounting</option>
+<option value="customerService">Customer Service</option>
+<option value="hr">Peoples and culture(HR)</option>
+<option value="Maintenance">Spare Parts & Maintenance</option>
+</select>
+<br/><br/>
+<label>Role</label><br/>
+<select name="role" id='role'  value={formData.role} onChange={onInputChange} >
+
+<option value="" disabled> select Role</option>
+<option value="adminTeam">adminTeam</option>
+<option value="salesman">Car Consultant </option>
+<option value="testDriveBuddy">Test drive Passenger</option>
+<option value="financeBuddy">Finance assist</option>
+<option value="customercare">Customer care</option>
+<option value="hrteam">Peoples and culture(HR)</option>
+<option value="carlogists">carlogists</option>
+<option value="newbie">Intern</option>
+</select>
+
+<br/><br/>
+<label>  Date</label><br/>
+<input type ='date' id='date' name='date' value={formData.date} onChange={onInputChange} />
+<br/><br/>
+<label> checkIn</label><br/>
+<input type ='time' id='checkIn' name='checkIn' value={formData.checkIn} onChange={onInputChange} />
+<br/><br/>
+<label> checkOut</label><br/>
+<input type ='time' id='checkOut' name='checkOut' value={formData.checkOut}
+   onChange={onInputChange} />
+<br/><br/>
+<label> status</label><br/>
+<select name="status" id='status'  value={formData.status} onChange={onInputChange} >
+
+<option value="" disabled> select status</option>
+<option value="Present">Present</option>
+<option value="Absent">Absent </option>
+<option value="Late">Late</option>
+<option value="HalfDay">Half-Day</option>
+<option value="OnLeave">On Leave</option>
+<option value="wfh">Work From Home</option>
+</select>
+<br/><br/>
+
+
+<button type='submit' className='fom_btn'>Submit</button>
+      </form>
+
+
+    </div>
+  )
+}
+
+export default Hr_updateStaff;

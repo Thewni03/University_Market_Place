@@ -1,0 +1,29 @@
+
+.navbar {
+    background-color: #ffffff;       /* Nav background same as page */
+    padding: 15px 30px;            /* Spacing inside nav */
+    border-bottom: 4px solid #FFD700; /* Gold underline */
+}
+
+.nav-links {
+    list-style: none;              /* Remove bullets */
+    display: flex;                 /* Horizontal layout */
+    gap: 25px;                     /* Space between links */
+    padding: 0;                    /* Remove default padding */
+    margin: 0;                     /* Remove default margin */
+}
+
+.nav-links li a {
+    text-decoration: none;         /* Remove underline */
+    color: rgb(11, 11, 11);                  /* White text */
+    font-weight: bold;             /* Bold text */
+    font-size: 16px;               /* Text size */
+    padding: 5px 10px;             /* Clickable area */
+    border-radius: 5px;            /* Rounded edges */
+    transition: 0.2s;              /* Smooth hover */
+}
+
+.nav-links li a:hover {
+    background-color: #FFD700;     /* Gold hover */
+    color: black;                  /* Black text on hover */
+}
