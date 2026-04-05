@@ -214,17 +214,30 @@ const BookingForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Here you would make an API call to submit the booking
-      // const response = await fetch('/api/bookings', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
+      // Create an array to hold uploaded file metadata
+      let uploadedDocuments = [];
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // If there are files to upload, send them to the backend first
+      if (formData.documents && formData.documents.length > 0) {
+        const uploadData = new FormData();
+        formData.documents.forEach((doc) => {
+          uploadData.append('documents', doc.file); // Assuming doc.file has the actual File instance!
+        });
 
-      // After successful booking, navigate to payment page
+        const uploadRes = await fetch('http://localhost:5001/api/payments/upload', {
+          method: 'POST',
+          body: uploadData,
+        });
+
+        const uploadResult = await uploadRes.json();
+        if (uploadResult.success) {
+          uploadedDocuments = uploadResult.files;
+        } else {
+          throw new Error('Failed to upload documents');
+        }
+      }
+
+      // After successful booking & upload, navigate to payment page
       navigate('/payment', {
         state: {
           bookingId: 'UNI-' + Math.floor(Math.random() * 1000000),
@@ -234,7 +247,10 @@ const BookingForm = () => {
           customerEmail: formData.email,
           serviceFee: paymentSummary.serviceFee.toFixed(2),
           platformFee: paymentSummary.platformFee.toFixed(2),
-          tax: paymentSummary.tax.toFixed(2)
+          tax: paymentSummary.tax.toFixed(2),
+          documents: uploadedDocuments, // pass the documents info to Payment component
+          bookingDate: formData.date,
+          bookingTime: formData.timeSlot
         }
       });
     } catch (error) {
