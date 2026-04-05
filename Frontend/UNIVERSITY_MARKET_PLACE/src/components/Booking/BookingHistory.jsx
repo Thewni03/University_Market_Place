@@ -34,12 +34,14 @@ const BookingHistory = () => {
             id: payment.bookingId,
             dbId: payment._id, 
             customerName: payment.customerName,
-            date: new Date(payment.createdAt).toISOString().split('T')[0],
-            time: new Date(payment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            createdAt: payment.createdAt,
+            date: payment.bookingDate || new Date(payment.createdAt).toISOString().split('T')[0],
+            time: payment.bookingTime || new Date(payment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             type: payment.serviceName,
+            cancellationReason: payment.cancellationReason,
             amount: payment.amount,
             status: payment.status.toLowerCase(), // 'completed', 'pending', etc.
-            attachments: [], 
+            attachments: payment.attachments || [], 
             cancellationDeadline: new Date(new Date(payment.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             timeSlots: ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM']
           }));
@@ -69,23 +71,19 @@ const BookingHistory = () => {
 
   // File handling functions
   const getFileIcon = (type) => {
-    switch(type) {
-      case 'pdf': return '📄';
-      case 'doc':
-      case 'docx': return '📝';
-      case 'fig': return '🎨';
-      default: return '📎';
-    }
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('image')) return '🖼️';
+    if (type.includes('fig')) return '🎨';
+    return '📎';
   };
 
   const getFileColor = (type) => {
-    switch(type) {
-      case 'pdf': return 'from-red-500 to-red-600';
-      case 'doc':
-      case 'docx': return 'from-blue-500 to-blue-600';
-      case 'fig': return 'from-purple-500 to-pink-500';
-      default: return 'from-gray-500 to-gray-600';
-    }
+    if (type.includes('pdf')) return 'from-red-500 to-red-600';
+    if (type.includes('word') || type.includes('document')) return 'from-blue-500 to-blue-600';
+    if (type.includes('image')) return 'from-emerald-500 to-teal-500';
+    if (type.includes('fig')) return 'from-purple-500 to-pink-500';
+    return 'from-gray-500 to-gray-600';
   };
 
   const handleAttachmentClick = (file) => {
@@ -94,17 +92,8 @@ const BookingHistory = () => {
   };
 
   const handleDownloadFile = () => {
-    if (selectedFile) {
-      const blob = new Blob([selectedFile.content], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = selectedFile.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      alert(`Downloading ${selectedFile.name}...`);
+    if (selectedFile && selectedFile.url) {
+      window.open(`http://localhost:5001${selectedFile.url}`, '_blank');
     }
   };
 
@@ -125,12 +114,12 @@ const BookingHistory = () => {
         await fetch(`http://localhost:5001/api/payments/${selectedBooking.dbId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Refunded' })
+          body: JSON.stringify({ status: 'Refunded', cancellationReason })
         });
       }
       setBookingHistory(bookingHistory.map(booking => 
         booking.id === selectedBooking.id 
-          ? { ...booking, status: 'refunded' }
+          ? { ...booking, status: 'refunded', cancellationReason }
           : booking
       ));
     } catch(err) {
@@ -142,12 +131,22 @@ const BookingHistory = () => {
   };
 
   const confirmReschedule = async () => {
-    // In a full implementation, you could send the newDate/newTime logic to another backend endpoint here
-    setBookingHistory(bookingHistory.map(booking => 
-      booking.id === selectedBooking.id 
-        ? { ...booking, date: newDate, time: newTime }
-        : booking
-    ));
+    try {
+      if (selectedBooking.dbId) {
+        await fetch(`http://localhost:5001/api/payments/${selectedBooking.dbId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingDate: newDate, bookingTime: newTime })
+        });
+      }
+      setBookingHistory(bookingHistory.map(booking => 
+        booking.id === selectedBooking.id 
+          ? { ...booking, date: newDate, time: newTime }
+          : booking
+      ));
+    } catch(err) {
+      console.error(err);
+    }
     setShowRescheduleModal(false);
     setSelectedBooking(null);
     setNewDate('');
@@ -210,7 +209,8 @@ const BookingHistory = () => {
             <tr className="border-b border-white/10">
               <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booking ID</th>
               <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Customer Name</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Date & Time</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booked On</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Scheduled For</th>
               <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booking Type</th>
               <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Amount</th>
               <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Status</th>
@@ -221,7 +221,7 @@ const BookingHistory = () => {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="8" className="py-8 text-center text-slate-400">
+                <td colSpan="9" className="py-8 text-center text-slate-400">
                   <div className="animate-pulse">Loading booking history...</div>
                 </td>
               </tr>
@@ -241,6 +241,12 @@ const BookingHistory = () => {
                   </td>
                   <td className="py-4 px-2">
                     <div className="text-sm">
+                      <div>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</div>
+                      <div className="text-slate-400 text-xs">{booking.createdAt ? new Date(booking.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-2">
+                    <div className="text-sm">
                       <div>{new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                       <div className="text-slate-400 text-xs">{booking.time}</div>
                     </div>
@@ -252,9 +258,16 @@ const BookingHistory = () => {
                     <span className="text-sm font-medium">LKR {booking.amount.toLocaleString()}</span>
                   </td>
                   <td className="py-4 px-2">
-                    <span className={`text-xs px-2 py-1 rounded-full border ${getStatusBadge(booking.status)}`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-xs px-2 py-1 rounded-full border w-fit ${getStatusBadge(booking.status)}`}>
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+                      {booking.cancellationReason && (
+                        <span className="text-[10px] text-slate-400 italic max-w-[120px] truncate" title={booking.cancellationReason}>
+                          Reason: {booking.cancellationReason}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-2">
                     {booking.attachments.length > 0 ? (
@@ -325,7 +338,7 @@ const BookingHistory = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="8" className="py-8 text-center text-slate-400">
+                <td colSpan="9" className="py-8 text-center text-slate-400">
                   No bookings found matching your search criteria.
                 </td>
               </tr>
@@ -383,9 +396,6 @@ const BookingHistory = () => {
                   </p>
                   <p className="text-slate-400">
                     <span className="text-slate-500">Type:</span> {selectedFile.type.toUpperCase()}
-                  </p>
-                  <p className="text-slate-400">
-                    <span className="text-slate-500">Description:</span> {selectedFile.content}
                   </p>
                 </div>
               </div>
