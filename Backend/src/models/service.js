@@ -105,11 +105,10 @@ const ServiceSchema = new Schema(
 ServiceSchema.index({ title: "text", description: "text" });
 
 // Auto-set publishedAt
-ServiceSchema.pre("save", function (next) {
+ServiceSchema.pre("save", function () {
   if (this.isModified("isPublished")) {
     this.publishedAt = this.isPublished ? new Date() : null;
   }
-  next();
 });
 
 // TTL Index: automatically delete service 30 days after creation

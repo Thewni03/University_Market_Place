@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
+import CampusFeed from "./pages/CampusFeed/CampusFeed";
 import Profile from "./pages/profile/profile";
 import CreateService from "./pages/CreateService/createservice";
 import EditService from "./pages/services/editservice";
@@ -63,6 +64,7 @@ function App() {
         {/* Core */}
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/feed" element={<CampusFeed />} />
         <Route path="/dashboard" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
 

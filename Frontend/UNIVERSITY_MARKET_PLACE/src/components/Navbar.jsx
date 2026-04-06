@@ -11,6 +11,7 @@ import { useNotifications } from "../notifications/context/NotificationContext";
 import NotificationDropdown from "../notifications/components/NotificationDropdown";
 
 const navLinks = [ 
+  { label: "Campus Feed", path: "/feed" },
   { label: "Talk Space", path: "/dashboard" },
   { label: "Offer a Service", path: "/create-service" }, // ← KEPT: label from file 1
   { label: "Post Request", path: "/post-request" },

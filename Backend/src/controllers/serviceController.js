@@ -670,24 +670,22 @@ export const getServiceById = async (req, res) => {
       } else {
         doc.viewHistory.push({ date: todayKey, count: 1 });
       }
+      doc.save().catch((e) => console.error("View tracking error:", e));
     }
-    await doc.save();
 
     const data = doc.toObject();
-    const ownerProfile = await Profile.findOne({ user_id: ownerIdValue })
-      .select("profile_picture")
-      .lean();
 
     const reviewerIds = (data.reviews || [])
       .map((r) => r?.reviewerId)
       .filter(Boolean)
       .map((id) => String(id));
-    const reviewerProfiles =
+
+    const [ownerProfile, reviewerProfiles] = await Promise.all([
+      Profile.findOne({ user_id: ownerIdValue }).select("profile_picture").lean(),
       reviewerIds.length > 0
-        ? await Profile.find({ user_id: { $in: reviewerIds } })
-            .select("user_id profile_picture")
-            .lean()
-        : [];
+        ? Profile.find({ user_id: { $in: reviewerIds } }).select("user_id profile_picture").lean()
+        : Promise.resolve([])
+    ]);
     const reviewerPictureMap = new Map(
       reviewerProfiles.map((p) => [String(p.user_id), p.profile_picture || null])
     );
@@ -702,7 +700,8 @@ export const getServiceById = async (req, res) => {
 
     return res.json({ success: true, data });
   } catch (error) {
-    return res.status(400).json({ success: false, error: error.message });
+    console.error("DEBUG ERROR IN getServiceById:", error);
+    return res.status(400).json({ success: false, error: error.message, stack: error.stack });
   }
 };
 
