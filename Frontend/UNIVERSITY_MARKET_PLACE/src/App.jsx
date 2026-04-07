@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/navber";
+import AccessibilityWidget from './components/AccessibilityWidget';
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
@@ -39,6 +40,7 @@ function App() {
   const authUser = useAuthStore((state) => state.authUser);
   const connectSocket = useAuthStore((state) => state.connectSocket);
   const disconnectSocket = useAuthStore((state) => state.disconnectSocket);
+
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const hideNavbar =
     normalizedPath === "/" ||
@@ -52,7 +54,6 @@ function App() {
       connectSocket();
       return;
     }
-
     disconnectSocket();
   }, [authUser?._id, connectSocket, disconnectSocket]);
 
@@ -66,7 +67,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/dashboard" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
-        
+
         {/* Services */}
         <Route path="/create-service" element={<CreateService />} />
         <Route path="/edit-service/:serviceId" element={<EditService />} />
@@ -96,8 +97,11 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
+
+      {/* ♿ Accessibility widget — fixed bottom-left, visible on every page */}
+      <AccessibilityWidget />
     </NotificationProvider>
   );
 }
 
-export default App;   
+export default App;
