@@ -56,7 +56,10 @@ const Payment = () => {
           tax: Number(tax.replace(/,/g, '')),
           paymentMethod: bookingDetails.paymentMethod,
           cardLast4: bookingDetails.cardLast4,
-          status: 'Completed'
+          status: 'Completed',
+          attachments: state.documents || [],
+          bookingDate: state.bookingDate,
+          bookingTime: state.bookingTime
         })
       });
       

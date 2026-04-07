@@ -53,6 +53,19 @@ const paymentSchema = new mongoose.Schema(
       enum: ["Pending", "Completed", "Failed", "Refunded"],
       default: "Pending",
     },
+    attachments: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: []
+    },
+    bookingDate: {
+      type: String,
+    },
+    bookingTime: {
+      type: String,
+    },
+    cancellationReason: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
