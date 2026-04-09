@@ -29,4 +29,7 @@ const FeedPostSchema = new mongoose.Schema(
 // Optimize for fetching recent posts
 FeedPostSchema.index({ createdAt: -1 });
 
+// Automatically delete posts after 30 days (2592000 seconds)
+FeedPostSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
+
 export default mongoose.model("FeedPost", FeedPostSchema);

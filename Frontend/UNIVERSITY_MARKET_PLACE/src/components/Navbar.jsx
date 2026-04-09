@@ -12,6 +12,7 @@ import NotificationDropdown from "../notifications/components/NotificationDropdo
 
 const navLinks = [ 
   { label: "Campus Feed", path: "/feed" },
+  { label: "Q&A Forum", path: "/forum" },
   { label: "Talk Space", path: "/dashboard" },
   { label: "Offer a Service", path: "/create-service" }, // ← KEPT: label from file 1
   { label: "Post Request", path: "/post-request" },

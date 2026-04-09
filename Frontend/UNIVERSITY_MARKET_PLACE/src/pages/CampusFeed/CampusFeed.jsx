@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   MessageSquare, Send, Clock, User, Loader2, ThumbsUp, Flag, 
-  AlertTriangle, TrendingUp, Sparkles, ChevronRight, Zap, Target
+  AlertTriangle, TrendingUp, Sparkles, ChevronRight, Zap, Target, Trash2
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -97,14 +97,35 @@ export default function CampusFeed() {
       );
     };
 
+    const handleDeleteSocket = (deletedData) => {
+      setPosts((prev) => prev.filter((p) => p._id !== deletedData.postId));
+    };
+
     socket.on("new-feed-post", handleNewPost);
     socket.on("feed-post-updated", handleUpdatePost);
+    socket.on("feed-post-deleted", handleDeleteSocket);
 
     return () => {
       socket.off("new-feed-post", handleNewPost);
       socket.off("feed-post-updated", handleUpdatePost);
+      socket.off("feed-post-deleted", handleDeleteSocket);
     };
   }, [socket]);
+
+  const deletePost = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE_URL}/api/feed/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      toast.success("Post deleted");
+    } catch (error) {
+      toast.error("Failed to delete post");
+    }
+  };
 
   const handleInteraction = async (postId, type) => {
     if (!authUser) return toast.error("Please log in to interact!");
@@ -231,6 +252,7 @@ export default function CampusFeed() {
 
                   // Anti Fake News visual penalty
                   const isSuspicious = flagCount > 0 && flagCount >= (upvoteCount * 2) && flagCount >= 3;
+                  const isOwner = authUser && (String(authUser._id) === String(post.authorId?._id || post.authorId));
 
                   return (
                     <div 
@@ -261,6 +283,15 @@ export default function CampusFeed() {
                             <div className="flex items-center gap-1 text-xs font-medium text-slate-400 shrink-0">
                               <Clock className="w-3 h-3" />
                               <span>{getRelativeTime(post.createdAt)}</span>
+                              {isOwner && (
+                                <button 
+                                  onClick={() => deletePost(post._id)}
+                                  className="ml-2 text-rose-400 hover:text-rose-600 transition-colors p-1 rounded-full hover:bg-rose-50"
+                                  title="Delete your post"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                           

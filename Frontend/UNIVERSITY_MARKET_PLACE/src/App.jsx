@@ -12,6 +12,8 @@ import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
 import PostRequest from "./pages/PostRequest/PostRequest";
 import RequestDetail from "./pages/RequestDetail/RequestDetail";
 import Chat from "./pages/Chat/chat.jsx";
+import CampusForum from "./pages/CampusForum/CampusForum";
+import ForumThread from "./pages/CampusForum/ForumThread";
 
 // ── Components ─────────────────────────────────────────────────────────────
 import BookingForm from "./components/BookingForm/BookingForm";
@@ -65,6 +67,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
         <Route path="/feed" element={<CampusFeed />} />
+        <Route path="/forum" element={<CampusForum />} />
+        <Route path="/forum/:id" element={<ForumThread />} />
         <Route path="/dashboard" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
 

@@ -190,3 +190,33 @@ export const getTrendingFeedPosts = async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const deleteFeedPost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const post = await FeedPost.findById(id);
+    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+
+    // Explicit Ownership Security Check
+    if (String(post.authorId) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "You can only delete your own posts" });
+    }
+
+    await FeedPost.findByIdAndDelete(id);
+
+    // Blast remote clients so the post disappears visually
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("feed-post-deleted", { postId: id });
+    }
+
+    return res.status(200).json({ success: true, message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
