@@ -46,7 +46,7 @@ const Payment = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bookingDetails.bookingId,
-          userId: authUser?._id || null, // Associates the payment dynamically with the authenticated user
+          userId: authUser?._id || null,
           customerName: bookingDetails.customerName,
           customerEmail: bookingDetails.customerEmail,
           serviceName: bookingDetails.serviceName,
@@ -66,7 +66,6 @@ const Payment = () => {
       const result = await response.json();
       
       if (result.success) {
-        // Set receipt data from response
         setReceiptData({
           ...bookingDetails,
           ...result.data,
@@ -74,7 +73,6 @@ const Payment = () => {
           time: new Date(result.data.createdAt || Date.now()).toLocaleTimeString(),
         });
         
-        // Show success modal
         setIsProcessing(false);
         setShowSuccessModal(true);
       } else {
@@ -89,7 +87,7 @@ const Payment = () => {
   };
 
   const downloadReceipt = () => {
-    // Create receipt HTML content
+    // Create receipt HTML content with cream background and no purple
     const receiptHTML = `
       <!DOCTYPE html>
       <html lang="en">
@@ -102,7 +100,7 @@ const Payment = () => {
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f0e1;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -111,13 +109,14 @@ const Payment = () => {
           .receipt-container {
             max-width: 600px;
             margin: 0 auto;
-            background: white;
+            background: #fffef7;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
             overflow: hidden;
+            border: 1px solid #e8e0c8;
           }
           .receipt-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2c5f8a;
             color: white;
             padding: 30px;
             text-align: center;
@@ -135,13 +134,15 @@ const Payment = () => {
           }
           .receipt-section {
             margin-bottom: 20px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e8e0c8;
             padding-bottom: 15px;
           }
           .receipt-section h3 {
-            color: #374151;
+            color: #2c5f8a;
             margin: 0 0 15px 0;
             font-size: 18px;
+            border-left: 4px solid #2c5f8a;
+            padding-left: 12px;
           }
           .receipt-row {
             display: flex;
@@ -151,27 +152,27 @@ const Payment = () => {
           }
           .receipt-label {
             font-weight: 600;
-            color: #6b7280;
+            color: #8b7355;
           }
           .receipt-value {
-            color: #1f2937;
+            color: #2c3e50;
             font-weight: 500;
           }
           .total-row {
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 2px solid #667eea;
+            border-top: 2px solid #2c5f8a;
             font-size: 18px;
           }
           .total-row .receipt-value {
             font-size: 24px;
             font-weight: bold;
-            color: #667eea;
+            color: #2c5f8a;
           }
           .success-icon {
             width: 60px;
             height: 60px;
-            background: #10b981;
+            background: #27ae60;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -186,9 +187,10 @@ const Payment = () => {
           .footer {
             text-align: center;
             padding: 20px;
-            background: #f9fafb;
-            color: #6b7280;
+            background: #faf7f0;
+            color: #8b7355;
             font-size: 12px;
+            border-top: 1px solid #e8e0c8;
           }
         </style>
       </head>
@@ -613,4 +615,4 @@ const Payment = () => {
   );
 };
 
-export default Payment; 
+export default Payment;
