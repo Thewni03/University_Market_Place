@@ -17,14 +17,14 @@ function BookingSuccess() {
                         </svg>
                     </div>
 
-                    {/* Badge */}
+                    {/* Badge
                     <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-widest mb-4 uppercase">
                         Booking Confirmed
-                    </div>
+                    </div> */}
 
                     {/* Title */}
                     <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#10B981] to-[#059669] bg-clip-text text-transparent mb-3">
-                        Booking Successful!
+                        Booking Confirmation
                     </h1>
                     
                     <div className="h-1 w-16 bg-gradient-to-r from-[#10B981] to-[#059669] mx-auto mb-6 rounded-full"></div>

@@ -1,0 +1,531 @@
+// filename: src/components/BookingHistory.jsx
+import React, { useState, useEffect } from 'react';
+import { useAuthStore } from '../../store/useAuthStore';
+
+const BookingHistory = () => {
+  const { authUser } = useAuthStore();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [showFilePreview, setShowFilePreview] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
+
+  const [bookingHistory, setBookingHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch Payment/Booking History from Backend
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const url = authUser && authUser._id 
+          ? `http://localhost:5001/api/payments/user/${authUser._id}`
+          : 'http://localhost:5001/api/payments';
+          
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success) {
+          const formattedBookings = result.data.map((payment) => ({
+            id: payment.bookingId,
+            dbId: payment._id, 
+            customerName: payment.customerName,
+            createdAt: payment.createdAt,
+            date: payment.bookingDate || new Date(payment.createdAt).toISOString().split('T')[0],
+            time: payment.bookingTime || new Date(payment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: payment.serviceName,
+            cancellationReason: payment.cancellationReason,
+            amount: payment.amount,
+            status: payment.status.toLowerCase(), // 'completed', 'pending', etc.
+            attachments: payment.attachments || [], 
+            cancellationDeadline: new Date(new Date(payment.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            timeSlots: ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM']
+          }));
+          setBookingHistory(formattedBookings);
+        }
+      } catch (error) {
+        console.error("Error fetching payment history:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, [authUser]);
+
+  // Filter bookings
+  const getFilteredBookings = () => {
+    return bookingHistory.filter(booking => {
+      const matchesSearch = searchTerm === '' || 
+        booking.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const filteredBookings = getFilteredBookings();
+
+  // File handling functions
+  const getFileIcon = (type) => {
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('image')) return '🖼️';
+    if (type.includes('fig')) return '🎨';
+    return '📎';
+  };
+
+  const getFileColor = (type) => {
+    if (type.includes('pdf')) return 'from-red-500 to-red-600';
+    if (type.includes('word') || type.includes('document')) return 'from-blue-500 to-blue-600';
+    if (type.includes('image')) return 'from-emerald-500 to-teal-500';
+    if (type.includes('fig')) return 'from-purple-500 to-pink-500';
+    return 'from-gray-500 to-gray-600';
+  };
+
+  const handleAttachmentClick = (file) => {
+    setSelectedFile(file);
+    setShowFilePreview(true);
+  };
+
+  const handleDownloadFile = () => {
+    if (selectedFile && selectedFile.url) {
+      window.open(`http://localhost:5001${selectedFile.url}`, '_blank');
+    }
+  };
+
+  // Booking actions
+  const handleCancellation = (booking) => {
+    setSelectedBooking(booking);
+    setShowCancellationModal(true);
+  };
+
+  const handleReschedule = (booking) => {
+    setSelectedBooking(booking);
+    setShowRescheduleModal(true);
+  };
+
+  const confirmCancellation = async () => {
+    try {
+      if (selectedBooking.dbId) {
+        await fetch(`http://localhost:5001/api/payments/${selectedBooking.dbId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Refunded', cancellationReason })
+        });
+      }
+      setBookingHistory(bookingHistory.map(booking => 
+        booking.id === selectedBooking.id 
+          ? { ...booking, status: 'refunded', cancellationReason }
+          : booking
+      ));
+    } catch(err) {
+      console.error(err);
+    }
+    setShowCancellationModal(false);
+    setSelectedBooking(null);
+    setCancellationReason('');
+  };
+
+  const confirmReschedule = async () => {
+    try {
+      if (selectedBooking.dbId) {
+        await fetch(`http://localhost:5001/api/payments/${selectedBooking.dbId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingDate: newDate, bookingTime: newTime })
+        });
+      }
+      setBookingHistory(bookingHistory.map(booking => 
+        booking.id === selectedBooking.id 
+          ? { ...booking, date: newDate, time: newTime }
+          : booking
+      ));
+    } catch(err) {
+      console.error(err);
+    }
+    setShowRescheduleModal(false);
+    setSelectedBooking(null);
+    setNewDate('');
+    setNewTime('');
+  };
+
+  const getStatusBadge = (status) => {
+    switch(status.toLowerCase()) {
+      case 'paid':
+      case 'completed':
+        return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30';
+      case 'pending':
+        return 'bg-amber-500/20 text-amber-500 border-amber-500/30';
+      case 'cancelled':
+      case 'failed':
+      case 'refunded':
+        return 'bg-red-500/20 text-red-500 border-red-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+    }
+  };
+
+  return (
+    <div className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl p-6">
+      {/* Header with Filters */}
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          Booking History
+        </h2>
+        <div className="flex gap-2">
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="p-2 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm cursor-pointer hover:border-blue-400 transition-all"
+          >
+            <option value="all">All Bookings</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <input 
+            type="text" 
+            placeholder="Search by Booking ID..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="p-2 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-400 transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Results count */}
+      <div className="mb-4 text-sm text-slate-400">
+        Showing {filteredBookings.length} of {bookingHistory.length} bookings
+      </div>
+
+      {/* Booking History Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/10">
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booking ID</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Customer Name</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booked On</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Scheduled For</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booking Type</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Amount</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Status</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Attachments</th>
+              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan="9" className="py-8 text-center text-slate-400">
+                  <div className="animate-pulse">Loading booking history...</div>
+                </td>
+              </tr>
+            ) : filteredBookings.length > 0 ? (
+              filteredBookings.map((booking) => (
+                <tr key={booking.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <td className="py-4 px-2">
+                    <span className="font-mono text-sm text-blue-400">{booking.id}</span>
+                  </td>
+                  <td className="py-4 px-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center text-sm">
+                        👤
+                      </div>
+                      <span className="text-sm">{booking.customerName}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-2">
+                    <div className="text-sm">
+                      <div>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</div>
+                      <div className="text-slate-400 text-xs">{booking.createdAt ? new Date(booking.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-2">
+                    <div className="text-sm">
+                      <div>{new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                      <div className="text-slate-400 text-xs">{booking.time}</div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-2">
+                    <span className="text-sm">{booking.type}</span>
+                  </td>
+                  <td className="py-4 px-2">
+                    <span className="text-sm font-medium">LKR {booking.amount.toLocaleString()}</span>
+                  </td>
+                  <td className="py-4 px-2">
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-xs px-2 py-1 rounded-full border w-fit ${getStatusBadge(booking.status)}`}>
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+                      {booking.cancellationReason && (
+                        <span className="text-[10px] text-slate-400 italic max-w-[120px] truncate" title={booking.cancellationReason}>
+                          Reason: {booking.cancellationReason}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-4 px-2">
+                    {booking.attachments.length > 0 ? (
+                      <div className="flex -space-x-2">
+                        {booking.attachments.slice(0, 3).map((file, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleAttachmentClick(file)}
+                            className="w-8 h-8 bg-slate-800 rounded-lg border-2 border-slate-700 flex items-center justify-center text-xs hover:z-10 hover:border-blue-400 hover:scale-110 transition-all cursor-pointer group relative"
+                            title={`Click to preview ${file.name}`}
+                          >
+                            <span className="text-sm">{getFileIcon(file.type)}</span>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-white/10">
+                              {file.name} ({file.size})
+                            </span>
+                          </button>
+                        ))}
+                        {booking.attachments.length > 3 && (
+                          <div className="w-8 h-8 bg-slate-800 rounded-lg border-2 border-slate-700 flex items-center justify-center text-xs hover:border-blue-400 transition-all cursor-pointer group relative"
+                               onClick={() => alert(`${booking.attachments.length - 3} more files available`)}>
+                            <span className="text-xs font-medium">+{booking.attachments.length - 3}</span>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-white/10">
+                              {booking.attachments.length - 3} more files
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-slate-500 text-xs">No files</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-2">
+                    <div className="flex gap-2">
+                      {booking.status !== 'cancelled' && booking.status !== 'refunded' && (
+                        <>
+                          <button
+                            onClick={() => handleReschedule(booking)}
+                            className="p-2 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg text-blue-400 transition-all hover:scale-110"
+                            title="Reschedule"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleCancellation(booking)}
+                            className="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400 transition-all hover:scale-110"
+                            title="Cancel Booking"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        className="p-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all hover:scale-110"
+                        title="View Details"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="9" className="py-8 text-center text-slate-400">
+                  No bookings found matching your search criteria.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* File Preview Modal */}
+      {showFilePreview && selectedFile && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 max-w-2xl w-full border border-white/10 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getFileColor(selectedFile.type)} flex items-center justify-center text-2xl`}>
+                  {getFileIcon(selectedFile.type)}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">{selectedFile.name}</h3>
+                  <p className="text-sm text-slate-400">{selectedFile.size}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFilePreview(false)}
+                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-slate-800/50 rounded-xl p-6 mb-6 border border-white/5">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getFileColor(selectedFile.type)} flex items-center justify-center text-3xl`}>
+                  {getFileIcon(selectedFile.type)}
+                </div>
+                <div className="flex-1">
+                  <div className="h-2 bg-slate-700 rounded-full w-full mb-2">
+                    <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-3/4"></div>
+                  </div>
+                  <p className="text-xs text-slate-400">Ready to download</p>
+                </div>
+              </div>
+              
+              <div className="bg-slate-900/50 rounded-lg p-4 text-sm text-slate-300 border border-white/5">
+                <div className="flex items-center gap-2 mb-3 text-blue-400">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                  <span>File Information:</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-slate-400">
+                    <span className="text-slate-500">Name:</span> {selectedFile.name}
+                  </p>
+                  <p className="text-slate-400">
+                    <span className="text-slate-500">Size:</span> {selectedFile.size}
+                  </p>
+                  <p className="text-slate-400">
+                    <span className="text-slate-500">Type:</span> {selectedFile.type.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleDownloadFile}
+                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download File
+              </button>
+              <button
+                onClick={() => setShowFilePreview(false)}
+                className="flex-1 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation Modal */}
+      {showCancellationModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-white/10 shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-2">Cancel Booking</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Are you sure you want to cancel booking <span className="text-blue-400 font-mono">{selectedBooking.id}</span>?
+            </p>
+            
+            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+              <p className="text-amber-400 text-xs">
+                ⚠️ Cancellation deadline: {new Date(selectedBooking.cancellationDeadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm text-slate-400 mb-2">Reason for cancellation (optional)</label>
+              <textarea
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Please provide a reason..."
+                className="w-full p-3 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400 resize-none"
+                rows="3"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancellationModal(false)}
+                className="flex-1 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all"
+              >
+                Keep Booking
+              </button>
+              <button
+                onClick={confirmCancellation}
+                className="flex-1 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 transition-all shadow-lg shadow-red-500/20"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {showRescheduleModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-white/10 shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-2">Reschedule Booking</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Select new date and time for booking <span className="text-blue-400 font-mono">{selectedBooking.id}</span>
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">New Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full p-3 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">New Time Slot</label>
+                <select
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="w-full p-3 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400"
+                >
+                  <option value="">Select a time slot</option>
+                  {selectedBooking.timeSlots.map((slot) => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRescheduleModal(false)}
+                className="flex-1 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReschedule}
+                disabled={!newDate || !newTime}
+                className={`flex-1 py-3 rounded-xl transition-all ${
+                  newDate && newTime
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/20'
+                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                Confirm Reschedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BookingHistory;   

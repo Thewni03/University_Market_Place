@@ -1,47 +1,93 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const Payment = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { authUser } = useAuthStore();
+  const state = location.state || {};
+
   const [selectedMethod, setSelectedMethod] = useState('credit');
-  const [cardNumber] = useState('5282 3456 7890 1289');
-  const [expiry] = useState('09/25');
-  const [name] = useState('Amahan pasan perera');
-  const [expiryDate] = useState('11/34');
-  const [cvv] = useState('234');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [name, setName] = useState(state.customerName || '');
+  const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
 
+  const totalAmount = state.amount || '0.00';
+  const serviceName = state.serviceName || 'Service';
+  const serviceFee = state.serviceFee || '0.00';
+  const platformFee = state.platformFee || '0.00';
+  const tax = state.tax || '0.00';
+
   // Booking details
   const bookingDetails = {
-    bookingId: 'UNI-' + Math.floor(Math.random() * 1000000),
+    bookingId: state.bookingId || 'UNI-' + Math.floor(Math.random() * 1000000),
     date: new Date().toLocaleDateString(),
     time: new Date().toLocaleTimeString(),
-    serviceName: 'BMW 3 Series',
-    amount: '11,800.18',
+    serviceName: serviceName,
+    amount: totalAmount,
     paymentMethod: selectedMethod === 'credit' ? 'Credit Card' : selectedMethod === 'paypal' ? 'PayPal' : 'Bank Transfer',
-    cardLast4: selectedMethod === 'credit' ? '1289' : 'N/A',
-    customerName: 'Amahan pasan perera',
-    customerEmail: 'amahan@example.com'
+    cardLast4: selectedMethod === 'credit' && cardNumber.length >= 4 ? cardNumber.slice(-4) : 'N/A',
+    customerName: name || 'Customer',
+    customerEmail: state.customerEmail || ''
   };
 
   const handlePayment = async () => {
     setIsProcessing(true);
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Set receipt data
-    setReceiptData(bookingDetails);
-    
-    // Show success modal
-    setIsProcessing(false);
-    setShowSuccessModal(true);
+    try {
+      // Create payment in the backend
+      const response = await fetch('http://localhost:5001/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: bookingDetails.bookingId,
+          userId: authUser?._id || null,
+          customerName: bookingDetails.customerName,
+          customerEmail: bookingDetails.customerEmail,
+          serviceName: bookingDetails.serviceName,
+          amount: Number(bookingDetails.amount.replace(/,/g, '')),
+          serviceFee: Number(serviceFee.replace(/,/g, '')),
+          platformFee: Number(platformFee.replace(/,/g, '')),
+          tax: Number(tax.replace(/,/g, '')),
+          paymentMethod: bookingDetails.paymentMethod,
+          cardLast4: bookingDetails.cardLast4,
+          status: 'Completed',
+          attachments: state.documents || [],
+          bookingDate: state.bookingDate,
+          bookingTime: state.bookingTime
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setReceiptData({
+          ...bookingDetails,
+          ...result.data,
+          date: new Date(result.data.createdAt || Date.now()).toLocaleDateString(),
+          time: new Date(result.data.createdAt || Date.now()).toLocaleTimeString(),
+        });
+        
+        setIsProcessing(false);
+        setShowSuccessModal(true);
+      } else {
+        alert("Payment creation failed: " + result.message);
+        setIsProcessing(false);
+      }
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      alert("Something went wrong processing your payment.");
+      setIsProcessing(false);
+    }
   };
 
   const downloadReceipt = () => {
-    // Create receipt HTML content
+    // Create receipt HTML content with cream background and no purple
     const receiptHTML = `
       <!DOCTYPE html>
       <html lang="en">
@@ -54,7 +100,7 @@ const Payment = () => {
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f0e1;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -63,13 +109,14 @@ const Payment = () => {
           .receipt-container {
             max-width: 600px;
             margin: 0 auto;
-            background: white;
+            background: #fffef7;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
             overflow: hidden;
+            border: 1px solid #e8e0c8;
           }
           .receipt-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2c5f8a;
             color: white;
             padding: 30px;
             text-align: center;
@@ -87,13 +134,15 @@ const Payment = () => {
           }
           .receipt-section {
             margin-bottom: 20px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e8e0c8;
             padding-bottom: 15px;
           }
           .receipt-section h3 {
-            color: #374151;
+            color: #2c5f8a;
             margin: 0 0 15px 0;
             font-size: 18px;
+            border-left: 4px solid #2c5f8a;
+            padding-left: 12px;
           }
           .receipt-row {
             display: flex;
@@ -103,27 +152,27 @@ const Payment = () => {
           }
           .receipt-label {
             font-weight: 600;
-            color: #6b7280;
+            color: #8b7355;
           }
           .receipt-value {
-            color: #1f2937;
+            color: #2c3e50;
             font-weight: 500;
           }
           .total-row {
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 2px solid #667eea;
+            border-top: 2px solid #2c5f8a;
             font-size: 18px;
           }
           .total-row .receipt-value {
             font-size: 24px;
             font-weight: bold;
-            color: #667eea;
+            color: #2c5f8a;
           }
           .success-icon {
             width: 60px;
             height: 60px;
-            background: #10b981;
+            background: #27ae60;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -138,9 +187,10 @@ const Payment = () => {
           .footer {
             text-align: center;
             padding: 20px;
-            background: #f9fafb;
-            color: #6b7280;
+            background: #faf7f0;
+            color: #8b7355;
             font-size: 12px;
+            border-top: 1px solid #e8e0c8;
           }
         </style>
       </head>
@@ -227,8 +277,8 @@ const Payment = () => {
     setShowSuccessModal(false);
   };
 
-  const handleHome = () => {
-    navigate('/home');
+  const handleBookingHistory = () => {
+    navigate('/booking-history');
   };
 
   return (
@@ -330,33 +380,48 @@ const Payment = () => {
             {/* Credit Card Details */}
             <div className="mb-6">
               <h4 className="text-[13px] text-[#6B7280] mb-2 font-medium">Credit Card Number</h4>
-              <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200">
-                <div className="font-mono text-base text-[#1F2937] tracking-wider mb-1 break-all">{cardNumber}</div>
-                <div className="text-sm text-[#6B7280]">Expires: {expiry}</div>
-              </div>
+              <input
+                type="text"
+                value={cardNumber}
+                onChange={(e) => setCardNumber(e.target.value)}
+                placeholder="0000 0000 0000 0000"
+                className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 font-mono text-base text-[#1F2937] tracking-wider focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+              />
             </div>
 
             {/* Name Field */}
             <div className="mb-6">
               <label className="block text-[13px] text-[#6B7280] mb-2 font-medium">Cardholder Name</label>
-              <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937]">
-                {name}
-              </div>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name on card"
+                className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+              />
             </div>
 
             {/* Expiration Date and CVV */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-[13px] text-[#6B7280] mb-2 font-medium">Expiration Date</label>
-                <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937]">
-                  {expiryDate}
-                </div>
+                <input
+                  type="text"
+                  value={expiry}
+                  onChange={(e) => setExpiry(e.target.value)}
+                  placeholder="MM/YY"
+                  className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+                />
               </div>
               <div>
                 <label className="block text-[13px] text-[#6B7280] mb-2 font-medium">CVV</label>
-                <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937]">
-                  {cvv}
-                </div>
+                <input
+                  type="password"
+                  value={cvv}
+                  onChange={(e) => setCvv(e.target.value)}
+                  placeholder="123"
+                  className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+                />
               </div>
             </div>
 
@@ -364,7 +429,7 @@ const Payment = () => {
             <div className="flex justify-between items-center pt-6 border-t border-gray-200">
               <span className="text-base font-semibold text-[#1F2937]">Total Amount</span>
               <span className="text-3xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
-                LKR 11,800.18
+                LKR {totalAmount}
               </span>
             </div>
           </div>
@@ -372,18 +437,18 @@ const Payment = () => {
           {/* Right Panel - Order Summary */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
             <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-6">
-              Order Summary
+               Summary
             </h2>
             
             {/* Product */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] rounded-xl flex items-center justify-center text-white text-2xl shadow-md">
-                  🚗
+                  
                 </div>
                 <div className="flex-1">
-                  <span className="text-base text-[#6B7280] block mb-1">BMW 3 Series</span>
-                  <span className="text-2xl font-bold text-[#1F2937]">LKR 12,000.18</span>
+                  <span className="text-base text-[#6B7280] block mb-1">{serviceName}</span>
+                  <span className="text-2xl font-bold text-[#1F2937]">LKR {serviceFee}</span>
                 </div>
               </div>
             </div>
@@ -391,38 +456,26 @@ const Payment = () => {
             {/* Order Details List */}
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-[#6B7280]">Delivery Time</span>
-                <span className="text-sm font-medium text-[#1F2937]">11 Jan 2022, 10.00 am</span>
+                <span className="text-sm text-[#6B7280]">Service Fee</span>
+                <span className="text-sm font-medium text-[#1F2937]">LKR {serviceFee}</span>
               </div>
               
               <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-[#6B7280]">Commission</span>
-                <span className="text-sm font-medium text-red-500">-LKR 140.00</span>
+                <span className="text-sm text-[#6B7280]">Platform Fee</span>
+                <span className="text-sm font-medium text-[#1F2937]">LKR {platformFee}</span>
               </div>
               
               <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-[#6B7280]">Invoice</span>
-                <span className="text-sm font-medium text-[#1F2937] font-mono">000-1234-BMW-001</span>
-              </div>
-              
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-[#6B7280]">Discount</span>
-                <span className="text-sm font-medium bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent font-bold">
-                  10% OFF
-                </span>
+                <span className="text-sm text-[#6B7280]">Tax (5%)</span>
+                <span className="text-sm font-medium text-[#1F2937]">LKR {tax}</span>
               </div>
               
               <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-4"></div>
               
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-[#6B7280]">Subtotal</span>
-                <span className="text-sm font-semibold text-[#1F2937]">LKR 11,800.18</span>
-              </div>
-              
               <div className="flex justify-between items-center pt-3">
                 <span className="text-base font-semibold text-[#1F2937]">Total</span>
                 <span className="text-2xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
-                  LKR 11,800.18
+                  LKR {totalAmount}
                 </span>
               </div>
             </div>
@@ -443,7 +496,7 @@ const Payment = () => {
                 </>
               ) : (
                 <>
-                  <span>Pay LKR 11,800.18</span>
+                  <span>Pay LKR {totalAmount}</span>
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -513,13 +566,13 @@ const Payment = () => {
                   Download Receipt
                 </button>
                 <button
-                  onClick={handleHome}
+                  onClick={handleBookingHistory}
                   className="flex-1 bg-white border-2 border-[#3B82F6] text-[#3B82F6] py-3 rounded-xl font-medium hover:bg-[#3B82F6] hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Go to Home
+                  Go to Booking History
                 </button>
               </div>
             </div>
@@ -561,4 +614,4 @@ const Payment = () => {
   );
 };
 
-export default Payment; 
+export default Payment;

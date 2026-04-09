@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import AccessibilityWidget from './components/AccessibilityWidget';
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
@@ -16,8 +17,9 @@ import CampusForum from "./pages/CampusForum/CampusForum";
 import ForumThread from "./pages/CampusForum/ForumThread";
 
 // ── Components ─────────────────────────────────────────────────────────────
-import BookingForm from "./components/BookingForm/BookingForm";
-import BookingSuccess from "./components/BookingForm/BookingSuccess";
+import BookingForm from "./components/Booking/BookingForm.jsx";
+import BookingSuccess from "./components/Booking/BookingSuccess.jsx";
+import BookingHistory from "./components/Booking/BookingHistory.jsx";
 import Payment from "./components/payment/payment";
 import Reviewandrating from "./components/Reviewandrating/Reviewandrating";
 
@@ -41,6 +43,7 @@ function App() {
   const authUser = useAuthStore((state) => state.authUser);
   const connectSocket = useAuthStore((state) => state.connectSocket);
   const disconnectSocket = useAuthStore((state) => state.disconnectSocket);
+
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const hideNavbar =
     normalizedPath === "/" ||
@@ -54,7 +57,6 @@ function App() {
       connectSocket();
       return;
     }
-
     disconnectSocket();
   }, [authUser?._id, connectSocket, disconnectSocket]);
 
@@ -84,6 +86,7 @@ function App() {
         {/* Booking & Payment */}
         <Route path="/booking-form" element={<BookingForm />} />
         <Route path="/booking-success" element={<BookingSuccess />} />
+        <Route path="/booking-history" element={<BookingHistory />} />
         <Route path="/payment" element={<Payment />} />
 
         {/* Reviews & Ratings */}
@@ -100,7 +103,9 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
-    </NotificationProvider>  
+      {/* ♿ Accessibility widget — fixed bottom-left, visible on every page */}
+      <AccessibilityWidget />
+    </NotificationProvider>
   );
 }
 

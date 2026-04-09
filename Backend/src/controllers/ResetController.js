@@ -120,7 +120,7 @@ export const forgotPassword = async (req, res) => {
                             <tr>
                               <td style="padding:5px 0;">
                                 <span style="background:#06b6d4; color:white; border-radius:50%; width:22px; height:22px; display:inline-block; text-align:center; font-size:11px; font-weight:700; line-height:22px; margin-right:10px;">3</span>
-                                <span style="font-size:13px; color:#374151;">Set your new password and you're done! 🎉</span>
+                                <span style="font-size:13px; color:#374151;">Set your new password and you're done!</span>
                               </td>
                             </tr>
                           </table>

@@ -854,3 +854,29 @@ export const deleteService = async (req, res) => {
     return res.status(400).json({ success: false, error: error.message });
   }
 };
+
+/* ================= CALCULATE PAYMENT ================= */
+export const calculatePayment = async (req, res) => {
+  try {
+    const { hours, customHourlyRate } = req.body;
+    const rate = Number(customHourlyRate) || 299;
+    const numHours = Math.max(1, Number(hours) || 1);
+    
+    const serviceFee = rate * numHours;
+    const platformFee = 19.00;
+    const tax = (serviceFee + platformFee) * 0.05;
+    const totalAmount = serviceFee + platformFee + tax;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        serviceFee: Number(serviceFee.toFixed(2)),
+        platformFee: Number(platformFee.toFixed(2)),
+        tax: Number(tax.toFixed(2)),
+        totalAmount: Number(totalAmount.toFixed(2))
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
