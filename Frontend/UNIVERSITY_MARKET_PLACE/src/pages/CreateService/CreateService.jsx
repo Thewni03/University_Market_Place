@@ -41,6 +41,21 @@ export default function CreateService() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [removingSlots, setRemovingSlots] = useState([]);
 
+    const fillDummyData = () => {
+        setFormData({
+            title: 'Advanced Mathematics Tutoring',
+            category: 'Tutoring',
+            pricePerHour: '2500',
+            description: 'I offer comprehensive tutoring for university-level calculus, specializing in multi-variable calculus and linear algebra. With over 2 years of experience helping students ace their coursework, I provide customized lesson plans, practice problems, and exam preparation strategies.',
+            locationMode: 'Online',
+        });
+        setSlots([
+            { day: 'Mon', time: '4:00 PM' },
+            { day: 'Wed', time: '2:00 PM' }
+        ]);
+        toast.success("Dummy data populated for presentation!");
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -77,6 +92,21 @@ export default function CreateService() {
         try {
             if (!currentUserId) {
                 throw new Error("User ID not found. Please login again.");
+            }
+            if (slots.length === 0) {
+                toast.error("You must add at least one availability slot.");
+                setIsSubmitting(false);
+                return;
+            }
+            if (!/^[a-zA-Z0-9 ]+$/.test(formData.title)) {
+                toast.error("Title cannot contain special characters.");
+                setIsSubmitting(false);
+                return;
+            }
+            if (formData.title.length > 20) {
+                toast.error("Title cannot exceed 20 characters.");
+                setIsSubmitting(false);
+                return;
             }
             const price = Number(formData.pricePerHour);
             if (price > 10000) {
@@ -125,9 +155,18 @@ export default function CreateService() {
 
                         {/* Basic Info */}
                         <div className="space-y-6">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                <Tag className="w-5 h-5 text-emerald-500" /> Basic Information
-                            </h2>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Tag className="w-5 h-5 text-emerald-500" /> Basic Information
+                                </h2>
+                                <button 
+                                    type="button" 
+                                    onClick={fillDummyData} 
+                                    className="px-4 py-2 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-lg hover:bg-emerald-200 transition-colors"
+                                >
+                                    Fill Dummy Data
+                                </button>
+                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="md:col-span-2">
@@ -136,6 +175,10 @@ export default function CreateService() {
                                         type="text"
                                         name="title"
                                         required
+                                        minLength={4}
+                                        maxLength={20}
+                                        pattern="^[a-zA-Z0-9 ]+$"
+                                        title="Only letters, numbers, and spaces are allowed (Max 20 characters)"
                                         value={formData.title}
                                         onChange={handleInputChange}
                                         placeholder="e.g. Advanced Calculus Tutoring"
@@ -165,6 +208,11 @@ export default function CreateService() {
                                         required
                                         min="0"
                                         max="10000"
+                                        onKeyDown={(e) => {
+                                            if (["e", "E", "+", "-", "."].includes(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                         value={formData.pricePerHour}
                                         onChange={handleInputChange}
                                         placeholder="e.g. 1500"
@@ -244,6 +292,8 @@ export default function CreateService() {
                                 <textarea
                                     name="description"
                                     required
+                                    minLength={20}
+                                    maxLength={1000}
                                     rows="5"
                                     value={formData.description}
                                     onChange={handleInputChange}

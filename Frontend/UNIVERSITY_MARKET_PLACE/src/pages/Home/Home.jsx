@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { SlidersHorizontal, Briefcase, Sparkles, TrendingUp, MonitorSmartphone, BookOpen, Video, PenTool, Camera, Loader2 } from "lucide-react";
+import {
+  SlidersHorizontal, Briefcase, Sparkles, TrendingUp, MonitorSmartphone, BookOpen, Video, PenTool, Camera, Loader2, ArrowRight, Search, Plus, Zap, Users, Shield
+} from "lucide-react";
 import { mockServices, mockRequests } from "../../data/mockData";
 import ServiceCard from "../../components/ServiceCard";
 import RequestCard from "../../components/RequestCard";
@@ -28,16 +30,36 @@ export default function Home() {
 
   const [tab, setTab] = useState("services");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [maxPrice, setMaxPrice] = useState(10000);
   const [minRating, setMinRating] = useState(0);
   const [location, setLocation] = useState("all");
 
   const [services, setServices] = useState([]);
   const [requests, setRequests] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState("");
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setIsLoggedIn(true);
+        setUserName(user.name || user.firstName || "Student");
+      } catch {
+        setIsLoggedIn(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -52,7 +74,6 @@ export default function Home() {
         setLoading(false);
       }
     };
-
     fetchRequests();
   }, [API_BASE_URL]);
 
@@ -66,30 +87,35 @@ export default function Home() {
         if (selectedCategory !== "All") params.set("category", selectedCategory);
         if (location !== "all") params.set("location", location);
         if (Number(minRating) > 0) params.set("minRating", String(minRating));
-        params.set("minPrice", String(priceRange[0] ?? 0));
-        params.set("maxPrice", String(priceRange[1] ?? 10000));
-        params.set("limit", "60");
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/services/ranked?${params.toString()}`
-        );
+        const response = await fetch(`${API_BASE_URL}/api/services/ranked?${params.toString()}`);
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
           throw new Error(result.error || result.message || "Failed to load ranked services.");
         }
 
-        setServices(Array.isArray(result.data) ? result.data : []);
+        const data = Array.isArray(result.data) ? result.data : [];
+        setServices(data);
+
+        if (data.length > 0) {
+          const calcMax = Math.max(...data.map(s => Number(s.pricePerHour || s.price || 0)), 1000);
+          setMaxPrice(calcMax);
+          setPriceRange(prev => [
+            Math.min(prev[0], calcMax), 
+            (prev[1] >= calcMax || prev[1] === 10000) ? calcMax : prev[1]
+          ]);
+        }
       } catch (error) {
         console.error("Error fetching ranked services, falling back to mock:", error);
         setServices(mockServices);
-        setServicesError("Showing fallback services. Ranked API is currently unavailable.");
+        // Silently handled without explicit UI error for clean visuals
       } finally {
         setServicesLoading(false);
       }
     };
 
     fetchRankedServices();
-  }, [API_BASE_URL, selectedCategory, location, minRating, priceRange]);
+  }, [API_BASE_URL, selectedCategory, location, minRating]);
 
   const mappedServices = useMemo(
     () =>
@@ -124,211 +150,350 @@ export default function Home() {
 
   const filteredServices = useMemo(() => {
     return mappedServices
+      .filter((s) => {
+        if (!searchQuery) return true;
+        const term = searchQuery.toLowerCase();
+        return ((s.title && s.title.toLowerCase().includes(term)) || (s.description && s.description.toLowerCase().includes(term)));
+      })
       .filter((s) => selectedCategory === "All" || s.category === selectedCategory)
       .filter((s) => s.price >= priceRange[0] && s.price <= priceRange[1])
       .filter((s) => Number(s.rating || 0) >= Number(minRating || 0))
       .filter((s) => location === "all" || s.location === location)
       .sort((a, b) => Number(b.rankingScore || 0) - Number(a.rankingScore || 0));
-  }, [mappedServices, selectedCategory, priceRange, minRating, location]);
+  }, [mappedServices, selectedCategory, priceRange, minRating, location, searchQuery]);
+
+  const filteredRequests = useMemo(() => {
+    return requests
+      .filter((r) => {
+        if (!searchQuery) return true;
+        const term = searchQuery.toLowerCase();
+        return ((r.title && r.title.toLowerCase().includes(term)) || (r.description && r.description.toLowerCase().includes(term)));
+      });
+  }, [requests, searchQuery]);
 
   const trending = useMemo(() => filteredServices.slice(0, 10), [filteredServices]);
 
-  return (
-    <div className="min-h-screen p-5 md:p-10 bg-background font-sans">
-      <div className="container mx-auto py-12 md:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <div className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold tracking-widest mb-2 uppercase">
-              CAMPUS MARKETPLACE
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-slate-900 leading-tight tracking-tight">
-              Unlock student talent,<br className="hidden md:block" /> exactly when you<br className="hidden md:block" /> need it
-            </h1>
-            <p className="text-slate-500 text-lg max-w-lg leading-relaxed pt-2 pb-4">
-              The premier dual-role marketplace for students. Offer your skills to earn, or find the perfect peer to help you succeed on campus.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/create-service">
-                <Button size="lg" className="rounded-full px-8 font-semibold text-[15px] bg-[#4a4e69] hover:bg-[#7a879d] text-white shadow-lg shadow-[#4a4e69]/30">
-                  Offer a Service
-                </Button>
-              </Link>
-              <Link to="/post-request">
-                <Button variant="outline" size="lg" className="rounded-full px-8 bg-white hover:bg-slate-50 border-slate-200 text-primary hover:text-primary font-semibold text-[15px]">
-                  Post a Request
-                </Button>
-              </Link>
-            </div>
+  // Keerthi's Trending ML Section
+  const TrendingSection = () => (
+    <section className="mb-10 w-full pt-4">
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingUp className="h-6 w-6 text-primary" />
+        <Sparkles className="h-5 w-5 text-accent" />
+        <h2 className="font-display text-xl md:text-2xl font-extrabold text-slate-800">Trending Services</h2>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-6 pt-2 scrollbar-hide snap-x snap-mandatory">
+        {trending.map((s) => (
+          <div key={s.id} className="min-w-[280px] max-w-[320px] shrink-0 snap-start transition-transform hover:-translate-y-1">
+            <ServiceCard service={s} />
           </div>
-          <div className="relative lg:ml-auto">
-            <div className="absolute inset-0 bg-primary/5 rounded-3xl transform rotate-3 scale-105 -z-10" />
-            <img
-              src={heroIllustration}
-              alt="Students collaborating on campus"
-              className="w-full max-w-[600px] h-auto drop-shadow-2xl rounded-2xl object-contain mix-blend-multiply"
+        ))}
+      </div>
+    </section>
+  );
+
+  const AdvancedSearchPill = () => (
+    <div className="container mx-auto px-5 md:px-10 relative z-20">
+      <div className="max-w-5xl mx-auto -mt-8">
+        <div className="flex flex-col lg:flex-row items-center bg-white rounded-3xl lg:rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 p-2 lg:pl-8">
+          
+          <div className="flex flex-col flex-1 w-full px-4 py-2 hover:bg-slate-50 rounded-t-3xl lg:rounded-l-full cursor-pointer transition-colors lg:border-r border-slate-100 group">
+            <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Looking For</span>
+            <select 
+              className="text-[14px] font-semibold text-slate-500 bg-transparent outline-none cursor-pointer appearance-none truncate w-full group-hover:text-primary transition-colors"
+              value={tab}
+              onChange={(e) => setTab(e.target.value)}
+            >
+              <option value="services">Services</option>
+              <option value="requests">Help Requests</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col flex-[1.5] w-full px-4 py-2 hover:bg-slate-50 cursor-text transition-colors lg:border-r border-slate-100 group">
+            <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Keyword</span>
+            <input 
+              type="text" 
+              placeholder="Design, Math, Coding..."
+              className="text-[14px] font-semibold bg-transparent outline-none placeholder:text-slate-400/70 text-slate-700 truncate w-full focus:ring-0"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
+          <div className="flex flex-col flex-1 w-full px-4 py-2 hover:bg-slate-50 cursor-pointer transition-colors lg:border-r border-slate-100 group">
+            <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Category</span>
+            <select 
+              className="text-[14px] font-semibold text-slate-500 bg-transparent outline-none cursor-pointer appearance-none truncate w-full group-hover:text-primary transition-colors"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="All">All Categories</option>
+              <option value="Tutoring">Tutoring</option>
+              <option value="Web Design">Web Design</option>
+              <option value="Video Editing">Video Editing</option>
+              <option value="Writing">Writing</option>
+              <option value="Photography">Photography</option>
+              <option value="Development">Development</option>
+              <option value="Design">Design</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col flex-1 w-full px-4 py-2 hover:bg-slate-50 cursor-pointer transition-colors group relative lg:border-r border-slate-100">
+            <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Location</span>
+            <select 
+              className="text-[14px] font-semibold text-slate-500 bg-transparent outline-none cursor-pointer appearance-none truncate w-full group-hover:text-primary transition-colors"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            >
+              <option value="all">Anywhere</option>
+              <option value="online">Online</option>
+              <option value="on-campus">On Campus</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col flex-1 w-full px-4 py-2 hover:bg-slate-50 cursor-text transition-colors group lg:rounded-r-full">
+            <span className="text-[11px] font-extrabold text-slate-900 tracking-wider uppercase mb-0.5 pointer-events-none">Max Budget</span>
+            <input 
+              type="number" 
+              placeholder="e.g. 5000"
+              className="text-[14px] font-semibold bg-transparent outline-none placeholder:text-slate-400/70 text-slate-700 truncate w-full focus:ring-0"
+              value={priceRange[1] === 100000 ? "" : priceRange[1]}
+              onChange={(e) => setPriceRange([0, e.target.value ? Number(e.target.value) : 100000])}
+            />
+          </div>
+
+          <div className="shrink-0 mt-2 lg:mt-0 p-1 lg:pl-2 w-full lg:w-auto flex justify-end">
+            <div className="h-14 w-14 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 hover:scale-105 cursor-pointer transition-all shadow-md active:scale-95">
+              <Search className="h-6 w-6" strokeWidth={2.5} />
+            </div>
+          </div>
+
         </div>
       </div>
+    </div>
+  );
 
-      <div className="container mx-auto py-12">
-        <div className="mb-24">
-          <div className="text-center mb-10">
-            <h2 className="font-display text-lg font-bold text-slate-900">How UniMarket Works</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-primary/20">
-              <div className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-md shadow-primary/30">1</div>
-              <h3 className="font-bold text-lg mb-3 text-slate-800">Discover</h3>
-              <p className="text-slate-500 text-sm leading-relaxed px-2">Browse through hundreds of skills offered by your peers on campus.</p>
-            </div>
-            <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-primary/20">
-              <div className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-md shadow-primary/30">2</div>
-              <h3 className="font-bold text-lg mb-3 text-slate-800">Book & Connect</h3>
-              <p className="text-slate-500 text-sm leading-relaxed px-2">Request a service, agree on a deadline, and connect instantly.</p>
-            </div>
-            <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-primary/20">
-              <div className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-md shadow-primary/30">3</div>
-              <h3 className="font-bold text-lg mb-3 text-slate-800">Succeed Together</h3>
-              <p className="text-slate-500 text-sm leading-relaxed px-2">Get the job done securely while building the campus community.</p>
+  const ListingsSection = () => (
+    <div className="flex flex-col w-full relative pt-4">
+      <TrendingSection />
+      <div className="flex flex-col w-full border-t border-slate-100 pt-8">
+        
+        <div className="flex-1 min-w-0 pt-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-display text-2xl font-extrabold text-slate-800">Explore Directory</h2>
+            <div className="flex items-center gap-4 hidden md:flex">
+                <span className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-md shadow-inner border border-slate-200">
+                    Max Price LKR {priceRange[1].toLocaleString()}
+                </span>
             </div>
           </div>
         </div>
-
-        <div className="mb-16">
-          <h2 className="mb-6 text-center font-display text-[17px] font-bold text-slate-600">Popular Categories</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x md:justify-center">
-            {[
-              { icon: <MonitorSmartphone className="w-10 h-10 mb-3 text-slate-600 drop-shadow-sm" strokeWidth={1.5} />, name: "Web Design", color: "bg-slate-200" },
-              { icon: <BookOpen className="w-10 h-10 mb-3 text-blue-600 drop-shadow-sm" strokeWidth={1.5} />, name: "Tutoring", color: "bg-slate-200" },
-              { icon: <Video className="w-10 h-10 mb-3 text-purple-600 drop-shadow-sm" strokeWidth={1.5} />, name: "Video Editing", color: "bg-slate-200" },
-              { icon: <PenTool className="w-10 h-10 mb-3 text-amber-500 drop-shadow-sm" strokeWidth={1.5} />, name: "Writing", color: "bg-slate-200" },
-              { icon: <Camera className="w-10 h-10 mb-3 text-emerald-600 drop-shadow-sm" strokeWidth={1.5} />, name: "Photography", color: "bg-slate-200" },
-            ].map((cat, i) => (
-              <div key={i} className={`min-w-[150px] flex flex-col items-center justify-center p-6 rounded-2xl cursor-pointer transition-colors snap-start hover:bg-slate-300 ${cat.color}`}>
-                {cat.icon}
-                <span className="font-bold text-sm text-slate-800 text-center">{cat.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="page-container py-4">
-        {servicesError && (
-          <div className="mb-4 rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
-            {servicesError}
-          </div>
-        )}
-
-        <section className="mb-5">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <Sparkles className="h-5 w-5 text-accent" />
-            <h2 className="font-display text-lg font-bold text-foreground">Trending Services</h2>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory">
-            {trending.map((s) => (
-              <div key={s.id} className="min-w-[280px] max-w-[320px] shrink-0 snap-start">
-                <ServiceCard service={s} />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-center max-w-4xl mx-auto gap-8 pt-8">
-          <h2 className="font-display text-2xl md:text-3xl font-extrabold text-slate-800">Explore Global Activity</h2>
-
-          <div className="flex gap-1 bg-slate-100 rounded-full p-1.5 border border-slate-200 shadow-inner">
-            <button
-              type="button"
-              onClick={() => setTab("services")}
-              className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
-                tab === "services" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <Sparkles className="h-4 w-4 text-amber-400" /> Services
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTab("requests")}
-              className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
-                tab === "requests" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <Briefcase className="h-4 w-4 text-rose-500" /> Requests
-            </button>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="lg:hidden hover:bg-card hover:text-foreground"
-            onClick={() => setFilterOpen(true)}
-          >
-            <SlidersHorizontal className="h-4 w-4 mr-1" /> Filters
-          </Button>
-        </div>
-
-        <div className="flex gap-4">
-          {tab === "services" && (
-            <>
-              <div className="hidden lg:block shrink-0 w-72">
-                <FilterPanel
-                  open={true}
-                  onClose={() => {}}
-                  selectedCategory={selectedCategory}
-                  onCategoryChange={setSelectedCategory}
-                  priceRange={priceRange}
-                  onPriceRangeChange={setPriceRange}
-                  rating={minRating}
-                  onRatingChange={setMinRating}
-                  location={location}
-                  onLocationChange={setLocation}
-                  isDesktop
-                />
-              </div>
-
-              <FilterPanel
-                open={filterOpen}
-                onClose={() => setFilterOpen(false)}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                priceRange={priceRange}
-                onPriceRangeChange={setPriceRange}
-                rating={minRating}
-                onRatingChange={setMinRating}
-                location={location}
-                onLocationChange={setLocation}
-              />
-            </>
-          )}
-
-          <div className="flex-1 min-w-0">
-            {tab === "services" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {(loading || servicesLoading) && (
-                  <div className="col-span-full rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading services...
-                  </div>
-                )}
-                {!loading && !servicesLoading && filteredServices.length === 0 && (
-                  <div className="col-span-full rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-                    No services found.
-                  </div>
-                )}
-                {!loading && !servicesLoading &&
-                  filteredServices.map((s) => <ServiceCard key={s.id} service={s} />)}
+          {(loading || servicesLoading) ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : tab === "services" ? (
+            filteredServices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                  <SlidersHorizontal className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">No services found</h3>
+                <p className="text-slate-500 max-w-sm">Try adjusting your filters or category to see more available services.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {requests.map((r) => (
+              <div className={`grid grid-cols-1 md:grid-cols-2 ${isLoggedIn ? "xl:grid-cols-3 2xl:grid-cols-4" : "lg:grid-cols-3 xl:grid-cols-4"} gap-6`}>
+                {filteredServices.map((s) => (
+                  <ServiceCard key={s._id || s.id} service={s} />
+                ))}
+              </div>
+            )
+          ) : (
+            filteredRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                  <SlidersHorizontal className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">No requests found</h3>
+                <p className="text-slate-500 max-w-sm">Try adjusting your category or budget slider to see more requests.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5 w-full">
+                {filteredRequests.map((r) => (
                   <RequestCard key={r._id || r.id} request={r} />
                 ))}
               </div>
-            )}
+            )
+          )}
+      </div>
+    </div>
+  );
+
+  const TabToggle = () => (
+    <div className="flex gap-1 bg-slate-100 rounded-full p-1.5 border border-slate-200 shadow-inner">
+      <button
+        type="button"
+        onClick={() => setTab("services")}
+        className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
+          tab === "services" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
+        }`}
+      >
+        <Sparkles className="h-4 w-4 text-amber-400" /> Services
+      </button>
+      <button
+        type="button"
+        onClick={() => setTab("requests")}
+        className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
+          tab === "requests" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
+        }`}
+      >
+        <Briefcase className="h-4 w-4 text-rose-500" /> Requests
+      </button>
+    </div>
+  );
+
+  if (isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-background font-sans">
+        {/* Welcome bar */}
+        <div className="border-b border-border bg-gradient-to-r from-primary/5 via-transparent to-accent/5 pb-10">
+          <div className="container mx-auto px-5 md:px-10 py-5 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+                Welcome back, <span className="text-primary">{userName}</span> 👋
+              </h1>
+              <p className="text-sm text-slate-500 mt-0.5">Find services or post what you need — your campus marketplace is ready.</p>
+            </div>
+            <div className="flex gap-3">
+              <Link to="/create-service">
+                <Button size="sm" className="rounded-full shadow-md shadow-primary/20 gap-2 px-5 font-semibold">
+                  <Plus className="h-4 w-4" /> Offer a Service
+                </Button>
+              </Link>
+              <Link to="/post-request">
+                <Button variant="outline" size="sm" className="rounded-full gap-2 px-5 bg-white hover:bg-slate-50 border-slate-200 text-primary hover:text-primary font-semibold">
+                  <Briefcase className="h-4 w-4" /> Post a Request
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <AdvancedSearchPill />
+
+        <div className="container mx-auto px-5 md:px-10 pb-12 mt-8 md:mt-12">
+          <ListingsSection />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background font-sans">
+      <div className="bg-gradient-to-br from-primary/[0.03] via-background to-accent/[0.03]">
+        <div className="container mx-auto px-5 md:px-10 py-12 md:py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <div className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold tracking-widest uppercase">
+                Campus Marketplace
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                Unlock student talent,<br className="hidden md:block" /> exactly when you need it
+              </h1>
+              <p className="text-slate-500 text-lg max-w-lg leading-relaxed">
+                The premier dual-role marketplace for students. Offer your skills to earn, or find the perfect peer to help you succeed on campus.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Link to="/login">
+                  <Button size="lg" className="rounded-full shadow-lg shadow-primary/25 px-8 font-semibold text-[15px] gap-2 bg-[#4a4e69] hover:bg-[#7a879d] text-white">
+                    Get Started <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="outline" size="lg" className="rounded-full px-8 bg-white hover:bg-slate-50 border-slate-200 text-primary hover:text-primary font-semibold text-[15px]">
+                    Create Account
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <div className="relative lg:ml-auto hidden md:block">
+              <div className="absolute inset-0 bg-primary/5 rounded-3xl transform rotate-3 scale-105 -z-10"></div>
+              <img
+                src={heroIllustration}
+                alt="Students collaborating on campus"
+                className="w-full max-w-[520px] h-auto drop-shadow-2xl rounded-2xl object-contain mix-blend-multiply"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AdvancedSearchPill />
+
+      <div className="container mx-auto px-5 md:px-10 py-12">
+        <div className="text-center mb-8">
+           <h2 className="font-display text-lg font-bold text-slate-900">How UniMarket Works</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto">
+          {[
+            { step: 1, icon: <Search className="h-6 w-6" />, title: "Discover", desc: "Browse hundreds of skills offered by your peers on campus." },
+            { step: 2, icon: <Users className="h-6 w-6" />, title: "Book & Connect", desc: "Request a service, agree on a deadline, and connect instantly." },
+            { step: 3, icon: <Shield className="h-6 w-6" />, title: "Succeed Together", desc: "Get the job done securely while building the campus community." }
+          ].map((item) => (
+            <div key={item.step} className="bg-white rounded-2xl p-7 text-center shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-primary/20">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+                {item.icon}
+              </div>
+              <h3 className="font-bold text-base mb-2 text-slate-800">{item.title}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="container mx-auto px-5 md:px-10 pb-8">
+        <h2 className="font-display text-[15px] font-bold text-slate-600 mb-4 pl-1">Popular Categories</h2>
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide snap-x">
+          {[
+            { icon: <MonitorSmartphone className="w-8 h-8 mb-2 text-slate-600" strokeWidth={1.5} />, name: "Web Design" },
+            { icon: <BookOpen className="w-8 h-8 mb-2 text-blue-600" strokeWidth={1.5} />, name: "Tutoring" },
+            { icon: <Video className="w-8 h-8 mb-2 text-purple-600" strokeWidth={1.5} />, name: "Video Editing" },
+            { icon: <PenTool className="w-8 h-8 mb-2 text-amber-500" strokeWidth={1.5} />, name: "Writing" },
+            { icon: <Camera className="w-8 h-8 mb-2 text-emerald-600" strokeWidth={1.5} />, name: "Photography" }
+          ].map((cat, i) => (
+            <div key={i} className="min-w-[120px] flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer transition-colors snap-start hover:bg-slate-200 bg-slate-100">
+              {cat.icon}
+              <span className="font-semibold text-xs text-slate-700 text-center">{cat.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-slate-50/50 border-t border-slate-100">
+        <div className="container mx-auto px-5 md:px-10 py-10">
+          <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <h2 className="font-display text-xl md:text-2xl font-extrabold text-slate-800">
+              Explore Services & Requests
+            </h2>
+            <TabToggle />
+          </div>
+
+          <ListingsSection />
+
+          <div className="mt-12 text-center bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 rounded-2xl p-8 border border-primary/10">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Ready to join the campus marketplace?</h3>
+            <p className="text-slate-500 text-sm mb-5 max-w-md mx-auto">Sign up to offer your skills, post requests, and connect with talented peers on campus.</p>
+            <div className="flex justify-center gap-3">
+              <Link to="/register">
+                <Button className="rounded-full px-6 shadow-md shadow-primary/20 font-semibold gap-2">
+                  <Zap className="h-4 w-4" /> Sign Up Free
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button variant="outline" className="rounded-full px-6 bg-white font-semibold">
+                  Log In
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

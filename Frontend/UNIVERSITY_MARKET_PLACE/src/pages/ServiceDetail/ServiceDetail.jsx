@@ -164,11 +164,16 @@ export default function ServiceDetail() {
                         {/* Dynamically mapped Work Samples Container */}
                         {service.workSamples && service.workSamples.length > 0 && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {service.workSamples.map((sample, idx) => (
-                                    <div key={idx} className="aspect-[4/3] bg-slate-100 rounded-2xl flex items-center justify-center border border-slate-200 overflow-hidden group">
-                                        <img src={sample.url} alt={`Work Sample ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                    </div>
-                                ))}
+                                {service.workSamples.map((sample, idx) => {
+                                    const imageUrl = sample.url?.startsWith("/") 
+                                        ? `${API_BASE_URL}${sample.url}` 
+                                        : sample.url;
+                                    return (
+                                        <div key={idx} className="aspect-[4/3] bg-slate-100 rounded-2xl flex items-center justify-center border border-slate-200 overflow-hidden group">
+                                            <img src={imageUrl} alt={`Work Sample ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 

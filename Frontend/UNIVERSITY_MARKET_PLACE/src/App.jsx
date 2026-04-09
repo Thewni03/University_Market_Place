@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import Navbar from "./components/navber";
+import Navbar from "./components/Navbar";
 import AccessibilityWidget from './components/AccessibilityWidget';
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
+import CampusFeed from "./pages/CampusFeed/CampusFeed";
 import Profile from "./pages/profile/profile";
 import CreateService from "./pages/CreateService/createservice";
 import EditService from "./pages/services/editservice";
@@ -12,6 +13,8 @@ import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
 import PostRequest from "./pages/PostRequest/PostRequest";
 import RequestDetail from "./pages/RequestDetail/RequestDetail";
 import Chat from "./pages/Chat/chat.jsx";
+import CampusForum from "./pages/CampusForum/CampusForum";
+import ForumThread from "./pages/CampusForum/ForumThread";
 
 // ── Components ─────────────────────────────────────────────────────────────
 import BookingForm from "./components/Booking/BookingForm.jsx";
@@ -65,6 +68,9 @@ function App() {
         {/* Core */}
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/feed" element={<CampusFeed />} />
+        <Route path="/forum" element={<CampusForum />} />
+        <Route path="/forum/:id" element={<ForumThread />} />
         <Route path="/dashboard" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
 
@@ -97,7 +103,6 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
-
       {/* ♿ Accessibility widget — fixed bottom-left, visible on every page */}
       <AccessibilityWidget />
     </NotificationProvider>

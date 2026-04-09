@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken";
 import Users from "../models/RegisterModel.js";
 
 export const protectRoute = async (req, res, next) => {
+  const fallbackId = req.body?.userId || req.query?.userId;
   try {
-    const fallbackId = req.body?.userId || req.query?.userId;
     let token = req.cookies?.jwt;
 
     if (!token && req.headers.authorization?.startsWith("Bearer ")) {

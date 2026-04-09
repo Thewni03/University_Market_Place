@@ -517,7 +517,6 @@ const Payment = () => {
           </div>
         </div>
       </div>
-
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn p-4">
