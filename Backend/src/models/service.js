@@ -103,6 +103,9 @@ const ServiceSchema = new Schema(
 
 // Helpful text search (optional)
 ServiceSchema.index({ title: "text", description: "text" });
+ServiceSchema.index({ isPublished: 1, category: 1, locationMode: 1, createdAt: -1 });
+ServiceSchema.index({ isPublished: 1, publishedAt: -1, createdAt: -1 });
+ServiceSchema.index({ ownerId: 1, createdAt: -1 });
 
 // Auto-set publishedAt
 ServiceSchema.pre("save", function () {

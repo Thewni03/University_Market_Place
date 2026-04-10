@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  SlidersHorizontal, Briefcase, Sparkles, TrendingUp, MonitorSmartphone, BookOpen, Video, PenTool, Camera, Loader2, ArrowRight, Search, Plus, Zap, Users, Shield
+  SlidersHorizontal, Briefcase, Sparkles, TrendingUp, MonitorSmartphone, BookOpen, Video, PenTool, Camera, Loader2, ArrowRight, Search, Plus, Zap, Users, Shield, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { mockServices, mockRequests } from "../../data/mockData";
 import ServiceCard from "../../components/ServiceCard";
@@ -39,6 +39,13 @@ export default function Home() {
 
   const [services, setServices] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [servicePage, setServicePage] = useState(1);
+  const [servicePagination, setServicePagination] = useState({
+    page: 1,
+    limit: 12,
+    totalPages: 1,
+    totalCount: 0,
+  });
   
   const [loading, setLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
@@ -78,6 +85,10 @@ export default function Home() {
   }, [API_BASE_URL]);
 
   useEffect(() => {
+    setServicePage(1);
+  }, [selectedCategory, location, minRating]);
+
+  useEffect(() => {
     const fetchRankedServices = async () => {
       setServicesLoading(true);
       setServicesError("");
@@ -87,6 +98,8 @@ export default function Home() {
         if (selectedCategory !== "All") params.set("category", selectedCategory);
         if (location !== "all") params.set("location", location);
         if (Number(minRating) > 0) params.set("minRating", String(minRating));
+        params.set("page", String(servicePage));
+        params.set("limit", "12");
 
         const response = await fetch(`${API_BASE_URL}/api/services/ranked?${params.toString()}`);
         const result = await response.json().catch(() => ({}));
@@ -96,6 +109,12 @@ export default function Home() {
 
         const data = Array.isArray(result.data) ? result.data : [];
         setServices(data);
+        setServicePagination({
+          page: Number(result.page || servicePage || 1),
+          limit: Number(result.limit || 12),
+          totalPages: Math.max(1, Number(result.totalPages || 1)),
+          totalCount: Number(result.totalCount || data.length || 0),
+        });
 
         if (data.length > 0) {
           const calcMax = Math.max(...data.map(s => Number(s.pricePerHour || s.price || 0)), 1000);
@@ -108,6 +127,12 @@ export default function Home() {
       } catch (error) {
         console.error("Error fetching ranked services, falling back to mock:", error);
         setServices(mockServices);
+        setServicePagination({
+          page: 1,
+          limit: 12,
+          totalPages: 1,
+          totalCount: mockServices.length,
+        });
         // Silently handled without explicit UI error for clean visuals
       } finally {
         setServicesLoading(false);
@@ -115,7 +140,7 @@ export default function Home() {
     };
 
     fetchRankedServices();
-  }, [API_BASE_URL, selectedCategory, location, minRating]);
+  }, [API_BASE_URL, selectedCategory, location, minRating, servicePage]);
 
   const mappedServices = useMemo(
     () =>
@@ -172,6 +197,29 @@ export default function Home() {
   }, [requests, searchQuery]);
 
   const trending = useMemo(() => filteredServices.slice(0, 10), [filteredServices]);
+
+  const ServiceGridSkeleton = () => (
+    <div className={`grid grid-cols-1 md:grid-cols-2 ${isLoggedIn ? "xl:grid-cols-3 2xl:grid-cols-4" : "lg:grid-cols-3 xl:grid-cols-4"} gap-6`}>
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between mb-4">
+            <div className="h-6 w-24 rounded-full bg-slate-200 animate-pulse" />
+            <div className="h-5 w-12 rounded-full bg-slate-200 animate-pulse" />
+          </div>
+          <div className="h-5 w-4/5 rounded bg-slate-200 animate-pulse" />
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
+            <div className="h-4 w-28 rounded bg-slate-200 animate-pulse" />
+          </div>
+          <div className="mt-4 h-4 w-3/4 rounded bg-slate-200 animate-pulse" />
+          <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="h-4 w-20 rounded bg-slate-200 animate-pulse" />
+            <div className="h-6 w-24 rounded bg-slate-200 animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   // Keerthi's Trending ML Section
   const TrendingSection = () => (
@@ -284,12 +332,21 @@ export default function Home() {
                 <span className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-md shadow-inner border border-slate-200">
                     Max Price LKR {priceRange[1].toLocaleString()}
                 </span>
+                {tab === "services" ? (
+                  <span className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-md shadow-inner border border-slate-200">
+                    {servicePagination.totalCount.toLocaleString()} services
+                  </span>
+                ) : null}
             </div>
           </div>
         </div>
           {(loading || servicesLoading) ? (
-            <div className="flex items-center justify-center p-12">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <div className="space-y-5">
+              <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-sm">
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                Loading ranked services...
+              </div>
+              <ServiceGridSkeleton />
             </div>
           ) : tab === "services" ? (
             filteredServices.length === 0 ? (
@@ -324,6 +381,34 @@ export default function Home() {
               </div>
             )
           )}
+
+          {tab === "services" && servicePagination.totalPages > 1 ? (
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setServicePage((prev) => Math.max(1, prev - 1))}
+                disabled={servicePagination.page <= 1 || servicesLoading}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+
+              <span className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 border border-slate-200">
+                Page {servicePagination.page} of {servicePagination.totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setServicePage((prev) => Math.min(servicePagination.totalPages, prev + 1))}
+                disabled={servicePagination.page >= servicePagination.totalPages || servicesLoading}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          ) : null}
       </div>
     </div>
   );
