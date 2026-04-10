@@ -5,10 +5,12 @@ import ChatContainer from "../../components/ChatContainer";
 import NoChatSelected from "../../components/NoChatSelected";
 import Sidebar from "../../components/Sidebar";
 import { useChatStore } from "../../store/useChatStore";
+import { useAuthStore } from "../../store/useAuthStore";
 
 const Chat = () => {
   const location = useLocation();
-  const { selectedUser, users, setSelecteduser } = useChatStore();
+  const { selectedUser, users, setSelecteduser, subscribeToMessages, unsubscribeFromMessages } = useChatStore();
+  const { Socket } = useAuthStore();
   const handledOpenChatUserIdRef = useRef(null);
   const openChatUser = useMemo(() => location.state?.openChatUser || null, [location.state]);
 
@@ -26,6 +28,14 @@ const Chat = () => {
     setSelecteduser(existingUser);
     handledOpenChatUserIdRef.current = openChatUser._id;
   }, [openChatUser, selectedUser?._id, setSelecteduser, users]);
+
+  useEffect(() => {
+    if (!Socket) return;
+
+    subscribeToMessages();
+
+    return () => unsubscribeFromMessages();
+  }, [Socket, subscribeToMessages, unsubscribeFromMessages]);
 
   return (
     <div className="chat-ambient min-h-[calc(100vh-4rem)] px-3 py-3 sm:px-4 sm:py-4">
