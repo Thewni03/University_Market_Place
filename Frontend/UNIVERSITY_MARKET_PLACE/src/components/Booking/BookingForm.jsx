@@ -60,60 +60,27 @@ const BookingForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    // Full Name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = 'Full name must be at least 3 characters';
-    } else if (!/^[a-zA-Z\s]+$/.test(formData.fullName.trim())) {
-      newErrors.fullName = 'Full name should only contain letters and spaces';
-    }
-
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Contact number validation
-    if (!formData.contact.trim()) {
-      newErrors.contact = 'Contact number is required';
-    } else if (!/^[0-9]{10,12}$/.test(formData.contact.replace(/\s/g, ''))) {
-      newErrors.contact = 'Please enter a valid phone number (10-12 digits)';
-    }
-
-    // Address validation
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    } else if (formData.address.trim().length < 5) {
-      newErrors.address = 'Address must be at least 5 characters';
-    }
-
-    // NIC/Passport validation
-    if (!formData.nic.trim()) {
-      newErrors.nic = 'NIC or Passport number is required';
-    } else if (formData.nic.trim().length < 5) {
-      newErrors.nic = 'Please enter a valid NIC or Passport number';
-    }
-
-    // Date validation
-    if (!formData.date) {
-      newErrors.date = 'Please select a date';
-    } else {
-      const selectedDate = new Date(formData.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        newErrors.date = 'Please select a future date';
+  const validateForm = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/payments/validate-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const result = await response.json();
+      
+      if (!result.success && result.errors) {
+        setErrors(result.errors);
+        return false;
       }
+      
+      setErrors({});
+      return true;
+    } catch (error) {
+      console.error('Validation error:', error);
+      alert('Could not reach validation server.');
+      return false;
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleInputChange = (e) => {
@@ -196,22 +163,22 @@ const BookingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // Validate form
-    if (!validateForm()) {
-      // Scroll to first error
-      const firstError = Object.keys(errors)[0];
-      if (firstError) {
-        const element = document.querySelector(`[name="${firstError}"]`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.focus();
+    // Validate form through backend
+    const isValid = await validateForm();
+    if (!isValid) {
+      setIsSubmitting(false);
+      // Let React render errors first, then scroll
+      setTimeout(() => {
+        const errorElements = document.querySelectorAll('.border-red-400, .border-red-500');
+        if (errorElements.length > 0) {
+          errorElements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          errorElements[0].focus();
         }
-      }
+      }, 100);
       return;
     }
-
-    setIsSubmitting(true);
 
     try {
       // Create an array to hold uploaded file metadata
@@ -422,17 +389,11 @@ const BookingForm = () => {
   );
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#F8F9FF] via-[#F0F3FF] to-[#E9ECFF] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Animated Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#3B82F6]/5 via-[#8B5CF6]/5 to-[#EC4899]/5 animate-gradient"></div>
-
-      {/* Floating Particles Background */}
-      <FloatingParticles />
-
+    <div className="min-h-screen w-full bg-background font-sans py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Page Header */}
       <div className="max-w-7xl mx-auto relative z-10 animate-fadeIn">
         <div className="mb-10 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-4 animate-slideIn">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4 animate-slideIn">
             Customer Booking Form
           </h1>
           <p className="text-base text-[#6B7280] mb-4">Please fill in your details to confirm your booking.</p>
@@ -449,12 +410,12 @@ const BookingForm = () => {
             <div className="lg:col-span-2 space-y-6 animate-slideIn" style={{ animationDelay: '150ms' }}>
 
               {/* Customer Details */}
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(59,130,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.3)] transition-all duration-500">
+              <div className="bg-white rounded-3xl shadow-sm p-6 lg:p-8 border border-slate-100 hover:shadow-md transition-all">
                 <div className="mb-6">
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">
                     Customer Details
                   </h2>
-                  <div className="w-16 h-1 bg-gradient-to-r from-[#3B82F6] to-transparent rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
+                  <div className="w-16 h-1 rounded-full bg-slate-900"></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -555,12 +516,12 @@ const BookingForm = () => {
               </div>
 
               {/* Service Details - Auto Populated */}
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
+              <div className="bg-white rounded-3xl shadow-sm p-6 lg:p-8 border border-slate-100 hover:shadow-md transition-all">
                 <div className="mb-6">
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-2">
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">
                     Service Details
                   </h2>
-                  <div className="w-16 h-1 bg-gradient-to-r from-[#8B5CF6] to-transparent rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]"></div>
+                  <div className="w-16 h-1 rounded-full bg-slate-900"></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -591,6 +552,7 @@ const BookingForm = () => {
                         type="date"
                         name="date"
                         value={formData.date}
+                        min={new Date().toISOString().split('T')[0]}
                         onChange={handleInputChange}
                         className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all ${errors.date
                             ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500'
@@ -742,8 +704,8 @@ const BookingForm = () => {
 
             {/* Right Side - Summary */}
             <div className="lg:sticky lg:top-5 h-fit animate-slideIn" style={{ animationDelay: '300ms' }}>
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.2)] transition-all duration-500">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-6">
+              <div className="bg-white rounded-3xl shadow-sm p-6 lg:p-8 border border-slate-100 hover:shadow-md transition-all">
+                <h3 className="text-2xl font-bold text-slate-900 mb-6">
                   Booking Summary
                 </h3>
 

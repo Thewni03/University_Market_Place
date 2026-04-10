@@ -359,7 +359,7 @@ const RatingReview = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </div>
-        <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Delete Review</h3>
+        <h3 className="font-display text-xl font-bold text-slate-800 text-center mb-2">Delete Review</h3>
         <p className="text-gray-500 text-center mb-6">Are you sure you want to delete your review? This action cannot be undone.</p>
         <div className="flex gap-3">
           <button
@@ -387,7 +387,7 @@ const RatingReview = () => {
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn p-4">
         <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-gray-100">
-          <h3 className="text-xl font-bold bg-gradient-to-r from-[#667EEA] to-[#764BA2] bg-clip-text text-transparent mb-4">
+          <h3 className="font-display text-xl font-bold text-slate-800 mb-4">
             Edit Your Review
           </h3>
 
@@ -442,8 +442,7 @@ const RatingReview = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#F8F9FF] via-[#F0F3FF] to-[#E9ECFF] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B6B]/5 via-[#4ECDC4]/5 to-[#667EEA]/5 animate-gradient"></div>
+    <div className="min-h-screen w-full bg-background py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
       <FloatingParticles />
 
       {deleteConfirm && (
@@ -469,7 +468,7 @@ const RatingReview = () => {
             <div className="flex flex-col md:flex-row md:items-center gap-8">
               <div className="text-center md:text-left">
                 <div className="flex items-center gap-4 justify-center md:justify-start">
-                  <span className="text-6xl font-bold bg-gradient-to-r from-[#667EEA] via-[#764BA2] to-[#A06AB4] bg-clip-text text-transparent">
+                  <span className="font-display text-6xl font-extrabold text-slate-900">
                     {averageRating}
                   </span>
                   <div className="flex flex-col items-start">
@@ -509,14 +508,14 @@ const RatingReview = () => {
           </div>
 
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[#1F2937]">Customer Reviews</h2>
+            <h2 className="font-display text-2xl font-extrabold text-slate-800">Customer Reviews</h2>
             <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
               <span className="text-sm text-[#667EEA] font-semibold">✨ {reviews.length} reviews</span>
             </div>
           </div>
 
           <div className="mb-8 bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-[0_10px_40px_-10px_rgba(102,126,234,0.2)] border border-white/50 hover:shadow-[0_15px_50px_-10px_rgba(102,126,234,0.3)] transition-all duration-300">
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-[#667EEA] to-[#764BA2] bg-clip-text text-transparent mb-4">
+            <h3 className="font-display text-lg font-bold text-slate-800 mb-4">
               Write a Review
             </h3>
 
