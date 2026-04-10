@@ -97,6 +97,7 @@ export default function Profile() {
   const [sampleWork, setSampleWork] = useState([]);
   const [selectedCertificateSrc, setSelectedCertificateSrc] = useState("");
   const [draft, setDraft] = useState({ bio: defaultBio });
+  const [apiMessage, setApiMessage] = useState("");
 
   const buildSmoothPath = (coords) => {
     if (!coords || coords.length === 0) return "";
@@ -328,6 +329,7 @@ export default function Profile() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Failed to save profile.");
       await fetchProfileFromApi();
+      setApiMessage("");
       if (profilePhoto || result?.data?.profile_picture) {
         const stored = JSON.parse(localStorage.getItem("user") || "null");
         const nextProfilePic = result?.data?.profile_picture || profilePhoto;
@@ -419,41 +421,54 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="page-container py-6">
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <div className="bg-emerald-800 pb-24 pt-16 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 relative z-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-100">Student Profile</p>
+          <h1 className="mt-4 text-4xl lg:text-5xl font-extrabold tracking-tight">
+            Your Marketplace Identity
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-emerald-100">
+            Manage your public profile, showcase proof of work, and track how students discover and book your services.
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-5 lg:px-8 -mt-12 relative z-20">
         {loading && (
-          <div className="mb-4 rounded-lg border border-border bg-card p-3 text-left text-sm text-muted-foreground">
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-left text-sm text-slate-500 shadow-sm">
             Loading profile...
           </div>
         )}
 
         {/* Profile Card */}
-        <div className="rounded-2xl border border-border bg-card p-6 mb-6 mt-2 animate-fade-in">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 mb-6 mt-2 shadow-sm animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-start gap-5">
             <div className="relative">
               {toImageSrc(profilePhoto) ? (
                 <img
                   src={toImageSrc(profilePhoto)}
                   alt="Profile"
-                  className="h-20 w-20 rounded-2xl object-cover border border-border"
+                  className="h-24 w-24 rounded-[28px] object-cover border border-slate-200"
                 />
               ) : (
-                <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary font-display">
+                <div className="h-24 w-24 rounded-[28px] bg-emerald-50 flex items-center justify-center text-2xl font-bold text-emerald-700 font-display border border-emerald-100">
                   {(name || "?").split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
                 </div>
               )}
-              <BadgeCheck className="absolute -bottom-1 -right-1 h-6 w-6 text-success bg-card rounded-full" />
+              <BadgeCheck className="absolute -bottom-1 -right-1 h-7 w-7 text-emerald-600 bg-white rounded-full" />
             </div>
 
             <div className="flex-1 text-left">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="font-display text-xl font-bold text-foreground">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h1 className="font-display text-2xl font-bold text-slate-900">
                   {name || "Name not available"}
                 </h1>
-                <Badge className="text-xs bg-success/10 text-success border-success/30">Verified</Badge>
+                <Badge className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">Verified</Badge>
               </div>
 
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-slate-500 mb-3">
                 {education || "Education not available"}
               </p>
 
@@ -461,20 +476,20 @@ export default function Profile() {
                 <textarea
                   value={draft.bio}
                   onChange={(e) => setDraft((d) => ({ ...d, bio: e.target.value }))}
-                  className="w-full rounded-lg border border-input bg-secondary/30 p-3 text-sm text-foreground resize-none h-24 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-800 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Write something about you…"
                 />
               ) : (
-                <p className="text-sm text-muted-foreground leading-relaxed">{bio}</p>
+                <p className="text-sm text-slate-600 leading-7">{bio || "Tell students a bit about your background, strengths, and the kind of work you do best."}</p>
               )}
 
               <div className="mt-3">
                 <div className="flex flex-wrap gap-1.5">
                   {skills.length === 0 && !editMode && (
-                    <span className="text-xs text-muted-foreground">No skills added yet.</span>
+                    <span className="text-xs text-slate-500">No skills added yet.</span>
                   )}
                   {skills.map((skill, index) => (
-                    <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs flex items-center gap-1">
+                    <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs flex items-center gap-1 bg-slate-100 text-slate-700 border-slate-200 rounded-md px-2.5 py-1">
                       {skill}
                       {editMode && (
                         <button
@@ -495,9 +510,9 @@ export default function Profile() {
                       onChange={(e) => setSkillInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }}
                       placeholder="Type a skill and press Enter"
-                      className="w-full sm:w-64 rounded-lg border border-input bg-secondary/30 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full sm:w-64 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     />
-                    <Button type="button" size="sm" onClick={addSkill}>Add</Button>
+                    <Button type="button" size="sm" onClick={addSkill} className="bg-emerald-600 hover:bg-emerald-500 text-white">Add</Button>
                   </div>
                 )}
               </div>
@@ -508,7 +523,7 @@ export default function Profile() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-[#4a4e69] text-[#013a63] hover:bg-[#4a4e69]/20 hover:text-[#013a63] hover:border-[#4a4e69]"
+                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-400"
                 disabled={saving || loading}
                 onClick={() => (editMode ? saveEdit() : startEdit())}
               >
@@ -527,10 +542,10 @@ export default function Profile() {
           </div>
 
           {editMode && (
-            <div className="mt-5 pt-5 border-t border-border space-y-3 animate-fade-in">
+            <div className="mt-5 pt-5 border-t border-slate-200 space-y-3 animate-fade-in">
               <div className="flex items-center gap-3">
-                <Upload className="h-4 w-4 text-muted-foreground" />
-                <label className="text-sm text-primary cursor-pointer hover:underline">
+                <Upload className="h-4 w-4 text-slate-500" />
+                <label className="text-sm text-emerald-700 cursor-pointer hover:underline font-medium">
                   Upload profile photo
                   <input
                     type="file"
@@ -543,12 +558,12 @@ export default function Profile() {
                     }}
                   />
                 </label>
-                {profilePhoto && <span className="text-xs text-muted-foreground">Image selected</span>}
+                {profilePhoto && <span className="text-xs text-slate-500">Image selected</span>}
               </div>
 
               <div className="flex items-center gap-3">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                <label className="text-sm text-primary cursor-pointer hover:underline">
+                <Tag className="h-4 w-4 text-slate-500" />
+                <label className="text-sm text-emerald-700 cursor-pointer hover:underline font-medium">
                   Upload certificates / work samples
                   <input
                     type="file"
@@ -563,7 +578,7 @@ export default function Profile() {
                   />
                 </label>
                 {sampleWork.length > 0 && (
-                  <span className="text-xs text-muted-foreground">{sampleWork.length} image(s)</span>
+                  <span className="text-xs text-slate-500">{sampleWork.length} image(s)</span>
                 )}
               </div>
             </div>
@@ -571,10 +586,20 @@ export default function Profile() {
         </div>
 
         {/* Certificates */}
-        <div className="rounded-2xl border border-border bg-card p-6 mb-6 animate-fade-in">
-          <h2 className="font-display text-lg font-bold text-foreground mb-4">Certificates</h2>
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 mb-6 shadow-sm animate-fade-in">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h2 className="font-display text-xl font-bold text-slate-900">Certificates</h2>
+            <span className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+              {sampleWork.length} uploaded
+            </span>
+          </div>
+          {apiMessage ? (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {apiMessage}
+            </div>
+          ) : null}
           {sampleWork.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No certificate images uploaded yet.</p>
+            <p className="text-sm text-slate-500">No certificate images uploaded yet.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {sampleWork.map((item, index) => {
@@ -589,14 +614,14 @@ export default function Profile() {
                           setSampleWork((prev) => prev.filter((_, i) => i !== index));
                           setApiMessage("Certificate removed. Click Save to update database.");
                         }}
-                        className="absolute top-1 right-1 z-10 rounded bg-black/70 px-2 py-0.5 text-xs text-white"
+                        className="absolute top-2 right-2 z-10 rounded-xl bg-slate-900/80 px-2.5 py-1 text-xs text-white"
                       >Delete</button>
                     )}
                     <button type="button" onClick={() => setSelectedCertificateSrc(src)} className="w-full text-left">
                       <img
                         src={src}
                         alt={`Certificate ${index + 1}`}
-                        className="w-full aspect-[4/3] rounded-lg object-cover border border-border cursor-zoom-in"
+                        className="w-full aspect-[4/3] rounded-2xl object-cover border border-slate-200 cursor-zoom-in"
                       />
                     </button>
                   </div>
@@ -616,7 +641,7 @@ export default function Profile() {
         )}
 
         {/* Stats */}
-        <h2 className="font-display text-lg font-bold text-foreground mb-4">Provider Dashboard</h2>
+        <h2 className="font-display text-2xl font-bold text-slate-900 mb-4">Provider Dashboard</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatsCard icon={<DollarSign className="h-5 w-5" />} label="Revenue" value={`LKR ${viewAnalytics.totalRevenue.toLocaleString()}`} change="Current total" positive iconToneClass="bg-emerald-500/10 text-emerald-600" />
           <StatsCard icon={<Calendar className="h-5 w-5" />} label="Bookings" value={viewAnalytics.totalBookings.toLocaleString()} change="Current total" positive iconToneClass="bg-cyan-500/10 text-cyan-600" />
@@ -627,7 +652,7 @@ export default function Profile() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
 
           {/* Views Chart */}
-          <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-violet-600" />
@@ -636,7 +661,7 @@ export default function Profile() {
               <div className="flex items-center gap-2">
                 {["day", "week", "month"].map((m) => (
                   <button key={m} type="button" onClick={() => setViewMode(m)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === m ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary text-secondary-foreground border border-border"}`}>
+                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === m ? "bg-emerald-600 text-white border border-emerald-600 shadow-sm" : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"}`}>
                     {m === "day" ? "Everyday" : m.charAt(0).toUpperCase() + m.slice(1)}
                   </button>
                 ))}
@@ -645,25 +670,25 @@ export default function Profile() {
 
             {viewMode === "week" && (
               <div className="mb-4 flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Select Month</label>
-                <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground" />
+                <label className="text-xs text-slate-500">Select Month</label>
+                <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800" />
               </div>
             )}
 
             {viewsLoading ? (
-              <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">Loading chart...</div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">Loading chart...</div>
             ) : (
               <div>
                 <div className="mb-4">
-                  <p className="text-4xl font-display font-bold text-foreground">{viewAnalytics.totalViews.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Views</p>
-                  <p className="text-sm text-muted-foreground mt-1">Bookings: {viewAnalytics.totalBookings.toLocaleString()}</p>
+                  <p className="text-4xl font-display font-bold text-slate-900">{viewAnalytics.totalViews.toLocaleString()}</p>
+                  <p className="text-sm text-slate-500">Views</p>
+                  <p className="text-sm text-slate-500 mt-1">Bookings: {viewAnalytics.totalBookings.toLocaleString()}</p>
                 </div>
 
                 {viewAnalytics.points.length === 0 ? (
-                  <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">No view data yet.</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No view data yet.</div>
                 ) : (
-                  <div className="relative rounded-xl border border-border bg-secondary/20 p-4">
+                  <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     {(() => {
                       const points = viewAnalytics.points;
                       const maxValue = Math.max(1, ...points.map((p) => Math.max(p.views, p.bookings || 0)));
@@ -698,17 +723,17 @@ export default function Profile() {
                           </svg>
 
                           {/* ← CHANGED: absolute-positioned labels instead of grid (better alignment) */}
-                          <div className="mt-2 relative h-5 text-[11px] text-muted-foreground">
+                          <div className="mt-2 relative h-5 text-[11px] text-slate-500">
                             {points.map((p, i) => (
                               <span key={p.key} className="absolute -translate-x-1/2 truncate" style={{ left: `${getX(i)}%` }}>{p.label}</span>
                             ))}
                           </div>
 
                           {selectedPoint && (
-                            <div className="absolute top-5 z-10 rounded-lg border border-border bg-card p-3 shadow-lg min-w-[180px]" style={{ left: `calc(${Math.min(82, Math.max(8, selectedX))}% - 90px)` }}>
-                              <p className="text-xs text-muted-foreground mb-2">{selectedPoint.range || selectedPoint.label}</p>
-                              <p className="text-sm text-foreground">Total views: {selectedPoint.views}</p>
-                              <p className="text-sm text-foreground">Total bookings: {selectedPoint.bookings || 0}</p>
+                            <div className="absolute top-5 z-10 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg min-w-[180px]" style={{ left: `calc(${Math.min(82, Math.max(8, selectedX))}% - 90px)` }}>
+                              <p className="text-xs text-slate-500 mb-2">{selectedPoint.range || selectedPoint.label}</p>
+                              <p className="text-sm text-slate-900">Total views: {selectedPoint.views}</p>
+                              <p className="text-sm text-slate-900">Total bookings: {selectedPoint.bookings || 0}</p>
                             </div>
                           )}
                         </>
@@ -717,11 +742,11 @@ export default function Profile() {
                   </div>
                 )}
 
-                <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-purple-600" />Views</span>
                   <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-green-500" />Bookings</span>
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="mt-3 text-xs text-slate-500">
                   {viewMode === "week" ? "Showing selected month grouped into 4 weeks." : viewMode === "month" ? "Showing month-wise views." : "Showing last 7 days (everyday views)."}
                 </p>
               </div>
@@ -729,7 +754,7 @@ export default function Profile() {
           </div>
 
           {/* Revenue Chart — ← CHANGED: now has its own mode buttons, month picker, loading state, and revenueAnalytics data */}
-          <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -742,7 +767,7 @@ export default function Profile() {
                     key={m}
                     type="button"
                     onClick={() => setRevenueMode(m)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${revenueMode === m ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary text-secondary-foreground border border-border"}`}>
+                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${revenueMode === m ? "bg-emerald-600 text-white border border-emerald-600 shadow-sm" : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"}`}>
                     {m === "day" ? "Everyday" : m.charAt(0).toUpperCase() + m.slice(1)}
                   </button>
                 ))}
@@ -752,30 +777,30 @@ export default function Profile() {
             {/* ← ADDED: month picker for revenue chart's own week mode */}
             {revenueMode === "week" && (
               <div className="mb-4 flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Select Month</label>
+                <label className="text-xs text-slate-500">Select Month</label>
                 <input
                   type="month"
                   value={selectedRevenueMonth}
                   onChange={(e) => setSelectedRevenueMonth(e.target.value)}
-                  className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground"
+                  className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800"
                 />
               </div>
             )}
 
             {revenueLoading ? (
-              <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">Loading chart...</div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">Loading chart...</div>
             ) : (
               <div>
                 <div className="mb-4">
                   {/* ← CHANGED: now reads from revenueAnalytics instead of viewAnalytics */}
-                  <p className="text-4xl font-display font-bold text-foreground">LKR {revenueAnalytics.totalRevenue.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Revenue</p>
+                  <p className="text-4xl font-display font-bold text-slate-900">LKR {revenueAnalytics.totalRevenue.toLocaleString()}</p>
+                  <p className="text-sm text-slate-500">Revenue</p>
                 </div>
 
                 {revenueAnalytics.points.length === 0 ? (
-                  <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">No revenue data yet.</div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No revenue data yet.</div>
                 ) : (
-                  <div className="relative rounded-xl border border-border bg-secondary/20 p-4">
+                  <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     {(() => {
                       const points = revenueAnalytics.points; // ← CHANGED: uses revenueAnalytics
                       const maxValue = Math.max(1, ...points.map((p) => p.revenue || 0));
@@ -801,16 +826,16 @@ export default function Profile() {
                             ))}
                           </svg>
 
-                          <div className="mt-2 relative h-5 text-[11px] text-muted-foreground">
+                          <div className="mt-2 relative h-5 text-[11px] text-slate-500">
                             {points.map((p, i) => (
                               <span key={p.key} className="absolute -translate-x-1/2 truncate" style={{ left: `${getX(i)}%` }}>{p.label}</span>
                             ))}
                           </div>
 
                           {selectedPoint && (
-                            <div className="absolute top-5 z-10 rounded-lg border border-border bg-card p-3 shadow-lg min-w-[180px]" style={{ left: `calc(${Math.min(82, Math.max(8, selectedX))}% - 90px)` }}>
-                              <p className="text-xs text-muted-foreground mb-2">{selectedPoint.range || selectedPoint.label}</p>
-                              <p className="text-sm text-foreground">Revenue: LKR {Number(selectedPoint.revenue || 0).toLocaleString()}</p>
+                            <div className="absolute top-5 z-10 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg min-w-[180px]" style={{ left: `calc(${Math.min(82, Math.max(8, selectedX))}% - 90px)` }}>
+                              <p className="text-xs text-slate-500 mb-2">{selectedPoint.range || selectedPoint.label}</p>
+                              <p className="text-sm text-slate-900">Revenue: LKR {Number(selectedPoint.revenue || 0).toLocaleString()}</p>
                             </div>
                           )}
                         </>
@@ -819,7 +844,7 @@ export default function Profile() {
                   </div>
                 )}
 
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="mt-3 text-xs text-slate-500">
                   {revenueMode === "week" ? "Showing selected month grouped into 4 weeks." : revenueMode === "month" ? "Showing month-wise revenue." : "Showing last 7 days (everyday revenue)."}
                 </p>
               </div>
@@ -829,36 +854,36 @@ export default function Profile() {
 
         {/* My Services */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-foreground">My Services</h2>
+          <h2 className="font-display text-2xl font-bold text-slate-900">My Services</h2>
           <Link to="/create-service">
             {/* ← CHANGED: button color updated to #4a4e69 brand color */}
-            <Button size="sm" className="bg-[#4a4e69] hover:bg-[#7a879d] text-white">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl">
               <Plus className="h-4 w-4 mr-1" /> Add Service
             </Button>
           </Link>
         </div>
 
         {servicesLoading && (
-          <div className="mb-4 rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">Loading services...</div>
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-500">Loading services...</div>
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {myServices.map((s) => (
-            <div key={s._id} className="rounded-xl border border-border bg-card p-5 card-hover">
+            <div key={s._id} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-emerald-200">
               <div className="flex items-center justify-between mb-3">
-                <Badge variant="secondary" className="text-xs">{s.category}</Badge>
+                <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700 border-slate-200">{s.category}</Badge>
                 <Badge className={`text-xs ${!s.isPublished ? "bg-orange-500/10 text-orange-600 border-orange-300" : "bg-green-500/10 text-green-600 border-green-300 font-semibold"}`}>
                   {s.isPublished ? "Active" : "Paused"}
                 </Badge>
               </div>
 
               <Link to={`/service/${s._id}`} className="block mb-3">
-                <h3 className="font-display text-sm font-semibold text-foreground hover:text-primary transition-colors">{s.title}</h3>
+                <h3 className="font-display text-base font-semibold text-slate-900 hover:text-emerald-700 transition-colors">{s.title}</h3>
               </Link>
 
               <Link to={`/service/${s._id}`} className="block">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                  <Star className="h-3.5 w-3.5 text-accent" />
+                <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+                  <Star className="h-3.5 w-3.5 text-amber-500" />
                   <span>LKR {s.pricePerHour}/hr</span>
                   <span>•</span>
                   <span>{s.locationMode}</span>
@@ -867,7 +892,7 @@ export default function Profile() {
 
               <div className="flex gap-1.5">
                 <Link to={`/edit-service/${s._id}`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full text-xs transition-colors hover:bg-[#70798c]/10 hover:text-[#70798c] hover:border-[#70798c]/50">
+                  <Button variant="outline" size="sm" className="w-full text-xs border-slate-300 text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-700 hover:border-emerald-300">
                     <Edit className="h-3 w-3 mr-1" /> Edit
                   </Button>
                 </Link>
