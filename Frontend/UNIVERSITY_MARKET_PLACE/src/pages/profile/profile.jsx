@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; // ← ADDED: useNavigate for logout
+import BookingHistory from "../../components/Booking/BookingHistory";
 import {
   DollarSign,
   Calendar,
@@ -907,6 +908,11 @@ export default function Profile() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Booking History Section */}
+        <div className="mt-10 animate-fade-in">
+          <BookingHistory />
         </div>
       </div>
     </div>

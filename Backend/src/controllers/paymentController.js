@@ -37,14 +37,16 @@ export const validateBooking = (req, res) => {
     errors.address = 'Address is required';
   } else if (safeAddress.trim().length < 5) {
     errors.address = 'Address must be at least 5 characters';
+  } else if (!/^[a-zA-Z\s]+$/.test(safeAddress.trim())) {
+    errors.address = 'Address should only contain letters and spaces';
   }
 
-  // NIC/Passport validation
+  // NIC validation
   const safeNic = nic || '';
   if (!safeNic.trim()) {
-    errors.nic = 'NIC or Passport number is required';
-  } else if (safeNic.trim().length < 5) {
-    errors.nic = 'Please enter a valid NIC or Passport number';
+    errors.nic = 'NIC number is required';
+  } else if (!/^[0-9]{10}$/.test(safeNic.trim())) {
+    errors.nic = 'NIC number must be exactly 10 digits';
   }
 
 

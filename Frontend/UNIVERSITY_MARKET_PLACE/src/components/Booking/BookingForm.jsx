@@ -84,7 +84,16 @@ const BookingForm = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    if (name === 'email') {
+      value = value.replace(/[^a-zA-Z@.]/g, '');
+    } else if (name === 'nic') {
+      value = value.replace(/[^0-9]/g, '');
+    } else if (name === 'address') {
+      value = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -204,8 +213,8 @@ const BookingForm = () => {
         }
       }
 
-      // After successful booking & upload, navigate to payment page
-      navigate('/payment', {
+      // After successful booking & upload, navigate to booking success page
+      navigate('/booking-success', {
         state: {
           bookingId: 'UNI-' + Math.floor(Math.random() * 1000000),
           amount: paymentSummary.totalAmount.toFixed(2),
@@ -461,9 +470,10 @@ const BookingForm = () => {
                       <input
                         type="text"
                         name="nic"
-                        placeholder="Enter NIC or Passport number *"
+                        placeholder="Enter NIC number (10 digits) *"
                         value={formData.nic}
                         onChange={handleInputChange}
+                        maxLength={10}
                         className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-[#9CA3AF] ${errors.nic
                             ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500'
                             : 'border-gray-200 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]'
