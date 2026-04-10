@@ -1,8 +1,10 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 function BookingSuccess() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const state = location.state || {};
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#F8F9FF] via-[#F0F3FF] to-[#E9ECFF] py-12 px-4 sm:px-6 lg:px-8 font-sans flex items-center justify-center">
@@ -40,7 +42,7 @@ function BookingSuccess() {
                     {/* Booking Details Card */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-6 py-4 mb-8">
                         <p className="text-green-700 text-sm font-semibold mb-2">
-                            Booking ID: <span className="bg-green-100 px-3 py-1 rounded-full inline-block ml-1 font-mono text-xs">UNI-2024-12345</span>
+                            Booking ID: <span className="bg-green-100 px-3 py-1 rounded-full inline-block ml-1 font-mono text-xs">{state.bookingId || 'UNI-2024-12345'}</span>
                         </p>
                         <p className="text-green-600 text-xs">
                             Service Provider will contact you within 24 hours
@@ -50,7 +52,7 @@ function BookingSuccess() {
                     {/* Action Buttons - Only Payment Button */}
                     <div className="space-y-3">
                         <button
-                            onClick={() => navigate('/payment')}
+                            onClick={() => navigate('/payment', { state })}
                             className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white font-bold py-3 px-8 rounded-xl text-sm transition-all duration-300 hover:shadow-lg hover:shadow-[#3B82F6]/30 hover:scale-[1.02] flex items-center justify-center gap-2 group"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
