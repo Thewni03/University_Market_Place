@@ -1,10 +1,10 @@
 import React from "react";
 import { MessageSquare } from "lucide-react";
 
-const NoChatSelected = () => {
+const NoChatSelected = ({ compact = false }) => {
   return (
     <div className="flex w-full flex-1 items-center justify-center bg-[linear-gradient(180deg,_#fcfdfc,_#f6f8f7)] px-6 py-12">
-      <div className="mx-auto max-w-2xl text-center">
+      <div className={`mx-auto text-center ${compact ? "max-w-md" : "max-w-2xl"}`}>
         <div className="mx-auto flex w-fit items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs uppercase tracking-[0.35em] text-slate-500 shadow-sm">
           <span className="inline-block size-2 rounded-full bg-emerald-500" />
           Select a conversation
@@ -19,10 +19,10 @@ const NoChatSelected = () => {
           </div>
         </div>
 
-        <h2 className="mt-8 text-4xl font-semibold tracking-tight text-slate-900">
+        <h2 className={`mt-8 font-semibold tracking-tight text-slate-900 ${compact ? "text-2xl" : "text-4xl"}`}>
           Conversations, designed to feel calm.
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-500">
+        <p className={`mx-auto mt-4 max-w-xl text-slate-500 ${compact ? "text-sm leading-6" : "text-base leading-7"}`}>
           Pick someone from the left and start chatting in a cleaner, more focused workspace built for quick replies and long conversations.
         </p>
       </div>

@@ -9,7 +9,7 @@ import { formatMessageTime } from "../lib/utils";
 
 const getUserAvatar = (user) => user?.profilePic || user?.profile_picture || "/avatar.png";
 
-const ChatContainer = () => {
+const ChatContainer = ({ compact = false }) => {
   const {
     messages,
     getMessages,
@@ -34,26 +34,26 @@ const ChatContainer = () => {
   if (isMessagesLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-auto bg-[linear-gradient(180deg,_#fcfdfc,_#f6f8f7)]">
-        <ChatHeader />
+        <ChatHeader compact={compact} />
         <MessageSkeleton />
-        <MessageInput />
+        <MessageInput compact={compact} />
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[linear-gradient(180deg,_#fcfdfc,_#f6f8f7)]">
-      <ChatHeader />
+      <ChatHeader compact={compact} />
 
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+      <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto px-4 py-6 ${compact ? "" : "sm:px-6"}`}>
+        <div className={`mx-auto flex w-full flex-col gap-5 ${compact ? "max-w-full" : "max-w-4xl"}`}>
         {messages.map((message) => (
           <div
             key={message._id}
             className={`flex w-full ${message.senderId === authUser._id ? "justify-end" : "justify-start"}`}
           >
-            <div className={`flex max-w-[min(85vw,32rem)] items-end gap-3 ${message.senderId === authUser._id ? "flex-row-reverse" : "flex-row"}`}>
-              <div className="relative size-10 shrink-0 overflow-hidden rounded-2xl border border-slate-200">
+            <div className={`flex ${compact ? "max-w-[88%]" : "max-w-[min(85vw,32rem)]"} items-end gap-3 ${message.senderId === authUser._id ? "flex-row-reverse" : "flex-row"}`}>
+              <div className={`relative shrink-0 overflow-hidden rounded-2xl border border-slate-200 ${compact ? "size-9" : "size-10"}`}>
                 <img
                   src={message.senderId === authUser._id ? getUserAvatar(authUser) : getUserAvatar(selectedUser)}
                   alt="profile pic"
@@ -67,7 +67,7 @@ const ChatContainer = () => {
                   </time>
                 </div>
                 <div
-                  className={`flex w-fit max-w-full flex-col rounded-[24px] border px-4 py-3 text-sm leading-6 shadow-[0_12px_28px_rgba(0,0,0,0.18)] ${
+                  className={`flex w-fit max-w-full flex-col rounded-[24px] border px-4 py-3 ${compact ? "text-[13px] leading-5" : "text-sm leading-6"} shadow-[0_12px_28px_rgba(0,0,0,0.18)] ${
                     message.senderId === authUser._id
                       ? "border-emerald-200 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(16,185,129,0.05))] text-slate-800 shadow-[0_10px_22px_rgba(16,185,129,0.10)]"
                       : "border-slate-200 bg-white text-slate-700 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
@@ -90,7 +90,7 @@ const ChatContainer = () => {
         </div>
       </div>
 
-      <MessageInput />
+      <MessageInput compact={compact} />
     </div>
   );
 };

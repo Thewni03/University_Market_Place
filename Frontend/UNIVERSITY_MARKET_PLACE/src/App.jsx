@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import AccessibilityWidget from './components/AccessibilityWidget';
+import TalkSpaceWidget from "./components/TalkSpaceWidget";
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import Home from "./pages/Home/Home";
@@ -103,6 +104,7 @@ function App() {
         <Route path="/pending" element={<PendingVerification />} />
         <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
       </Routes>
+      <TalkSpaceWidget />
       {/* ♿ Accessibility widget — fixed bottom-left, visible on every page */}
       <AccessibilityWidget />
     </NotificationProvider>

@@ -3,7 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MessageInput = () => {
+const MessageInput = ({ compact = false }) => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
@@ -48,9 +48,9 @@ const MessageInput = () => {
   };
 
   return (
-    <div className="border-t border-slate-200 bg-white/80 px-4 py-4 sm:px-6">
+    <div className={`border-t border-slate-200 bg-white/80 px-4 py-4 ${compact ? "" : "sm:px-6"}`}>
       {imagePreview && (
-        <div className="mx-auto mb-4 flex w-full max-w-4xl items-center gap-2">
+        <div className={`mx-auto mb-4 flex w-full items-center gap-2 ${compact ? "max-w-full" : "max-w-4xl"}`}>
           <div className="relative rounded-3xl bg-slate-100 p-2">
             <img
               src={imagePreview}
@@ -68,11 +68,11 @@ const MessageInput = () => {
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="mx-auto flex w-full max-w-4xl items-center gap-3">
-        <div className="flex flex-1 items-center gap-3 rounded-[28px] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <form onSubmit={handleSendMessage} className={`mx-auto flex w-full items-center gap-3 ${compact ? "max-w-full" : "max-w-4xl"}`}>
+        <div className={`flex flex-1 items-center gap-3 rounded-[28px] border border-slate-200 bg-white px-3 shadow-sm ${compact ? "py-1.5" : "py-2"}`}>
           <input
             type="text"
-            className="w-full bg-transparent px-2 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+            className={`w-full bg-transparent px-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 ${compact ? "py-2.5" : "py-3"}`}
             placeholder="Write something thoughtful..."
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -87,7 +87,7 @@ const MessageInput = () => {
 
           <button
             type="button"
-            className={`hidden h-11 w-11 items-center justify-center rounded-2xl border transition sm:flex ${
+            className={`hidden items-center justify-center rounded-2xl border transition sm:flex ${compact ? "h-10 w-10" : "h-11 w-11"} ${
               imagePreview
                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                 : "border-slate-200 bg-transparent text-slate-400 hover:bg-slate-50"
@@ -99,7 +99,7 @@ const MessageInput = () => {
         </div>
         <button
           type="submit"
-          className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#03045e] text-white shadow-lg shadow-[#03045e]/25 transition hover:scale-[1.02] hover:bg-[#10117a] disabled:cursor-not-allowed disabled:opacity-50"
+          className={`inline-flex items-center justify-center rounded-2xl bg-[#03045e] text-white shadow-lg shadow-[#03045e]/25 transition hover:scale-[1.02] hover:bg-[#10117a] disabled:cursor-not-allowed disabled:opacity-50 ${compact ? "h-11 w-11" : "h-12 w-12"}`}
           disabled={!text.trim() && !imagePreview}
         >
           <Send size={22} />
