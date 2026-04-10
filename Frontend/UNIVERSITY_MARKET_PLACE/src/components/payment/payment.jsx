@@ -16,6 +16,7 @@ const Payment = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  const [errors, setErrors] = useState({});
 
   const totalAmount = state.amount || '0.00';
   const serviceName = state.serviceName || 'Service';
@@ -31,14 +32,17 @@ const Payment = () => {
     serviceName: serviceName,
     amount: totalAmount,
     paymentMethod: selectedMethod === 'credit' ? 'Credit Card' : selectedMethod === 'paypal' ? 'PayPal' : 'Bank Transfer',
-    cardLast4: selectedMethod === 'credit' && cardNumber.length >= 4 ? cardNumber.slice(-4) : 'N/A',
+    cardLast4: selectedMethod === 'credit' && cardNumber.replace(/\s/g, '').length >= 4 ? cardNumber.replace(/\s/g, '').slice(-4) : 'N/A',
     customerName: name || 'Customer',
     customerEmail: state.customerEmail || ''
   };
 
   const handlePayment = async () => {
+    // Validation is now handled by the backend
+
+    setErrors({});
     setIsProcessing(true);
-    
+
     try {
       // Create payment in the backend
       const response = await fetch('http://localhost:5001/api/payments', {
@@ -59,12 +63,19 @@ const Payment = () => {
           status: 'Completed',
           attachments: state.documents || [],
           bookingDate: state.bookingDate,
-          bookingTime: state.bookingTime
+          bookingTime: state.bookingTime,
+          // Extra fields stringently for backend validation
+          ...(selectedMethod === 'credit' && {
+            cardNumber,
+            name,
+            expiry,
+            cvv
+          })
         })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         setReceiptData({
           ...bookingDetails,
@@ -72,16 +83,20 @@ const Payment = () => {
           date: new Date(result.data.createdAt || Date.now()).toLocaleDateString(),
           time: new Date(result.data.createdAt || Date.now()).toLocaleTimeString(),
         });
-        
+
         setIsProcessing(false);
         setShowSuccessModal(true);
       } else {
-        alert("Payment creation failed: " + result.message);
+        if (result.errors) {
+          setErrors(result.errors);
+        } else {
+          setErrors({ general: "Payment creation failed: " + result.message });
+        }
         setIsProcessing(false);
       }
     } catch (error) {
       console.error("Error creating payment:", error);
-      alert("Something went wrong processing your payment.");
+      setErrors({ general: "Something went wrong processing your payment." });
       setIsProcessing(false);
     }
   };
@@ -98,6 +113,7 @@ const Payment = () => {
         <style>
           body {
             font-family: 'Arial', sans-serif;
+            
             margin: 0;
             padding: 20px;
             background: #f5f0e1;
@@ -282,14 +298,14 @@ const Payment = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8F9FF] via-[#F0F3FF] to-[#E9ECFF] py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen w-full bg-background font-sans py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold tracking-widest mb-4 uppercase">
             SECURE PAYMENT
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4 animate-slideIn">
             Complete Your Payment
           </h1>
           <p className="text-base text-[#6B7280]">Choose your preferred payment method to complete the booking</p>
@@ -297,23 +313,22 @@ const Payment = () => {
 
         {/* Payment Split Screen */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           {/* Left Panel - Payment Method */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(59,130,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(59,130,246,0.3)] transition-all duration-500">
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent mb-6">
+          <div className="bg-white rounded-3xl shadow-sm p-6 lg:p-8 border border-slate-100 hover:shadow-md transition-all">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">
               Select Payment Method
             </h2>
-            
+
             {/* Payment Methods List */}
             <div className="space-y-2 mb-6">
               {/* Credit Card */}
-              <div 
-                className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${
-                  selectedMethod === 'credit' 
-                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md' 
+              <div
+                className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${selectedMethod === 'credit'
+                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
                     : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
-                }`}
-                onClick={() => setSelectedMethod('credit')}
+                  }`}
+                onClick={() => { setSelectedMethod('credit'); setErrors({}); }}
               >
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold text-[#1F2937] text-[15px]">Credit Card</span>
@@ -326,13 +341,12 @@ const Payment = () => {
               </div>
 
               {/* Paypal */}
-              <div 
-                className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${
-                  selectedMethod === 'paypal' 
-                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md' 
+              <div
+                className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${selectedMethod === 'paypal'
+                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
                     : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
-                }`}
-                onClick={() => setSelectedMethod('paypal')}
+                  }`}
+                onClick={() => { setSelectedMethod('paypal'); setErrors({}); }}
               >
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold text-[#1F2937] text-[15px]">PayPal</span>
@@ -342,13 +356,12 @@ const Payment = () => {
               </div>
 
               {/* Other */}
-              <div 
-                className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${
-                  selectedMethod === 'other' 
-                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md' 
+              <div
+                className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${selectedMethod === 'other'
+                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
                     : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
-                }`}
-                onClick={() => setSelectedMethod('other')}
+                  }`}
+                onClick={() => { setSelectedMethod('other'); setErrors({}); }}
               >
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold text-[#1F2937] text-[15px]">Bank Transfer</span>
@@ -383,10 +396,18 @@ const Payment = () => {
               <input
                 type="text"
                 value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
+                onChange={(e) => {
+                  // Format as 0000 0000 0000 0000
+                  const val = e.target.value.replace(/\D/g, '').substring(0, 16);
+                  const formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+                  setCardNumber(formatted);
+                  if (errors.cardNumber) setErrors(prev => ({ ...prev, cardNumber: null }));
+                }}
+                maxLength={19}
                 placeholder="0000 0000 0000 0000"
-                className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 font-mono text-base text-[#1F2937] tracking-wider focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+                className={`w-full bg-gray-50/80 p-4 rounded-xl border ${errors.cardNumber ? 'border-red-500' : 'border-gray-200'} font-mono text-base text-[#1F2937] tracking-wider focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all`}
               />
+              {errors.cardNumber && <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>}
             </div>
 
             {/* Name Field */}
@@ -395,10 +416,15 @@ const Payment = () => {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                  setName(val);
+                  if (errors.name) setErrors(prev => ({ ...prev, name: null }));
+                }}
                 placeholder="Name on card"
-                className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+                className={`w-full bg-gray-50/80 p-4 rounded-xl border ${errors.name ? 'border-red-500' : 'border-gray-200'} text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all`}
               />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
 
             {/* Expiration Date and CVV */}
@@ -408,20 +434,36 @@ const Payment = () => {
                 <input
                   type="text"
                   value={expiry}
-                  onChange={(e) => setExpiry(e.target.value)}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^\d\/]/g, '').substring(0, 5);
+                    // Add slash automatically
+                    if (val.length === 2 && !val.includes('/')) {
+                      val += '/';
+                    }
+                    setExpiry(val);
+                    if (errors.expiry) setErrors(prev => ({ ...prev, expiry: null }));
+                  }}
+                  maxLength={5}
                   placeholder="MM/YY"
-                  className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+                  className={`w-full bg-gray-50/80 p-4 rounded-xl border ${errors.expiry ? 'border-red-500' : 'border-gray-200'} text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all`}
                 />
+                {errors.expiry && <p className="text-red-500 text-xs mt-1">{errors.expiry}</p>}
               </div>
               <div>
                 <label className="block text-[13px] text-[#6B7280] mb-2 font-medium">CVV</label>
                 <input
                   type="password"
                   value={cvv}
-                  onChange={(e) => setCvv(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').substring(0, 3);
+                    setCvv(val);
+                    if (errors.cvv) setErrors(prev => ({ ...prev, cvv: null }));
+                  }}
+                  maxLength={3}
                   placeholder="123"
-                  className="w-full bg-gray-50/80 p-4 rounded-xl border border-gray-200 text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all"
+                  className={`w-full bg-gray-50/80 p-4 rounded-xl border ${errors.cvv ? 'border-red-500' : 'border-gray-200'} text-[15px] text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/50 transition-all`}
                 />
+                {errors.cvv && <p className="text-red-500 text-xs mt-1">{errors.cvv}</p>}
               </div>
             </div>
 
@@ -435,16 +477,16 @@ const Payment = () => {
           </div>
 
           {/* Right Panel - Order Summary */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(139,92,246,0.2)] p-6 lg:p-8 border border-white/50 hover:shadow-[0_25px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-500">
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] bg-clip-text text-transparent mb-6">
-               Summary
+          <div className="bg-white rounded-3xl shadow-sm p-6 lg:p-8 border border-slate-100 hover:shadow-md transition-all">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">
+              Summary
             </h2>
-            
+
             {/* Product */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] rounded-xl flex items-center justify-center text-white text-2xl shadow-md">
-                  
+
                 </div>
                 <div className="flex-1">
                   <span className="text-base text-[#6B7280] block mb-1">{serviceName}</span>
@@ -459,19 +501,19 @@ const Payment = () => {
                 <span className="text-sm text-[#6B7280]">Service Fee</span>
                 <span className="text-sm font-medium text-[#1F2937]">LKR {serviceFee}</span>
               </div>
-              
+
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-[#6B7280]">Platform Fee</span>
                 <span className="text-sm font-medium text-[#1F2937]">LKR {platformFee}</span>
               </div>
-              
+
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-[#6B7280]">Tax (5%)</span>
                 <span className="text-sm font-medium text-[#1F2937]">LKR {tax}</span>
               </div>
-              
+
               <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-4"></div>
-              
+
               <div className="flex justify-between items-center pt-3">
                 <span className="text-base font-semibold text-[#1F2937]">Total</span>
                 <span className="text-2xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
@@ -480,8 +522,15 @@ const Payment = () => {
               </div>
             </div>
 
+            {/* General Error Message Near Pay Button */}
+            {errors.general && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-600 text-sm font-medium text-center">{errors.general}</p>
+              </div>
+            )}
+
             {/* Pay Button */}
-            <button 
+            <button
               onClick={handlePayment}
               disabled={isProcessing}
               className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white py-4 rounded-xl text-base font-semibold shadow-lg shadow-[#3B82F6]/30 hover:shadow-xl hover:shadow-[#3B82F6]/40 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"

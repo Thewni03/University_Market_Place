@@ -170,17 +170,17 @@ const BookingHistory = () => {
   };
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur border border-white/10 rounded-2xl p-6">
+    <div className="bg-background font-sans border border-gray-100 rounded-xl p-6 shadow-sm">
       {/* Header with Filters */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        <h2 className="font-display text-2xl font-extrabold text-slate-800">
           Booking History
         </h2>
         <div className="flex gap-2">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm cursor-pointer hover:border-blue-400 transition-all"
+            className="p-2 bg-white border border-gray-200 rounded-xl text-slate-700 text-sm cursor-pointer hover:border-blue-400 transition-all"
           >
             <option value="all">All Bookings</option>
             <option value="paid">Paid</option>
@@ -192,13 +192,13 @@ const BookingHistory = () => {
             placeholder="Search by Booking ID..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="p-2 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-400 transition-all"
+            className="p-2 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-all"
           />
         </div>
       </div>
 
       {/* Results count */}
-      <div className="mb-4 text-sm text-slate-400">
+      <div className="mb-4 text-sm text-slate-500">
         Showing {filteredBookings.length} of {bookingHistory.length} bookings
       </div>
 
@@ -206,28 +206,28 @@ const BookingHistory = () => {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/10">
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booking ID</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Customer Name</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booked On</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Scheduled For</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Booking Type</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Amount</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Status</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Attachments</th>
-              <th className="text-left py-3 px-2 text-slate-400 font-medium text-sm">Actions</th>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Booking ID</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Customer Name</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Booked On</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Scheduled For</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Booking Type</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Amount</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Status</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Attachments</th>
+              <th className="text-left py-3 px-2 text-slate-600 font-medium text-sm">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="9" className="py-8 text-center text-slate-400">
+                <td colSpan="9" className="py-8 text-center text-slate-500">
                   <div className="animate-pulse">Loading booking history...</div>
                 </td>
               </tr>
             ) : filteredBookings.length > 0 ? (
               filteredBookings.map((booking) => (
-                <tr key={booking.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors text-slate-700">
                   <td className="py-4 px-2">
                     <span className="font-mono text-sm text-blue-400">{booking.id}</span>
                   </td>
@@ -276,20 +276,20 @@ const BookingHistory = () => {
                           <button
                             key={idx}
                             onClick={() => handleAttachmentClick(file)}
-                            className="w-8 h-8 bg-slate-800 rounded-lg border-2 border-slate-700 flex items-center justify-center text-xs hover:z-10 hover:border-blue-400 hover:scale-110 transition-all cursor-pointer group relative"
+                            className="w-8 h-8 bg-white rounded-lg border-2 border-gray-200 flex items-center justify-center text-xs hover:z-10 hover:border-blue-400 hover:scale-110 transition-all cursor-pointer group relative"
                             title={`Click to preview ${file.name}`}
                           >
                             <span className="text-sm">{getFileIcon(file.type)}</span>
-                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-white/10">
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-white text-slate-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-gray-200 shadow-md">
                               {file.name} ({file.size})
                             </span>
                           </button>
                         ))}
                         {booking.attachments.length > 3 && (
-                          <div className="w-8 h-8 bg-slate-800 rounded-lg border-2 border-slate-700 flex items-center justify-center text-xs hover:border-blue-400 transition-all cursor-pointer group relative"
+                          <div className="w-8 h-8 bg-white rounded-lg border-2 border-gray-200 flex items-center justify-center text-xs hover:border-blue-400 transition-all cursor-pointer group relative"
                                onClick={() => alert(`${booking.attachments.length - 3} more files available`)}>
-                            <span className="text-xs font-medium">+{booking.attachments.length - 3}</span>
-                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-white/10">
+                            <span className="text-xs font-medium text-slate-700">+{booking.attachments.length - 3}</span>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-white text-slate-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 border border-gray-200 shadow-md">
                               {booking.attachments.length - 3} more files
                             </span>
                           </div>
@@ -324,7 +324,7 @@ const BookingHistory = () => {
                         </>
                       )}
                       <button
-                        className="p-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all hover:scale-110"
+                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-slate-600 transition-all hover:scale-110"
                         title="View Details"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,7 +338,7 @@ const BookingHistory = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="9" className="py-8 text-center text-slate-400">
+                <td colSpan="9" className="py-8 text-center text-slate-500">
                   No bookings found matching your search criteria.
                 </td>
               </tr>
@@ -349,52 +349,52 @@ const BookingHistory = () => {
 
       {/* File Preview Modal */}
       {showFilePreview && selectedFile && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl p-6 max-w-2xl w-full border border-white/10 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full border border-gray-100 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getFileColor(selectedFile.type)} flex items-center justify-center text-2xl`}>
                   {getFileIcon(selectedFile.type)}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{selectedFile.name}</h3>
-                  <p className="text-sm text-slate-400">{selectedFile.size}</p>
+                  <h3 className="font-display text-xl font-bold text-slate-800">{selectedFile.name}</h3>
+                  <p className="text-sm text-slate-500">{selectedFile.size}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowFilePreview(false)}
-                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-slate-800/50 rounded-xl p-6 mb-6 border border-white/5">
+            <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
               <div className="flex items-center gap-4 mb-4">
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getFileColor(selectedFile.type)} flex items-center justify-center text-3xl`}>
                   {getFileIcon(selectedFile.type)}
                 </div>
                 <div className="flex-1">
-                  <div className="h-2 bg-slate-700 rounded-full w-full mb-2">
+                  <div className="h-2 bg-gray-200 rounded-full w-full mb-2">
                     <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-3/4"></div>
                   </div>
-                  <p className="text-xs text-slate-400">Ready to download</p>
+                  <p className="text-xs text-slate-500">Ready to download</p>
                 </div>
               </div>
               
-              <div className="bg-slate-900/50 rounded-lg p-4 text-sm text-slate-300 border border-white/5">
-                <div className="flex items-center gap-2 mb-3 text-blue-400">
-                  <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                  <span>File Information:</span>
+              <div className="bg-white rounded-lg p-4 text-sm text-slate-600 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3 text-blue-500">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  <span className="font-medium">File Information:</span>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-slate-400">
+                  <p className="text-slate-600">
                     <span className="text-slate-500">Name:</span> {selectedFile.name}
                   </p>
-                  <p className="text-slate-400">
+                  <p className="text-slate-600">
                     <span className="text-slate-500">Size:</span> {selectedFile.size}
                   </p>
-                  <p className="text-slate-400">
+                  <p className="text-slate-600">
                     <span className="text-slate-500">Type:</span> {selectedFile.type.toUpperCase()}
                   </p>
                 </div>
@@ -413,7 +413,7 @@ const BookingHistory = () => {
               </button>
               <button
                 onClick={() => setShowFilePreview(false)}
-                className="flex-1 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all"
+                className="flex-1 py-3 bg-gray-100 text-slate-700 font-medium rounded-xl hover:bg-gray-200 transition-all"
               >
                 Close
               </button>
@@ -424,26 +424,26 @@ const BookingHistory = () => {
 
       {/* Cancellation Modal */}
       {showCancellationModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-white/10 shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-2">Cancel Booking</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Are you sure you want to cancel booking <span className="text-blue-400 font-mono">{selectedBooking.id}</span>?
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-gray-100 shadow-2xl">
+            <h3 className="font-display text-xl font-bold text-slate-800 mb-2">Cancel Booking</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Are you sure you want to cancel booking <span className="text-blue-500 font-mono">{selectedBooking.id}</span>?
             </p>
             
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-              <p className="text-amber-400 text-xs">
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-amber-700 text-xs font-medium">
                 ⚠️ Cancellation deadline: {new Date(selectedBooking.cancellationDeadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm text-slate-400 mb-2">Reason for cancellation (optional)</label>
+              <label className="block text-sm text-slate-600 font-medium mb-2">Reason for cancellation (optional)</label>
               <textarea
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
                 placeholder="Please provide a reason..."
-                className="w-full p-3 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400 resize-none"
+                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30 resize-none"
                 rows="3"
               />
             </div>
@@ -451,7 +451,7 @@ const BookingHistory = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCancellationModal(false)}
-                className="flex-1 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all"
+                className="flex-1 py-3 bg-gray-100 text-slate-700 font-medium rounded-xl hover:bg-gray-200 transition-all"
               >
                 Keep Booking
               </button>
@@ -468,31 +468,31 @@ const BookingHistory = () => {
 
       {/* Reschedule Modal */}
       {showRescheduleModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-white/10 shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-2">Reschedule Booking</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Select new date and time for booking <span className="text-blue-400 font-mono">{selectedBooking.id}</span>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-gray-100 shadow-2xl">
+            <h3 className="font-display text-xl font-bold text-slate-800 mb-2">Reschedule Booking</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Select new date and time for booking <span className="text-blue-500 font-mono">{selectedBooking.id}</span>
             </p>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm text-slate-400 mb-2">New Date</label>
+                <label className="block text-sm text-slate-600 font-medium mb-2">New Date</label>
                 <input
                   type="date"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full p-3 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-2">New Time Slot</label>
+                <label className="block text-sm text-slate-600 font-medium mb-2">New Time Slot</label>
                 <select
                   value={newTime}
                   onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full p-3 bg-slate-800/60 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 >
                   <option value="">Select a time slot</option>
                   {selectedBooking.timeSlots.map((slot) => (
@@ -505,17 +505,17 @@ const BookingHistory = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowRescheduleModal(false)}
-                className="flex-1 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all"
+                className="flex-1 py-3 bg-gray-100 text-slate-700 font-medium rounded-xl hover:bg-gray-200 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmReschedule}
                 disabled={!newDate || !newTime}
-                className={`flex-1 py-3 rounded-xl transition-all ${
+                className={`flex-1 py-3 rounded-xl transition-all font-medium ${
                   newDate && newTime
                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/20'
-                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
                 Confirm Reschedule
