@@ -1,23 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MessageCircleMore, Minimize2, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ChatWorkspace from "./ChatWorkspace";
 import { useAuthStore } from "../store/useAuthStore";
+import { useChatStore } from "../store/useChatStore";
 
 const HIDDEN_ROUTES = new Set(["/", "/login", "/register", "/verificationstatushandler", "/pending"]);
 
 const TalkSpaceWidget = () => {
   const location = useLocation();
   const authUser = useAuthStore((state) => state.authUser);
+  const users = useChatStore((state) => state.users);
+  const getUsers = useChatStore((state) => state.getUsers);
   const [isOpen, setIsOpen] = useState(false);
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const shouldHide = HIDDEN_ROUTES.has(normalizedPath) || normalizedPath === "/dashboard" || !authUser?._id;
+  const totalUnread = useMemo(
+    () => users.reduce((sum, user) => sum + Number(user?.unreadCount || 0), 0),
+    [users]
+  );
 
   useEffect(() => {
     if (shouldHide) {
       setIsOpen(false);
     }
   }, [shouldHide]);
+
+  useEffect(() => {
+    if (!authUser?._id) return;
+    getUsers();
+  }, [authUser?._id, getUsers]);
 
   if (shouldHide) {
     return null;
@@ -87,6 +99,12 @@ const TalkSpaceWidget = () => {
             </span>
           </span>
         </span>
+
+        {totalUnread > 0 && !isOpen ? (
+          <span className="absolute -right-1 -top-1 inline-flex min-w-7 items-center justify-center rounded-full border-2 border-white bg-[#25d366] px-2 py-1 text-[11px] font-bold leading-none text-white shadow-[0_10px_24px_rgba(37,211,102,0.45)]">
+            {totalUnread > 99 ? "99+" : totalUnread}
+          </span>
+        ) : null}
       </button>
     </>
   );

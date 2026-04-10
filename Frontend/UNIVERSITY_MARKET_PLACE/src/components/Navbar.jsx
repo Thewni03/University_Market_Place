@@ -1,14 +1,16 @@
 // src/components/Navbar.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
 
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"; // ← KEPT: AvatarImage for profile pic
+import { useChatStore } from "../store/useChatStore";
 
 // ← ADDED: notification context + dropdown from file 2
 import { useNotifications } from "../notifications/context/NotificationContext";
-import NotificationDropdown from "../notifications/components/NotificationDropdown";
+
+const NotificationDropdown = lazy(() => import("../notifications/components/NotificationDropdown"));
 
 const navLinks = [ 
   { label: "Campus Feed", path: "/feed" },
@@ -33,6 +35,12 @@ export default function Navbar() {
 
   // ← ADDED: notification state from file 2
   const { unreadCount, open, setOpen } = useNotifications();
+  const users = useChatStore((state) => state.users);
+  const getUsers = useChatStore((state) => state.getUsers);
+  const totalChatUnread = useMemo(
+    () => users.reduce((sum, user) => sum + Number(user?.unreadCount || 0), 0),
+    [users]
+  );
 
   const storedUser = useMemo(() => {
     try {
@@ -85,6 +93,11 @@ export default function Navbar() {
     };
     loadProfilePic();
   }, [API_BASE_URL, currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    getUsers();
+  }, [currentUserId, getUsers]);
 
   // ← KEPT: closes search dropdown on outside click
   useEffect(() => {
@@ -227,7 +240,14 @@ export default function Navbar() {
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
             >
-              {link.label}
+              <span className="inline-flex items-center gap-2">
+                <span>{link.label}</span>
+                {link.path === "/dashboard" && totalChatUnread > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#25d366] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {totalChatUnread > 99 ? "99+" : totalChatUnread}
+                  </span>
+                ) : null}
+              </span>
             </Link>
           ))}
         </div>
@@ -256,7 +276,17 @@ export default function Navbar() {
               )}
             </Button>
             {/* ← ADDED: notification dropdown panel */}
-            {open && <NotificationDropdown onClose={() => setOpen(false)} />}
+            {open && (
+              <Suspense
+                fallback={
+                  <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-border bg-card p-4 shadow-2xl sm:w-96">
+                    <p className="text-sm text-muted-foreground">Loading notifications...</p>
+                  </div>
+                }
+              >
+                <NotificationDropdown onClose={() => setOpen(false)} />
+              </Suspense>
+            )}
           </div>
 
           {/* ← KEPT: real profile pic from API with dynamic initials fallback */}
@@ -335,7 +365,14 @@ export default function Navbar() {
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                {link.label}
+                <span className="inline-flex items-center gap-2">
+                  <span>{link.label}</span>
+                  {link.path === "/dashboard" && totalChatUnread > 0 ? (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#25d366] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                      {totalChatUnread > 99 ? "99+" : totalChatUnread}
+                    </span>
+                  ) : null}
+                </span>
               </Link>
             ))}
           </div>

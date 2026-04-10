@@ -14,6 +14,7 @@ const Sidebar = ({ compact = false }) => {
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const onlineUserIds = new Set((onlineUsers || []).map((userId) => normalizeId(userId)));
+  const totalUnread = users.reduce((sum, user) => sum + Number(user?.unreadCount || 0), 0);
 
   useEffect(() => {
     if (!authUser?._id) return;
@@ -38,7 +39,14 @@ const Sidebar = ({ compact = false }) => {
               <p className="text-xs uppercase tracking-[0.35em] text-slate-500">
                 Conversations
               </p>
-              <h2 className={`mt-2 font-semibold text-slate-900 ${compact ? "text-base" : "text-2xl"}`}>People</h2>
+              <div className="mt-2 flex items-center gap-2">
+                <h2 className={`font-semibold text-slate-900 ${compact ? "text-base" : "text-2xl"}`}>People</h2>
+                {totalUnread > 0 ? (
+                  <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#25d366] px-2 py-1 text-[11px] font-bold leading-none text-white shadow-sm">
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className={`flex items-center justify-center rounded-2xl bg-[#4a4e69]/10 text-[#4a4e69] shadow-sm ${compact ? "size-10" : "size-12"}`}>
               <Users className={compact ? "size-5" : "size-6"} />
@@ -57,6 +65,11 @@ const Sidebar = ({ compact = false }) => {
                 <p className="mt-1 text-xs leading-5 text-slate-500">
                   {Math.max(onlineUserIds.size - 1, 0)} people ready to chat right now.
                 </p>
+                {totalUnread > 0 ? (
+                  <p className="mt-2 text-xs font-semibold text-emerald-700">
+                    {totalUnread > 99 ? "99+" : totalUnread} unread message{totalUnread === 1 ? "" : "s"}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -96,7 +109,7 @@ const Sidebar = ({ compact = false }) => {
             const isOnline = onlineUserIds.has(normalizeId(user._id));
             const isSelected = selectedUser?._id === user._id;
             const unreadCount = Number(user.unreadCount || 0);
-            const hasUnread = unreadCount > 0 && !isSelected;
+            const hasUnread = unreadCount > 0;
             const previewText = user.lastMessage || (isOnline ? "Available to reply" : "Last seen recently");
 
             return (
@@ -135,7 +148,7 @@ const Sidebar = ({ compact = false }) => {
                 <div className={`min-w-0 flex-1 ${compact ? "block" : "hidden lg:block"}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className={`truncate font-medium text-slate-800 ${hasUnread || isSelected ? "font-semibold text-slate-900" : ""}`}>{displayName}</div>
-                    {hasUnread ? (
+                    {unreadCount > 0 ? (
                       <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#25d366] px-2 py-1 text-[11px] font-bold leading-none text-white shadow-sm">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
