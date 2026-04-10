@@ -12,16 +12,19 @@ const times = ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 P
 export default function CreateService() {
     const navigate = useNavigate();
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+    const storedUser = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("user") || "null");
+        } catch {
+            return null;
+        }
+    })();
     const currentUserId =
         localStorage.getItem("userId") ||
         localStorage.getItem("ownerId") ||
-        (() => {
-            try {
-                return JSON.parse(localStorage.getItem("user") || "null")?._id || "";
-            } catch {
-                return "";
-            }
-        })();
+        storedUser?._id ||
+        storedUser?.id ||
+        "";
 
     const [formData, setFormData] = useState({
         title: '',
@@ -94,6 +97,9 @@ export default function CreateService() {
             if (!currentUserId) {
                 throw new Error("User ID not found. Please login again.");
             }
+            if (!/^[0-9a-fA-F]{24}$/.test(String(currentUserId))) {
+                throw new Error("Your login session has an invalid user ID. Please log in again.");
+            }
             if (slots.length === 0) {
                 toast.error("You must add at least one availability slot.");
                 setIsSubmitting(false);
@@ -134,7 +140,22 @@ export default function CreateService() {
             navigate('/home');
         } catch (error) {
             console.error("Error creating service:", error);
-            toast.error(error?.response?.data?.error || error?.message || 'Failed to create service.');
+            const backendError =
+                error?.response?.data?.error ||
+                error?.response?.data?.message ||
+                error?.response?.data?.details;
+            const validationErrors = error?.response?.data?.errors;
+            const validationMessage =
+                validationErrors && typeof validationErrors === "object"
+                    ? Object.values(validationErrors).map((item) => item?.message || item).join(", ")
+                    : "";
+
+            toast.error(
+                validationMessage ||
+                backendError ||
+                error?.message ||
+                'Failed to create service.'
+            );
         } finally {
             setIsSubmitting(false);
         }
