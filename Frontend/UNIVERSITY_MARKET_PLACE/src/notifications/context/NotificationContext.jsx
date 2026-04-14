@@ -141,6 +141,16 @@ export function NotificationProvider({ children }) {
       socket.emit('join', userId);
     });
 
+
+    socket.on("newMarketplaceListing", (data) => {
+      addNotification({
+        type: "marketplace",
+        title: "New item listed!",
+        message: `${data.seller} listed "${data.title}" for ${data.isFree ? "FREE" : "LKR " + data.price}`,
+        link: `/marketplace`,
+      });
+    });
+    
     // Listen for real-time notifications
     socket.on('new_notification', (notification) => {
       const senderId = notification?.metadata?.senderId;
