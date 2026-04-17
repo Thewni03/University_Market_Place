@@ -1,23 +1,32 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 
-// ── Pages ──────────────────────────────────────────────────────────────────
-const AccessibilityWidget = lazy(() => import("./components/AccessibilityWidget"));
-const TalkSpaceWidget = lazy(() => import("./components/TalkSpaceWidget"));
+// ── Notifications & Store ──────────────────────────────────────────────────
+import { NotificationProvider } from "./notifications/context/NotificationContext";
+import { useAuthStore } from "./store/useAuthStore";
+
+// ── Pages (Lazy Loaded) ────────────────────────────────────────────────────
+const Marketplace = lazy(() => import("./pages/Marketplace/Marketplace"));
 const Home = lazy(() => import("./pages/Home/Home"));
 const CampusFeed = lazy(() => import("./pages/CampusFeed/CampusFeed"));
 const Profile = lazy(() => import("./pages/profile/profile"));
+const CampusForum = lazy(() => import("./pages/CampusForum/CampusForum"));
+const ForumThread = lazy(() => import("./pages/CampusForum/ForumThread"));
+const Chat = lazy(() => import("./pages/Chat/chat.jsx"));
+
+// ── Services ───────────────────────────────────────────────────────────────
 const CreateService = lazy(() => import("./pages/CreateService/createservice"));
 const EditService = lazy(() => import("./pages/services/editservice"));
 const ServiceDetail = lazy(() => import("./pages/ServiceDetail/ServiceDetail"));
+
+// ── Requests ───────────────────────────────────────────────────────────────
 const PostRequest = lazy(() => import("./pages/PostRequest/PostRequest"));
 const RequestDetail = lazy(() => import("./pages/RequestDetail/RequestDetail"));
-const Chat = lazy(() => import("./pages/Chat/chat.jsx"));
-const CampusForum = lazy(() => import("./pages/CampusForum/CampusForum"));
-const ForumThread = lazy(() => import("./pages/CampusForum/ForumThread"));
 
-// ── Components ─────────────────────────────────────────────────────────────
+// ── Components & Widgets ───────────────────────────────────────────────────
+const AccessibilityWidget = lazy(() => import("./components/AccessibilityWidget"));
+const TalkSpaceWidget = lazy(() => import("./components/TalkSpaceWidget"));
 const BookingForm = lazy(() => import("./components/Booking/BookingForm.jsx"));
 const BookingSuccess = lazy(() => import("./components/Booking/BookingSuccess.jsx"));
 const BookingHistory = lazy(() => import("./components/Booking/BookingHistory.jsx"));
@@ -35,10 +44,6 @@ const Login = lazy(() => import("./pages/Login/Login"));
 const PendingVerification = lazy(() => import("./pages/PendingVerification/PendingVerification"));
 const Verificationstatushandler = lazy(() => import("./components/Verificationstatushandler/Verificationstatushandler"));
 
-// ── Notifications ──────────────────────────────────────────────────────────
-import { NotificationProvider } from "./notifications/context/NotificationContext";
-import { useAuthStore } from "./store/useAuthStore";
-
 const AppLoader = () => (
   <div className="flex min-h-[40vh] items-center justify-center px-6 py-16">
     <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm">
@@ -55,12 +60,13 @@ function App() {
   const disconnectSocket = useAuthStore((state) => state.disconnectSocket);
 
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
-  const hideNavbar =
-    normalizedPath === "/" ||
-    normalizedPath === "/login" ||
-    normalizedPath === "/register" ||
-    normalizedPath === "/verificationstatushandler" ||
-    normalizedPath === "/pending";
+  const hideNavbar = [
+    "/", 
+    "/login", 
+    "/register", 
+    "/verificationstatushandler", 
+    "/pending"
+  ].includes(normalizedPath);
 
   useEffect(() => {
     if (authUser?._id) {
@@ -76,14 +82,23 @@ function App() {
 
       <Suspense fallback={<AppLoader />}>
         <Routes>
-          {/* Core */}
+          {/* Auth */}
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/pending" element={<PendingVerification />} />
+          <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
+
+          {/* Core Content */}
           <Route path="/home" element={<Home />} />
           <Route path="/feed" element={<CampusFeed />} />
           <Route path="/forum" element={<CampusForum />} />
           <Route path="/forum/:id" element={<ForumThread />} />
           <Route path="/dashboard" element={<Chat />} />
           <Route path="/profile" element={<Profile />} />
+          
+          {/* Marketplace / Shop */}
+          <Route path="/marketplace" element={<Marketplace />} />
 
           {/* Services */}
           <Route path="/create-service" element={<CreateService />} />
@@ -99,26 +114,17 @@ function App() {
           <Route path="/booking-success" element={<BookingSuccess />} />
           <Route path="/booking-history" element={<BookingHistory />} />
           <Route path="/payment" element={<Payment />} />
-
-          {/* Reviews & Ratings */}
           <Route path="/reviewandrating" element={<Reviewandrating />} />
 
           {/* Admin */}
           <Route path="/userManagement" element={<UserManagement />} />
           <Route path="/userInsert" element={<UserInsert />} />
           <Route path="/userUpdate/:email" element={<UserUpdate />} />
-
-          {/* Auth */}
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/pending" element={<PendingVerification />} />
-          <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
         </Routes>
       </Suspense>
 
       <Suspense fallback={null}>
         <TalkSpaceWidget />
-        {/* ♿ Accessibility widget — fixed bottom-left, visible on every page */}
         <AccessibilityWidget />
       </Suspense>
     </NotificationProvider>
