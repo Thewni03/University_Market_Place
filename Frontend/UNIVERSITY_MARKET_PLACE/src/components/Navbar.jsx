@@ -18,6 +18,7 @@ const navLinks = [
   { label: "Talk Space", path: "/dashboard" },
   { label: "Offer a Service", path: "/create-service" }, // ← KEPT: label from file 1
   { label: "Post Request", path: "/post-request" },
+  { label: "Shop", path: "/marketplace" }, 
   { label: "Reviews", path: "/reviewandrating" },
 ];
 

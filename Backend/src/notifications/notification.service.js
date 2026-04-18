@@ -47,7 +47,7 @@ export const notify = async ({ userId, type, title, body, channels = ['in-app'],
 
   const tasks = [];
 
-  // email — RegisterModel has email field ✅
+  // email — RegisterModel has email field 
   if (channels.includes('email') && user.email) {
     tasks.push(sendEmail({ to: user.email, subject: title, body }));
   }
@@ -57,18 +57,18 @@ export const notify = async ({ userId, type, title, body, channels = ['in-app'],
     tasks.push(sendPush({ subscription: user.pushSubscription, title, body }));
   }
 
-  // sms — RegisterModel has phone field ✅ (default: null, so check it)
+  // sms 
   if (channels.includes('sms') && user.phone) {
     tasks.push(sendSMS({ to: user.phone, body: `${title}: ${body}` }));
   }
 
-  // allSettled = one channel failing won't crash the whole notification
+  // one channel failing won't crash the whole notification
   const results = await Promise.allSettled(tasks);
 
   // Log which channel failed without crashing the app
   results.forEach((result, idx) => {
     if (result.status === 'rejected') {
-      console.error(`❌ Channel [${otherChannels[idx]}] failed:`, result.reason?.message);
+      console.error(`Channel [${otherChannels[idx]}] failed:`, result.reason?.message);
     }
   });
 
