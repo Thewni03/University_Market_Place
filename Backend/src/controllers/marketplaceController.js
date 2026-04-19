@@ -159,15 +159,38 @@ export const deleteProduct = async (req, res) => {
 
 // ── Buy a product ─────────────────────────────────────────────────────────────
 export const buyProduct = async (req, res) => {
-  try {
-    const { purchaseMethod } = req.body; // "on_campus" or "pay_first"
-    const product = await Product.findById(req.params.id).populate("seller", "fullname email");
+    try {
+      const { purchaseMethod } = req.body;
+  
+      // ✅ ADD THIS (user safety check)
+      if (!req.user || !req.user._id) {
+        return res.status(401).json({ success: false, message: "Unauthorized user" });
+      }
+  
+      // ✅ KEEP THIS
+      const product = await Product.findById(req.params.id).populate("seller", "fullname email");
+  
+      // ✅ FIX 1: product null check (already good)
+      if (!product) {
+        return res.status(404).json({ success: false, message: "Product not found" });
+      }
+  
+      // ✅ FIX 2: seller null check (THIS IS YOUR ERROR FIX)
+      if (!product.seller || !product.seller._id) {
+        return res.status(400).json({ success: false, message: "Seller data missing" });
+      }
+  
+      // ✅ FIX 3: safe compare (no crash now)
+      if (product.seller._id.toString() === req.user._id.toString()) {
+        return res.status(400).json({ success: false, message: "You cannot buy your own listing" });
+      }
+  
+      // ✅ KEEP THIS
+      if (product.status !== "available") {
+        return res.status(400).json({ success: false, message: "This item is no longer available" });
+      }
 
-    if (!product) return res.status(404).json({ success: false, message: "Not found" });
-    if (product.status !== "available")
-      return res.status(400).json({ success: false, message: "This item is no longer available" });
-    if (product.seller._id.toString() === req.user._id.toString())
-      return res.status(400).json({ success: false, message: "You cannot buy your own listing" });
+      
 
     // Reserve the item
     product.status = "reserved";
@@ -177,15 +200,15 @@ export const buyProduct = async (req, res) => {
 
     // Notify seller via socket
     const io = req.app.get("io");
-    if (io) {
-      io.to(product.seller._id.toString()).emit("productPurchased", {
-        productId: product._id,
-        title: product.title,
-        buyer: req.user.fullname,
-        purchaseMethod,
-        price: product.price,
-      });
-    }
+    if (product.seller && product.seller._id) {
+        io.to(product.seller._id.toString()).emit("productPurchased", {
+          productId: product._id,
+          title: product.title,
+          buyer: req.user.fullname,
+          purchaseMethod,
+          price: product.price,
+        });
+      }
 
     res.json({
       success: true,
