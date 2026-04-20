@@ -63,11 +63,13 @@ const productSchema = new mongoose.Schema(
         type: String, // file paths or URLs
       },
     ],
-    seller: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Profile",
-        required: true,
-      },
+ 
+seller: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Users",   
+  required: true
+},
+    
     // Payment method preference
     paymentMethod: {
       type: String,
@@ -82,7 +84,7 @@ const productSchema = new mongoose.Schema(
     },
     buyer: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Profile",
+        ref: "Users" ,
         default: null,
       },
     purchaseMethod: {
@@ -93,12 +95,32 @@ const productSchema = new mongoose.Schema(
     viewCount: {
       type: Number,
       default: 0,
-    },
+    },notifications: [
+        {
+          type: {
+            type: String,
+            enum: ["like", "buy", "interest", "message"],
+          },
+          from: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Users",
+          },
+          message: String,
+          isRead: {
+            type: Boolean,
+            default: false,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
     // Users who favourited this product
     favouritedBy: [
         {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Profile",
+          ref: "Users",
         },
       ],
   },
