@@ -35,13 +35,70 @@ export const forgotPassword = async (req, res) => {
         pass: process.env.EMAIL_PASS,
       },
     });
-
-    // 🔥 send email
+//email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Reset OTP",
-      text: `Your OTP is: ${otp}`,
+      html: `
+      <div style="background:#f1f5f9; padding:30px 10px; font-family:'Segoe UI',Arial,sans-serif;">
+        
+        <div style="max-width:520px; margin:auto; background:white; border-radius:14px; padding:30px 25px; box-shadow:0 6px 18px rgba(0,0,0,0.08); text-align:center;">
+        
+          <h2 style="margin:0; color:#059669; font-size:22px;">
+       <lock-keyhole size={11}/>  Reset Your Password
+          </h2>
+   
+          <p style="color:#64748b; font-size:14px; margin-top:10px;">
+            We received a request to reset your password.
+          </p>
+    
+          <div style="
+            margin:25px 0;
+            padding:18px;
+            border-radius:12px;
+            background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+          ">
+            <p style="margin:0; font-size:13px; color:#065f46;">
+              Your verification code
+            </p>
+    
+            <div style="
+              font-size:30px;
+              font-weight:700;
+              letter-spacing:6px;
+              color:#047857;
+              margin-top:8px;
+            ">
+              ${otp}
+            </div>
+          </div>
+    
+          <!-- Info -->
+          <p style="font-size:13px; color:#475569;">
+         <clock-10 size={11}/>     This code is valid for <strong>10 minutes</strong>.
+          </p>
+    
+          <p style="font-size:13px; color:#475569;">
+            Enter this code in the app to continue.
+          </p>
+    
+          <!-- Divider -->
+          <hr style="border:none; border-top:1px solid #e2e8f0; margin:20px 0;" />
+    
+          <!-- Footer -->
+          <p style="font-size:12px; color:#94a3b8;">
+            If you didn’t request this, you can safely ignore this email.
+          </p>
+    
+          <p style="margin-top:10px; font-size:13px; color:#334155;">
+            - University Marketplace Team -
+          </p>
+    
+        </div>
+    
+      </div>
+      `
     });
 
     return res.json({
