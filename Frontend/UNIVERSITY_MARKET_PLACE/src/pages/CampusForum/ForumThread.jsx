@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowUp, CheckCircle, Clock } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowUp, CheckCircle, Clock, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "../../store/useAuthStore";
 import toast from "react-hot-toast";
@@ -9,6 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001
 
 export default function ForumThread() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [threadData, setThreadData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [answerContent, setAnswerContent] = useState("");
@@ -31,7 +32,9 @@ export default function ForumThread() {
 
   const handlePostAnswer = async (e) => {
     e.preventDefault();
-    if (!answerContent.trim()) return;
+    if (!answerContent.trim()) return toast.error("Answer cannot be empty.");
+    if (answerContent.trim().length < 10) return toast.error("Your answer must be at least 10 characters long.");
+    
     try {
       const token = localStorage.getItem("token");
       await axios.post(
@@ -44,6 +47,21 @@ export default function ForumThread() {
       fetchThread();
     } catch (error) {
       toast.error("Failed to post answer");
+    }
+  };
+
+  const deleteQuestion = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this question? It will erase all answers as well.")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE_URL}/api/forum/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      toast.success("Question deleted");
+      navigate("/forum");
+    } catch (error) {
+      toast.error("Failed to delete question");
     }
   };
 
@@ -94,9 +112,20 @@ export default function ForumThread() {
     <div className="min-h-screen bg-slate-50 pb-20">
       <div className="max-w-5xl mx-auto px-5 lg:px-8 py-8">
         
-        <Link to="/forum" className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-700 font-semibold mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Q&A
-        </Link>
+        <div className="flex justify-between items-center mb-6">
+          <Link to="/forum" className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-700 font-semibold transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Q&A
+          </Link>
+
+          {isQuestionOwner && (
+            <button 
+              onClick={deleteQuestion}
+              className="text-rose-500 hover:text-rose-600 font-bold text-sm flex items-center gap-1.5 bg-white hover:bg-rose-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-200 shadow-sm transition-colors"
+            >
+              <Trash2 className="w-4 h-4" /> Delete Thread
+            </button>
+          )}
+        </div>
         
         {/* Main Question Block */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-10">
@@ -193,10 +222,12 @@ export default function ForumThread() {
             <form onSubmit={handlePostAnswer}>
               <textarea 
                 className="w-full border border-slate-300 px-4 py-3 rounded-xl min-h-[150px] resize-y focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow outline-none mb-4"
-                placeholder="Write your definitive answer here..."
+                placeholder="Write your definitive answer here... (Min 10 characters)"
                 value={answerContent}
                 onChange={e => setAnswerContent(e.target.value)}
                 required
+                minLength={10}
+                maxLength={3000}
               />
               <button 
                 type="submit" 

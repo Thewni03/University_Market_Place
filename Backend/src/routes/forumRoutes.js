@@ -4,6 +4,7 @@ import {
   getQuestions,
   getQuestionThread,
   createQuestion,
+  deleteQuestion,
   toggleQuestionUpvote,
   postAnswer,
   toggleAnswerUpvote,
@@ -16,6 +17,7 @@ router.get("/", getQuestions);
 router.get("/:id", getQuestionThread);
 
 router.post("/", protectRoute, createQuestion);
+router.delete("/:id", protectRoute, deleteQuestion);
 router.post("/:id/upvote", protectRoute, toggleQuestionUpvote);
 
 router.post("/:id/answer", protectRoute, postAnswer);

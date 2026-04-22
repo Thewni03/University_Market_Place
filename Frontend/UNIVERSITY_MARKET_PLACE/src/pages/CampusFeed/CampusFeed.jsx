@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   MessageSquare, Send, Clock, User, Loader2, ThumbsUp, Flag, 
-  AlertTriangle, TrendingUp, Sparkles, ChevronRight, Zap, Target, Trash2
+  AlertTriangle, Trash2
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -30,8 +30,7 @@ export default function CampusFeed() {
   const [content, setContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
 
-  const [trending, setTrending] = useState([]);
-  const [trendingLoading, setTrendingLoading] = useState(true);
+
 
   // Zustand stores
   const authUser = useAuthStore((state) => state.authUser);
@@ -57,22 +56,7 @@ export default function CampusFeed() {
       }
     };
 
-    const fetchTrending = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/feed/trending`);
-        const result = await response.json().catch(() => ({}));
-        if (response.ok && Array.isArray(result.data)) {
-           setTrending(result.data);
-        }
-      } catch (e) {
-        console.error("Error fetching trending posts", e);
-      } finally {
-        setTrendingLoading(false);
-      }
-    };
-    
     fetchPosts();
-    fetchTrending();
     fetchedRef.current = true;
   }, []);
 
@@ -194,11 +178,10 @@ export default function CampusFeed() {
           </div>
 
           <div className="max-w-5xl mx-auto w-full px-5 lg:px-8 mt-6 pb-12">
-        {/* 2-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col gap-8">
           
           {/* CENTER COLUMN: THE FEED */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
+          <div className="flex flex-col gap-6">
             {/* Post Creator */}
             {authUser && (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -330,46 +313,7 @@ export default function CampusFeed() {
             )}
           </div>
 
-          {/* RIGHT SIDEBAR: TRENDING WIDGET */}
-          <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                <TrendingUp className="w-5 h-5 text-emerald-500" />
-                <h3 className="font-bold text-slate-800">Top Trusted Posts</h3>
-              </div>
-              
-              {trendingLoading ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="w-5 h-5 text-slate-300 animate-spin" />
-                </div>
-              ) : trending.length === 0 ? (
-                <p className="text-sm text-slate-500 italic">No trending posts right now.</p>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {trending.map((post, idx) => {
-                    const authorName = post.authorId?.fullname || post.authorId?.username || "Student";
-                    const trustScore = post.trustScore || 0;
-                    return (
-                      <div key={post._id} className="group flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center shrink-0">
-                          #{idx + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-800 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
-                            "{post.content}"
-                          </p>
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100/50">
-                            <span className="text-xs font-medium text-slate-500 truncate pr-2">{authorName}</span>
-                            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1"><ThumbsUp className="w-3 h-3"/> {trustScore}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+
           
           </div>
         </div>

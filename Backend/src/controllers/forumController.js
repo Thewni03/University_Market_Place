@@ -88,6 +88,28 @@ export const getQuestionThread = async (req, res) => {
   }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    const question = await CampusQuestion.findById(id);
+    if (!question) return res.status(404).json({ success: false, message: "Question not found" });
+
+    if (String(question.authorId) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "You can only delete your own questions" });
+    }
+
+    await CampusQuestion.findByIdAndDelete(id);
+    await CampusAnswer.deleteMany({ questionId: id }); // Clean up answers too
+
+    return res.status(200).json({ success: true, message: "Question deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting question:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 export const createQuestion = async (req, res) => {
   try {
     const { title, description, category } = req.body;
