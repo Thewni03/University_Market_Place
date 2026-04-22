@@ -1,42 +1,57 @@
-import React, { useEffect } from "react";
+import React, { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import AccessibilityWidget from './components/AccessibilityWidget';
 
-// ── Pages ──────────────────────────────────────────────────────────────────
-import Home from "./pages/Home/Home";
-import CampusFeed from "./pages/CampusFeed/CampusFeed";
-import Profile from "./pages/profile/profile";
-import CreateService from "./pages/CreateService/createservice";
-import EditService from "./pages/services/editservice";
-import ServiceDetail from "./pages/ServiceDetail/ServiceDetail";
-import PostRequest from "./pages/PostRequest/PostRequest";
-import RequestDetail from "./pages/RequestDetail/RequestDetail";
-import Chat from "./pages/Chat/chat.jsx";
-import CampusForum from "./pages/CampusForum/CampusForum";
-import ForumThread from "./pages/CampusForum/ForumThread";
-
-// ── Components ─────────────────────────────────────────────────────────────
-import BookingForm from "./components/Booking/BookingForm.jsx";
-import BookingSuccess from "./components/Booking/BookingSuccess.jsx";
-import BookingHistory from "./components/Booking/BookingHistory.jsx";
-import Payment from "./components/payment/payment";
-import Reviewandrating from "./components/Reviewandrating/Reviewandrating";
-
-// ── Admin ──────────────────────────────────────────────────────────────────
-import UserManagement from "./Admin/UserManagement/UserManagement";
-import UserInsert from "./Admin/UserInsert/UserInsert";
-import UserUpdate from "./Admin/UserUpdate/UserUpdate";
-
-// ── Auth ───────────────────────────────────────────────────────────────────
-import Register from "./pages/Register/Register";
-import Login from "./pages/Login/Login";
-import PendingVerification from "./pages/PendingVerification/PendingVerification";
-import Verificationstatushandler from "./components/Verificationstatushandler/Verificationstatushandler";
-
-// ── Notifications ──────────────────────────────────────────────────────────
+// ── Notifications & Store ──────────────────────────────────────────────────
 import { NotificationProvider } from "./notifications/context/NotificationContext";
 import { useAuthStore } from "./store/useAuthStore";
+
+// ── Pages (Lazy Loaded) ────────────────────────────────────────────────────
+const Marketplace = lazy(() => import("./pages/Marketplace/Marketplace"));
+const Home = lazy(() => import("./pages/Home/Home"));
+const CampusFeed = lazy(() => import("./pages/CampusFeed/CampusFeed"));
+const Profile = lazy(() => import("./pages/profile/profile"));
+const CampusForum = lazy(() => import("./pages/CampusForum/CampusForum"));
+const ForumThread = lazy(() => import("./pages/CampusForum/ForumThread"));
+const Chat = lazy(() => import("./pages/Chat/chat.jsx"));
+
+// ── Services ───────────────────────────────────────────────────────────────
+const CreateService = lazy(() => import("./pages/CreateService/createservice"));
+const EditService = lazy(() => import("./pages/services/editservice"));
+const ServiceDetail = lazy(() => import("./pages/ServiceDetail/ServiceDetail"));
+
+// ── Requests ───────────────────────────────────────────────────────────────
+const PostRequest = lazy(() => import("./pages/PostRequest/PostRequest"));
+const RequestDetail = lazy(() => import("./pages/RequestDetail/RequestDetail"));
+
+// ── Components & Widgets ───────────────────────────────────────────────────
+const AccessibilityWidget = lazy(() => import("./components/AccessibilityWidget"));
+const TalkSpaceWidget = lazy(() => import("./components/TalkSpaceWidget"));
+const BookingForm = lazy(() => import("./components/Booking/BookingForm.jsx"));
+const BookingSuccess = lazy(() => import("./components/Booking/BookingSuccess.jsx"));
+const BookingHistory = lazy(() => import("./components/Booking/BookingHistory.jsx"));
+const Payment = lazy(() => import("./components/payment/payment"));
+const Reviewandrating = lazy(() => import("./components/Reviewandrating/Reviewandrating"));
+
+// ── Admin ──────────────────────────────────────────────────────────────────
+const UserManagement = lazy(() => import("./Admin/UserManagement/UserManagement"));
+const UserInsert = lazy(() => import("./Admin/UserInsert/UserInsert"));
+const UserUpdate = lazy(() => import("./Admin/UserUpdate/UserUpdate"));
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+const Register = lazy(() => import("./pages/Register/Register"));
+const Login = lazy(() => import("./pages/Login/Login"));
+const PendingVerification = lazy(() => import("./pages/PendingVerification/PendingVerification"));
+const Verificationstatushandler = lazy(() => import("./components/Verificationstatushandler/Verificationstatushandler"));
+
+const AppLoader = () => (
+  <div className="flex min-h-[40vh] items-center justify-center px-6 py-16">
+    <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm">
+      <span className="inline-flex size-2.5 animate-pulse rounded-full bg-emerald-500" />
+      Loading page...
+    </div>
+  </div>
+);
 
 function App() {
   const location = useLocation();
@@ -45,12 +60,13 @@ function App() {
   const disconnectSocket = useAuthStore((state) => state.disconnectSocket);
 
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
-  const hideNavbar =
-    normalizedPath === "/" ||
-    normalizedPath === "/login" ||
-    normalizedPath === "/register" ||
-    normalizedPath === "/verificationstatushandler" ||
-    normalizedPath === "/pending";
+  const hideNavbar = [
+    "/", 
+    "/login", 
+    "/register", 
+    "/verificationstatushandler", 
+    "/pending"
+  ].includes(normalizedPath);
 
   useEffect(() => {
     if (authUser?._id) {
@@ -64,47 +80,53 @@ function App() {
     <NotificationProvider>
       {!hideNavbar && <Navbar />}
 
-      <Routes>
-        {/* Core */}
-        <Route path="/" element={<Login />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/feed" element={<CampusFeed />} />
-        <Route path="/forum" element={<CampusForum />} />
-        <Route path="/forum/:id" element={<ForumThread />} />
-        <Route path="/dashboard" element={<Chat />} />
-        <Route path="/profile" element={<Profile />} />
+      <Suspense fallback={<AppLoader />}>
+        <Routes>
+          {/* Auth */}
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/pending" element={<PendingVerification />} />
+          <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
 
-        {/* Services */}
-        <Route path="/create-service" element={<CreateService />} />
-        <Route path="/edit-service/:serviceId" element={<EditService />} />
-        <Route path="/service/:id" element={<ServiceDetail />} />
+          {/* Core Content */}
+          <Route path="/home" element={<Home />} />
+          <Route path="/feed" element={<CampusFeed />} />
+          <Route path="/forum" element={<CampusForum />} />
+          <Route path="/forum/:id" element={<ForumThread />} />
+          <Route path="/dashboard" element={<Chat />} />
+          <Route path="/profile" element={<Profile />} />
+          
+          {/* Marketplace / Shop */}
+          <Route path="/marketplace" element={<Marketplace />} />
 
-        {/* Requests */}
-        <Route path="/post-request" element={<PostRequest />} />
-        <Route path="/request/:id" element={<RequestDetail />} />
+          {/* Services */}
+          <Route path="/create-service" element={<CreateService />} />
+          <Route path="/edit-service/:serviceId" element={<EditService />} />
+          <Route path="/service/:id" element={<ServiceDetail />} />
 
-        {/* Booking & Payment */}
-        <Route path="/booking-form" element={<BookingForm />} />
-        <Route path="/booking-success" element={<BookingSuccess />} />
-        <Route path="/booking-history" element={<BookingHistory />} />
-        <Route path="/payment" element={<Payment />} />
+          {/* Requests */}
+          <Route path="/post-request" element={<PostRequest />} />
+          <Route path="/request/:id" element={<RequestDetail />} />
 
-        {/* Reviews & Ratings */}
-        <Route path="/reviewandrating" element={<Reviewandrating />} />
+          {/* Booking & Payment */}
+          <Route path="/booking-form" element={<BookingForm />} />
+          <Route path="/booking-success" element={<BookingSuccess />} />
+          <Route path="/booking-history" element={<BookingHistory />} />
+          <Route path="/payment" element={<Payment />} />
+          <Route path="/reviewandrating" element={<Reviewandrating />} />
 
-        {/* Admin */}
-        <Route path="/userManagement" element={<UserManagement />} />
-        <Route path="/userInsert" element={<UserInsert />} />
-        <Route path="/userUpdate/:email" element={<UserUpdate />} />
+          {/* Admin */}
+          <Route path="/userManagement" element={<UserManagement />} />
+          <Route path="/userInsert" element={<UserInsert />} />
+          <Route path="/userUpdate/:email" element={<UserUpdate />} />
+        </Routes>
+      </Suspense>
 
-        {/* Auth */}
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/pending" element={<PendingVerification />} />
-        <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
-      </Routes>
-      {/* ♿ Accessibility widget — fixed bottom-left, visible on every page */}
-      <AccessibilityWidget />
+      <Suspense fallback={null}>
+        <TalkSpaceWidget />
+        <AccessibilityWidget />
+      </Suspense>
     </NotificationProvider>
   );
 }

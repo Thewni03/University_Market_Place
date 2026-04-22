@@ -7,7 +7,7 @@ import { useChatStore } from "../store/useChatStore.js";
 const getUserAvatar = (user) => user?.profilePic || user?.profile_picture || "/avatar.png";
 const normalizeId = (value) => (value ? value.toString() : "");
 
-const ChatHeader = () => {
+const ChatHeader = ({ compact = false }) => {
   const { selectedUser, setSelecteduser } = useChatStore();
   const { onlineusers = [] } = useAuthStore();
 
@@ -19,11 +19,11 @@ const ChatHeader = () => {
   const isOnline = onlineusers.some((userId) => normalizeId(userId) === normalizeId(selectedUser._id));
 
   return (
-    <div className="border-b border-slate-200 bg-white/70 px-4 py-4 sm:px-6">
+    <div className={`border-b border-slate-200 bg-white/70 px-4 py-4 ${compact ? "" : "sm:px-6"}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="avatar">
-            <div className="relative size-12 rounded-2xl ring-1 ring-slate-200">
+            <div className={`relative rounded-2xl ring-1 ring-slate-200 ${compact ? "size-10" : "size-12"}`}>
               <img
                 src={getUserAvatar(selectedUser)}
                 alt={displayName}
@@ -36,8 +36,8 @@ const ChatHeader = () => {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{displayName}</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className={`${compact ? "text-base" : "text-lg"} font-semibold text-slate-900`}>{displayName}</h3>
+            <p className={`${compact ? "text-xs" : "text-sm"} text-slate-500`}>
               {isOnline ? "Online now" : "Currently offline"}
             </p>
           </div>
@@ -46,7 +46,7 @@ const ChatHeader = () => {
         <button
           type="button"
           onClick={() => setSelecteduser(null)}
-          className="inline-flex size-10 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-slate-100"
+          className={`inline-flex items-center justify-center rounded-2xl text-slate-500 transition hover:bg-slate-100 ${compact ? "size-9" : "size-10"}`}
         >
           <X className="size-4" />
         </button>

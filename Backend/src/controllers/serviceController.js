@@ -152,6 +152,8 @@ const uploadServiceWorkSample = async (file) => {
 
 const ML_SCORE_TTL_MS = 10 * 60 * 1000;
 const mlPredictionCache = new Map();
+const RANKED_RESULTS_TTL_MS = 20 * 1000;
+const rankedResultsCache = new Map();
 
 /* ================= META ================= */
 export const getServiceMeta = async (_req, res) => {
@@ -302,7 +304,8 @@ export const getAllServices = async (req, res) => {
 /* ================= RANKED ================= */
 export const getRankedServices = async (req, res) => {
   try {
-    const { category, location, minRating, minPrice, maxPrice, limit = 60 } = req.query;
+    const { category, location, minRating, minPrice, maxPrice, limit = 12, page = 1 } = req.query;
+    const safePage = Math.max(1, toNumber(page, 1));
     const safeLimit = Math.min(100, Math.max(1, toNumber(limit, 60)));
 
     const filter = { isPublished: true };
@@ -316,9 +319,26 @@ export const getRankedServices = async (req, res) => {
       if (maxPrice !== undefined && maxPrice !== "") filter.pricePerHour.$lte = toNumber(maxPrice, 10000);
     }
 
+    const cacheKey = JSON.stringify({
+      category: category || "All",
+      location: location || "all",
+      minRating: minRating ?? "",
+      minPrice: minPrice ?? "",
+      maxPrice: maxPrice ?? "",
+      page: safePage,
+      limit: safeLimit,
+    });
+    const cachedRankedResults = rankedResultsCache.get(cacheKey);
+    if (cachedRankedResults && Date.now() - cachedRankedResults.ts < RANKED_RESULTS_TTL_MS) {
+      return res.json(cachedRankedResults.value);
+    }
+
+    const totalCount = await Service.countDocuments(filter);
+    const candidateLimit = Math.min(240, Math.max(safeLimit * safePage * 4, safeLimit));
+
     let services = await Service.find(filter)
       .select(
-        "_id ownerId title category pricePerHour locationMode reviews reviewCount viewCount bookingCount responseTimeMin completionRate updatedAt createdAt isPublished"
+        "_id ownerId title category pricePerHour description locationMode reviews.rating reviewCount viewCount bookingCount responseTimeMin completionRate updatedAt createdAt publishedAt isPublished"
       )
       .populate({
         path: "ownerId",
@@ -326,7 +346,7 @@ export const getRankedServices = async (req, res) => {
         select: "fullname university_name verification_status",
       })
       .sort({ publishedAt: -1, createdAt: -1 })
-      .limit(safeLimit)
+      .limit(candidateLimit)
       .lean();
 
     if (minRating !== undefined && minRating !== "") {
@@ -425,11 +445,25 @@ export const getRankedServices = async (req, res) => {
 
     ranked.sort((a, b) => toNumber(b.rankingScore, 0) - toNumber(a.rankingScore, 0));
 
-    return res.json({
+    const startIndex = (safePage - 1) * safeLimit;
+    const paginatedRanked = ranked.slice(startIndex, startIndex + safeLimit);
+
+    const responsePayload = {
       success: true,
-      count: ranked.length,
-      data: ranked,
-    });
+      count: paginatedRanked.length,
+      totalCount,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.max(1, Math.ceil(totalCount / safeLimit)),
+      data: paginatedRanked,
+    };
+    rankedResultsCache.set(cacheKey, { value: responsePayload, ts: Date.now() });
+    if (rankedResultsCache.size > 250) {
+      const oldestKey = rankedResultsCache.keys().next().value;
+      if (oldestKey) rankedResultsCache.delete(oldestKey);
+    }
+
+    return res.json(responsePayload);
   } catch (error) {
     return res.status(500).json({
       success: false,

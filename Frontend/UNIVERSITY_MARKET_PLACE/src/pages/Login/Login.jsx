@@ -111,10 +111,25 @@ function ForgotPassword({ onBack, onOTPSent }) {
   const [loading, setLoading] = useState(false)
 
   const submit = async () => {
-    setLoading(true)
-    await axios.post(`${API}/forgot-password`, { email })
-    setLoading(false)
-    onOTPSent(email)
+    try {
+      setLoading(true)
+  
+      console.log("EMAIL SENT:", email)
+  
+      const res = await axios.post(`${API}/forgot-password`, {
+        email: email
+      })
+  
+      console.log("SUCCESS:", res.data)
+  
+      onOTPSent(email)
+  
+    } catch (err) {
+      console.error("FORGOT PASSWORD ERROR:", err.response?.data || err.message)
+      alert(err.response?.data?.message || "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

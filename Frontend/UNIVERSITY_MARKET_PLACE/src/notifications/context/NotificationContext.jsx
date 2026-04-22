@@ -1,9 +1,11 @@
 // src/notifications/context/NotificationContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { useChatStore } from '../../store/useChatStore';
+
+const NotificationPopupStack = React.lazy(() => import('../components/NotificationPopupStack'));
 
 const NotificationContext = createContext();
 
@@ -29,6 +31,7 @@ export function NotificationProvider({ children }) {
   const [unreadCount, setUnreadCount]     = useState(0);
   const [loading, setLoading]             = useState(true);
   const [open, setOpen]                   = useState(false);
+  const [popupNotifications, setPopupNotifications] = useState([]);
 
   const userId = getUserId();
   const location = useLocation();
@@ -120,6 +123,10 @@ export function NotificationProvider({ children }) {
     }
   }, [userId]);
 
+  const removePopupNotification = useCallback((id) => {
+    setPopupNotifications((prev) => prev.filter((notification) => notification._id !== id));
+  }, []);
+
   // Socket.io setup
   useEffect(() => {
     if (!userId) return;
@@ -134,6 +141,16 @@ export function NotificationProvider({ children }) {
       socket.emit('join', userId);
     });
 
+
+    socket.on("newMarketplaceListing", (data) => {
+      addNotification({
+        type: "marketplace",
+        title: "New item listed!",
+        message: `${data.seller} listed "${data.title}" for ${data.isFree ? "FREE" : "LKR " + data.price}`,
+        link: `/marketplace`,
+      });
+    });
+    
     // Listen for real-time notifications
     socket.on('new_notification', (notification) => {
       const senderId = notification?.metadata?.senderId;
@@ -151,6 +168,10 @@ export function NotificationProvider({ children }) {
 
       setNotifications(prev => [notification, ...prev]);
       setUnreadCount(prev => prev + 1);
+      setPopupNotifications((prev) => [
+        notification,
+        ...prev.filter((item) => item._id !== notification._id).slice(0, 2),
+      ]);
     });
 
     return () => {
@@ -161,9 +182,15 @@ export function NotificationProvider({ children }) {
   return (
     <NotificationContext.Provider value={{
       notifications, unreadCount, loading, open, setOpen,
+      popupNotifications, removePopupNotification,
       markRead, markAllRead, deleteNotification,
     }}>
       {children}
+      {popupNotifications.length > 0 ? (
+        <Suspense fallback={null}>
+          <NotificationPopupStack />
+        </Suspense>
+      ) : null}
     </NotificationContext.Provider>
   );
 }

@@ -6,10 +6,13 @@ import {
   getUserPayments,
   updatePayment,
   deletePayment,
+  validateBooking
 } from "../controllers/paymentController.js";
 import Uploads from "../uploads/Uploads.js";
 
 const router = express.Router();
+
+router.post("/validate-booking", validateBooking);
 
 router.post("/upload", Uploads.array("documents"), (req, res) => {
   try {

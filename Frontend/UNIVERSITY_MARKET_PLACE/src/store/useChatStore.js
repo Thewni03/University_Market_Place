@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from './useAuthStore.js';
 
 const normalizeId = (value) => (value ? value.toString() : "");
+const USERS_CACHE_TTL = 30 * 1000;
+let usersRequestPromise = null;
 
 const getCurrentUserId = () => {
     const authUserId = useAuthStore.getState().authUser?._id;
@@ -56,33 +58,65 @@ export const useChatStore = create((set, get) => ({
     isLoadingMessages: false,
     isMessagesLoading: false,
     isLoadingUsers: false,
+    usersLastFetchedAt: 0,
+    usersOwnerId: null,
 
-    getUsers: async () => {
-        set({ isLoadingUsers: true });
+    getUsers: async ({ force = false } = {}) => {
         try {
             const userId = getCurrentUserId();
             if (!userId) {
-                set({ users: [] });
+                set({
+                    users: [],
+                    usersLastFetchedAt: 0,
+                    usersOwnerId: null,
+                    isLoadingUsers: false,
+                });
                 return;
             }
 
-            const response = await axiosInstance.get('/messages/users', {
+            const { users, usersLastFetchedAt, usersOwnerId, isLoadingUsers } = get();
+            const isSameUser = normalizeId(usersOwnerId) === normalizeId(userId);
+            const hasFreshUsers =
+                isSameUser &&
+                users.length > 0 &&
+                Date.now() - Number(usersLastFetchedAt || 0) < USERS_CACHE_TTL;
+
+            if (!force && hasFreshUsers) {
+                return users;
+            }
+
+            if (isLoadingUsers && usersRequestPromise) {
+                return usersRequestPromise;
+            }
+
+            set({ isLoadingUsers: true });
+
+            usersRequestPromise = axiosInstance.get('/messages/users', {
                 params: { userId },
                 skipAuth: true,
                 withCredentials: false,
             });
+
+            const response = await usersRequestPromise;
+            const normalizedUsers = response.data.map((user) => ({
+                ...user,
+                unreadCount: Number(user.unreadCount || 0),
+                lastMessage: user.lastMessage || "",
+                lastMessageAt: user.lastMessageAt || "",
+            }));
+
             set({
-                users: response.data.map((user) => ({
-                    ...user,
-                    unreadCount: Number(user.unreadCount || 0),
-                    lastMessage: user.lastMessage || "",
-                    lastMessageAt: user.lastMessageAt || "",
-                })),
+                users: normalizedUsers,
+                usersLastFetchedAt: Date.now(),
+                usersOwnerId: userId,
             });
+
+            return normalizedUsers;
         } catch (error) {
             console.error('Error fetching users:', error);
             toast.error('Error fetching users');
         } finally {
+            usersRequestPromise = null;
             set({ isLoadingUsers: false });
         }
     },
@@ -147,17 +181,7 @@ export const useChatStore = create((set, get) => ({
         }
     },
     setSelecteduser: (selectedUser) => {
-        set((state) => ({
-            selectedUser,
-            users: state.users.map((user) =>
-                normalizeId(user._id) === normalizeId(selectedUser?._id)
-                    ? {
-                        ...user,
-                        unreadCount: 0,
-                    }
-                    : user
-            ),
-        }));
+        set({ selectedUser });
     },
     subscribeToMessages: () => {
         const socket = useAuthStore.getState().Socket;
