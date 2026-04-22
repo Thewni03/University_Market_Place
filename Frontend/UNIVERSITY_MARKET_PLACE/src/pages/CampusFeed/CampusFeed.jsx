@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   MessageSquare, Send, Clock, User, Loader2, ThumbsUp, Flag, 
-  AlertTriangle, Trash2
+  AlertTriangle, Trash2, Edit3, CornerDownRight
 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -30,7 +30,11 @@ export default function CampusFeed() {
   const [content, setContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
 
-
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  
+  const [replyingToPostId, setReplyingToPostId] = useState(null);
+  const [replyContent, setReplyContent] = useState("");
 
   // Zustand stores
   const authUser = useAuthStore((state) => state.authUser);
@@ -75,7 +79,12 @@ export default function CampusFeed() {
       setPosts((prev) => 
         prev.map((p) => 
           p._id === updatedData.postId 
-            ? { ...p, upvotes: updatedData.upvotes, flags: updatedData.flags }
+            ? { 
+                ...p, 
+                ...(updatedData.upvotes !== undefined && { upvotes: updatedData.upvotes }),
+                ...(updatedData.flags !== undefined && { flags: updatedData.flags }),
+                ...(updatedData.content !== undefined && { content: updatedData.content })
+              }
             : p
         )
       );
@@ -85,16 +94,55 @@ export default function CampusFeed() {
       setPosts((prev) => prev.filter((p) => p._id !== deletedData.postId));
     };
 
+    const handleReplySocket = (data) => {
+      setPosts((prev) => prev.map((p) => {
+        if (p._id === data.postId) {
+          const replies = p.replies || [];
+          return { ...p, replies: [...replies, data.reply] };
+        }
+        return p;
+      }));
+    };
+
     socket.on("new-feed-post", handleNewPost);
     socket.on("feed-post-updated", handleUpdatePost);
     socket.on("feed-post-deleted", handleDeleteSocket);
+    socket.on("feed-post-replied", handleReplySocket);
 
     return () => {
       socket.off("new-feed-post", handleNewPost);
       socket.off("feed-post-updated", handleUpdatePost);
       socket.off("feed-post-deleted", handleDeleteSocket);
+      socket.off("feed-post-replied", handleReplySocket);
     };
   }, [socket]);
+
+  const handleEditSubmit = async (postId) => {
+    if (!editContent.trim()) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_BASE_URL}/api/feed/${postId}`, { content: editContent }, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      setEditingPostId(null);
+      toast.success("Post updated!");
+    } catch(err) { toast.error("Failed to edit post"); }
+  };
+
+  const handleReplySubmit = async (postId) => {
+    if (!replyContent.trim()) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_BASE_URL}/api/feed/${postId}/reply`, { content: replyContent }, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      setReplyingToPostId(null);
+      setReplyContent("");
+      toast.success("Replied!");
+    } catch(err) { toast.error("Failed to reply"); }
+  };
 
   const deletePost = async (postId) => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
@@ -267,20 +315,43 @@ export default function CampusFeed() {
                               <Clock className="w-3 h-3" />
                               <span>{getRelativeTime(post.createdAt)}</span>
                               {isOwner && (
-                                <button 
-                                  onClick={() => deletePost(post._id)}
-                                  className="ml-2 text-rose-400 hover:text-rose-600 transition-colors p-1 rounded-full hover:bg-rose-50"
-                                  title="Delete your post"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <>
+                                  <button 
+                                    onClick={() => { setEditingPostId(post._id); setEditContent(post.content); }}
+                                    className="ml-2 text-indigo-400 hover:text-indigo-600 transition-colors p-1 rounded-full hover:bg-indigo-50"
+                                    title="Edit your post"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button 
+                                    onClick={() => deletePost(post._id)}
+                                    className="text-rose-400 hover:text-rose-600 transition-colors p-1 rounded-full hover:bg-rose-50"
+                                    title="Delete your post"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
                           
-                          <p className={`text-[15px] leading-relaxed break-words whitespace-pre-wrap ${isSuspicious ? 'text-slate-400 italic' : 'text-slate-700'}`}>
-                            {post.content}
-                          </p>
+                          {editingPostId === post._id ? (
+                            <div className="mt-2 mb-3">
+                              <textarea 
+                                className="w-full resize-none border border-emerald-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-emerald-50/30" 
+                                value={editContent} onChange={e => setEditContent(e.target.value)} rows={2} 
+                                autoFocus
+                              />
+                              <div className="flex gap-2 mt-2">
+                                <button onClick={() => handleEditSubmit(post._id)} className="bg-emerald-600 text-white px-4 py-1.5 text-xs rounded-full font-bold hover:bg-emerald-500">Save</button>
+                                <button onClick={() => setEditingPostId(null)} className="bg-slate-200 text-slate-700 px-4 py-1.5 text-xs rounded-full font-bold hover:bg-slate-300">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className={`text-[15px] leading-relaxed break-words whitespace-pre-wrap ${isSuspicious ? 'text-slate-400 italic' : 'text-slate-700'}`}>
+                              {post.content}
+                            </p>
+                          )}
                           
                           {/* Interaction Bar */}
                           <div className="flex items-center gap-6 mt-4 pt-4 border-t border-slate-100">
@@ -303,7 +374,54 @@ export default function CampusFeed() {
                               <Flag className={`w-4 h-4 ${hasFlagged ? 'fill-current' : 'group-hover:scale-110'}`} />
                               <span>{flagCount}</span>
                             </button>
+                            
+                            <button 
+                              onClick={() => {
+                                setReplyingToPostId(replyingToPostId === post._id ? null : post._id);
+                                setReplyContent("");
+                              }}
+                              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors group"
+                            >
+                              <MessageSquare className={`w-4 h-4 ${replyingToPostId === post._id ? 'fill-current text-indigo-500' : 'group-hover:scale-110'}`} />
+                              <span className={replyingToPostId === post._id ? 'text-indigo-600' : ''}>{post.replies?.length || 0} Replies</span>
+                            </button>
                           </div>
+                          
+                          {/* Replies Display */}
+                          {(post.replies?.length > 0 || replyingToPostId === post._id) && (
+                            <div className="mt-4 pl-4 border-l-2 border-slate-100 space-y-3">
+                              {post.replies?.map((reply, idx) => (
+                                <div key={idx} className="flex gap-2 text-sm animate-in fade-in">
+                                  <div className="font-bold text-slate-700 shrink-0">
+                                    {reply.authorId?.fullname || reply.authorId?.username || "Student"}:
+                                  </div>
+                                  <div className="text-slate-600 break-words">{reply.content}</div>
+                                </div>
+                              ))}
+                              
+                              {replyingToPostId === post._id && (
+                                <div className="mt-3 flex gap-2 animate-in slide-in-from-top-1">
+                                  <input 
+                                    autoFocus 
+                                    type="text" 
+                                    className="flex-1 text-sm border border-slate-200 rounded-full px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
+                                    placeholder="Write a reply..."
+                                    value={replyContent}
+                                    onChange={e => setReplyContent(e.target.value)}
+                                    onKeyDown={e => { if(e.key === 'Enter') handleReplySubmit(post._id) }}
+                                    maxLength={200}
+                                  />
+                                  <button 
+                                    disabled={!replyContent.trim()} 
+                                    onClick={() => handleReplySubmit(post._id)}
+                                    className="bg-indigo-600 text-white p-1.5 rounded-full hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-300 transition-colors shadow-sm"
+                                  >
+                                    <CornerDownRight className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
