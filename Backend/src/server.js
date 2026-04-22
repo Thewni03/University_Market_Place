@@ -63,7 +63,12 @@ app.use(parseCookies);
 app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "src/uploads"))
+
+  
 );
+
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 app.use("/", predictionRoutes);
 app.use("/", resetRoutes);
 app.use("/api/services", serviceRoutes);

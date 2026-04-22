@@ -70,7 +70,10 @@ export const createProduct = async (req, res) => {
 
     const { title, description, price, isFree, category, faculty, condition, paymentMethod } = req.body;
     const isFreeBool = isFree === true || isFree === "true";
-    const images = req.files?.map(f => f.path) || [];
+    //const images = req.files?.map(f => f.path) || [];
+    //const images = req.files?.map(f => f.filename) || [];
+    //better
+   const images = req.files?.map(f => `uploads/marketplace/${f.filename}`) || [];
 
     const product = await Product.create({
       title, description,
