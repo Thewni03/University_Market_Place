@@ -32,7 +32,16 @@ export const createReview = async (req, res) => {
         });
 
         const savedReview = await newReview.save();
-
+// --- NOTIFY: The person being reviewed ---
+if (targetUserId) {
+    await notify({
+        userId: targetUserId,
+        type: 'new_review',
+        title: 'New Review Received!',
+        body: `${name || 'A user'} gave you a ${rating}-star review.`,
+        metadata: { reviewId: savedReview._id }
+    });
+}
         res.status(201).json(savedReview);
     } catch (error) {
         res.status(500).json({ message: 'Error creating review', error: error.message });
@@ -104,6 +113,16 @@ export const likeReview = async (req, res) => {
         if (!updatedReview) {
             return res.status(404).json({ message: 'Review not found' });
         }
+// --- NOTIFY: The reviewer that someone liked their feedback ---
+if (increment && updatedReview.reviewerId) {
+    await notify({
+        userId: updatedReview.reviewerId,
+        type: 'review_like',
+        title: 'Review Liked!',
+        body: `Someone found your review helpful.`,
+        metadata: { reviewId: updatedReview._id }
+    });
+}
 
         // Just making sure likes never drops below 0 due to some race condition
         if (updatedReview.likes < 0) {
@@ -143,6 +162,17 @@ export const replyToReview = async (req, res) => {
 
         if (!updatedReview) {
             return res.status(404).json({ message: 'Review not found' });
+        }
+
+         // --- NOTIFY: The original reviewer that someone replied ---
+         if (updatedReview.reviewerId) {
+            await notify({
+                userId: updatedReview.reviewerId,
+                type: 'review_reply',
+                title: 'New Reply to Review',
+                body: `${name || 'User'} replied to your review.`,
+                metadata: { reviewId: updatedReview._id }
+            });
         }
 
         res.status(201).json(updatedReview);

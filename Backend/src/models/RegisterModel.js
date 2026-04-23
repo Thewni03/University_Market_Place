@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const userSchema = new Schema({
-  
   email: {
     type: String,
     required: true,
@@ -11,59 +10,59 @@ const userSchema = new Schema({
     trim: true,
     lowercase: true
   },
-
   password: {
     type: String,
     required: true,
     minlength: 8
   },
-
   fullname: {
     type: String,
     required: true,
     trim: true
   },
-
   student_id: {
     type: String,
     required: true,
     unique: true
   },
-
   student_id_pic: { type: String, required: false, default: "" },
-
   university_name: {
     type: String,
     required: true
   },
-
   graduate_year: {
     type: Number, 
     required: true
   },
-
   verification_status: {
     type: String,
     enum: ['pending', 'verified', 'rejected', 'suspended'],
     default: 'pending',
     required: true
   },
-
   phone: {
     type: String,
     default: null
   },
-
   profilePic: {
     type: String,
     default: ""
   },
-
+  // --- NEW FIELDS FOR NOTIFICATIONS ---
+  notificationSettings: {
+    enabled: { type: Boolean, default: true }, // The main "Switch Off" toggle
+    pushNotify: { type: Boolean, default: true },
+    emailNotify: { type: Boolean, default: false }
+  },
+  pushSubscription: {
+    type: Object, // Stores the browser push endpoint/keys
+    default: null
+  },
+  // -------------------------------------
   reset_token: {
     type: String,
     default: null
   },
-
   reset_token_expires: {
     type: Date,
     default: null
@@ -74,12 +73,10 @@ const userSchema = new Schema({
     min: 0,
     max: 100
   },
-
   created_at: {
     type: Date,
     default: Date.now
   }
-
 }, { timestamps: true });
 
 const Users = mongoose.models.Users || mongoose.model("Users", userSchema);
