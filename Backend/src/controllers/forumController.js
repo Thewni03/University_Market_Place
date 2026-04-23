@@ -86,6 +86,28 @@ export const getQuestionThread = async (req, res) => {
   }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    const question = await CampusQuestion.findById(id);
+    if (!question) return res.status(404).json({ success: false, message: "Question not found" });
+
+    if (String(question.authorId) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "You can only delete your own questions" });
+    }
+
+    await CampusQuestion.findByIdAndDelete(id);
+    await CampusAnswer.deleteMany({ questionId: id }); // Clean up answers too
+
+    return res.status(200).json({ success: true, message: "Question deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting question:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 export const createQuestion = async (req, res) => {
   try {
     const { title, description, category } = req.body;
@@ -115,6 +137,35 @@ export const createQuestion = async (req, res) => {
     return res.status(201).json({ success: true, data: newQuestion });
   } catch (error) {
     console.error("Error creating question:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, category } = req.body;
+    const userId = req.userId;
+
+    if (!title || !description || !category) {
+      return res.status(400).json({ success: false, message: "Title, description, and category required" });
+    }
+
+    const question = await CampusQuestion.findById(id);
+    if (!question) return res.status(404).json({ success: false, message: "Question not found" });
+
+    if (String(question.authorId) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "You can only edit your own questions" });
+    }
+
+    question.title = title;
+    question.description = description;
+    question.category = category;
+    
+    await question.save();
+    return res.status(200).json({ success: true, message: "Question updated", data: question });
+  } catch (error) {
+    console.error("Error updating question:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -175,6 +226,31 @@ export const postAnswer = async (req, res) => {
     return res.status(201).json({ success: true, data: newAnswer });
   } catch (error) {
     console.error("Error posting answer:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const updateAnswer = async (req, res) => {
+  try {
+    const { answerId } = req.params;
+    const { content } = req.body;
+    const userId = req.userId;
+
+    if (!content) return res.status(400).json({ success: false, message: "Answer content required" });
+
+    const answer = await CampusAnswer.findById(answerId);
+    if (!answer) return res.status(404).json({ success: false, message: "Answer not found" });
+
+    if (String(answer.authorId) !== String(userId)) {
+      return res.status(403).json({ success: false, message: "You can only edit your own answers" });
+    }
+
+    answer.content = content;
+    await answer.save();
+
+    return res.status(200).json({ success: true, message: "Answer updated", data: answer });
+  } catch (error) {
+    console.error("Error updating answer:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

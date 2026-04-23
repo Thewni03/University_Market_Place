@@ -40,6 +40,8 @@ export default function CampusForum() {
   const handlePostQuestion = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return toast.error("Title and description are required");
+    if (title.trim().length < 10) return toast.error("Title must be at least 10 characters long.");
+    if (description.trim().length < 20) return toast.error("Description must be at least 20 characters long.");
     
     setIsSubmitting(true);
     try {
@@ -200,6 +202,8 @@ export default function CampusForum() {
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     required
+                    minLength={10}
+                    maxLength={100}
                   />
                 </div>
                 <div>
@@ -207,10 +211,12 @@ export default function CampusForum() {
                   <p className="text-xs text-slate-500 mb-2">Include all the information someone would need to answer your question.</p>
                   <textarea 
                     className="w-full border border-slate-300 px-4 py-3 rounded-xl min-h-[150px] resize-y focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow outline-none"
-                    placeholder="Describe your question in detail..."
+                    placeholder="Describe your question in detail... (Min 20 characters)"
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                     required
+                    minLength={20}
+                    maxLength={3000}
                   />
                 </div>
                 <div>

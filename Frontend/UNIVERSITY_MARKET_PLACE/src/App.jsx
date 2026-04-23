@@ -1,6 +1,7 @@
 import React, { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 // ── Notifications & Store ──────────────────────────────────────────────────
 import { NotificationProvider } from "./notifications/context/NotificationContext";
@@ -78,55 +79,61 @@ function App() {
 
   return (
     <NotificationProvider>
-      {!hideNavbar && <Navbar />}
+      <div className="flex min-h-screen flex-col">
+        {!hideNavbar && <Navbar />}
 
-      <Suspense fallback={<AppLoader />}>
-        <Routes>
-          {/* Auth */}
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/pending" element={<PendingVerification />} />
-          <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
+        <main className="flex-1 flex flex-col">
+          <Suspense fallback={<AppLoader />}>
+            <Routes>
+              {/* Auth */}
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/pending" element={<PendingVerification />} />
+              <Route path="/Verificationstatushandler" element={<Verificationstatushandler />} />
 
-          {/* Core Content */}
-          <Route path="/home" element={<Home />} />
-          <Route path="/feed" element={<CampusFeed />} />
-          <Route path="/forum" element={<CampusForum />} />
-          <Route path="/forum/:id" element={<ForumThread />} />
-          <Route path="/dashboard" element={<Chat />} />
-          <Route path="/profile" element={<Profile />} />
-          
-          {/* Marketplace / Shop */}
-          <Route path="/marketplace" element={<Marketplace />} />
+              {/* Core Content */}
+              <Route path="/home" element={<Home />} />
+              <Route path="/feed" element={<CampusFeed />} />
+              <Route path="/forum" element={<CampusForum />} />
+              <Route path="/forum/:id" element={<ForumThread />} />
+              <Route path="/dashboard" element={<Chat />} />
+              <Route path="/profile" element={<Profile />} />
+              
+              {/* Marketplace / Shop */}
+              <Route path="/marketplace" element={<Marketplace />} />
 
-          {/* Services */}
-          <Route path="/create-service" element={<CreateService />} />
-          <Route path="/edit-service/:serviceId" element={<EditService />} />
-          <Route path="/service/:id" element={<ServiceDetail />} />
+              {/* Services */}
+              <Route path="/create-service" element={<CreateService />} />
+              <Route path="/edit-service/:serviceId" element={<EditService />} />
+              <Route path="/service/:id" element={<ServiceDetail />} />
 
-          {/* Requests */}
-          <Route path="/post-request" element={<PostRequest />} />
-          <Route path="/request/:id" element={<RequestDetail />} />
+              {/* Requests */}
+              <Route path="/post-request" element={<PostRequest />} />
+              <Route path="/request/:id" element={<RequestDetail />} />
 
-          {/* Booking & Payment */}
-          <Route path="/booking-form" element={<BookingForm />} />
-          <Route path="/booking-success" element={<BookingSuccess />} />
-          <Route path="/booking-history" element={<BookingHistory />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/reviewandrating" element={<Reviewandrating />} />
+              {/* Booking & Payment */}
+              <Route path="/booking-form" element={<BookingForm />} />
+              <Route path="/booking-success" element={<BookingSuccess />} />
+              <Route path="/booking-history" element={<BookingHistory />} />
+              <Route path="/payment" element={<Payment />} />
+              <Route path="/reviewandrating" element={<Reviewandrating />} />
 
-          {/* Admin */}
-          <Route path="/userManagement" element={<UserManagement />} />
-          <Route path="/userInsert" element={<UserInsert />} />
-          <Route path="/userUpdate/:email" element={<UserUpdate />} />
-        </Routes>
-      </Suspense>
+              {/* Admin */}
+              <Route path="/userManagement" element={<UserManagement />} />
+              <Route path="/userInsert" element={<UserInsert />} />
+              <Route path="/userUpdate/:email" element={<UserUpdate />} />
+            </Routes>
+          </Suspense>
+        </main>
 
-      <Suspense fallback={null}>
-        <TalkSpaceWidget />
-        <AccessibilityWidget />
-      </Suspense>
+        <Footer />
+
+        <Suspense fallback={null}>
+          <TalkSpaceWidget />
+          <AccessibilityWidget />
+        </Suspense>
+      </div>
     </NotificationProvider>
   );
 }

@@ -15,7 +15,10 @@ const notificationSchema = new mongoose.Schema({
       'product_added',
       'product_booked',
       'product_like',
+      'question_created',   // ← ADD THIS
       'qa_reply',
+      'answer_accepted',    // ← ADD THIS
+
       'answer_accepted',
       'feed_post_created',
       'feed_post_upvote',
