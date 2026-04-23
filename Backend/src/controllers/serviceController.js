@@ -4,54 +4,14 @@ import Profile from "../models/profile.js";
 import mongoose from "mongoose";
 import fs from "fs/promises";
 import cloudinary from "../Utils/cloudinary.js";
+import { notify } from "../notifications/notification.service.js";
 
-const toUtcDateKey = (date = new Date()) => date.toISOString().slice(0, 10); // YYYY-MM-DD
 
-const startOfUtcDay = (date) =>
-  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+const rankedResultsCache = new Map();
+const RANKED_RESULTS_TTL_MS = 20 * 1000;
 
-const addUtcDays = (date, days) => {
-  const copy = new Date(date.getTime());
-  copy.setUTCDate(copy.getUTCDate() + days);
-  return copy;
-};
-
-const startOfUtcWeekMonday = (date) => {
-  const dayStart = startOfUtcDay(date);
-  const day = dayStart.getUTCDay(); // 0 Sun ... 6 Sat
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  return addUtcDays(dayStart, diffToMonday);
-};
-
-const resolveReviewerName = async (reviewerId, fallbackName) => {
-  if (!reviewerId) return fallbackName || "Student";
-
-  // Use User model only when it exists in this backend.
-  const Users = mongoose.models.Users;
-  if (!Users) {
-    return fallbackName || "Student";
-  }
-
-  try {
-    const user = await Users.findById(reviewerId)
-      .select("fullname username name email")
-      .lean();
-
-    if (!user) return fallbackName || "Student";
-
-    return (
-      user.fullname ||
-      user.username ||
-      user.name ||
-      (user.email ? String(user.email).split("@")[0] : "") ||
-      fallbackName ||
-      "Student"
-    );
-  } catch {
-    return fallbackName || "Student";
-  }
-};
-
+const mlPredictionCache = new Map();
+const ML_SCORE_TTL_MS = 60 * 1000;
 const toNumber = (value, fallback = 0) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -63,99 +23,12 @@ const averageRatingFromReviews = (reviews = []) => {
   return total / reviews.length;
 };
 
-const normalizeLocationForMl = (locationMode = "") => {
-  const value = String(locationMode || "").toLowerCase();
-  if (value === "online") return "Online";
-  if (value === "on-campus" || value === "on campus") return "On-Campus";
-  return "Online";
-};
-
-const ML_ALLOWED_CATEGORIES = new Set([
-  "Design & Media",
-  "Tech & Development",
-  "Academic Help",
-  "Writing & Translation",
-  "Tutoring",
-  "Beauty Services",
-  "Fitness & Health",
-  "Events & Entertainment",
-]);
-
-const normalizeCategoryForMl = (category = "") => {
-  const value = String(category || "").trim();
-  if (ML_ALLOWED_CATEGORIES.has(value)) return value;
-
-  const lower = value.toLowerCase();
-  if (lower.includes("design") || lower.includes("video") || lower.includes("photo")) {
-    return "Design & Media";
-  }
-  if (
-    lower.includes("tech") ||
-    lower.includes("web") ||
-    lower.includes("app") ||
-    lower.includes("develop")
-  ) {
-    return "Tech & Development";
-  }
-  if (
-    lower.includes("academic") ||
-    lower.includes("assignment") ||
-    lower.includes("research")
-  ) {
-    return "Academic Help";
-  }
-  if (lower.includes("writing") || lower.includes("translation") || lower.includes("content")) {
-    return "Writing & Translation";
-  }
-  if (lower.includes("tutor") || lower.includes("teaching") || lower.includes("lesson")) {
-    return "Tutoring";
-  }
-  if (lower.includes("beauty") || lower.includes("makeup") || lower.includes("salon")) {
-    return "Beauty Services";
-  }
-  if (lower.includes("fitness") || lower.includes("health") || lower.includes("gym")) {
-    return "Fitness & Health";
-  }
-  if (lower.includes("event") || lower.includes("dj") || lower.includes("music")) {
-    return "Events & Entertainment";
-  }
-
-  // Safe default for legacy categories that are outside ML training labels.
-  return "Tutoring";
-};
-
 const parseJsonMaybe = (value, fallback) => {
-  if (value === undefined || value === null || value === "") return fallback;
-  if (typeof value !== "string") return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
+  if (!value) return fallback;
+  try { return typeof value === "string" ? JSON.parse(value) : value; } 
+  catch { return fallback; }
 };
 
-const uploadServiceWorkSample = async (file) => {
-  if (!file?.path) return null;
-
-  const uploadResponse = await cloudinary.uploader.upload(file.path, {
-    folder: "university-marketplace/service-work-samples",
-    resource_type: "auto",
-  });
-
-  return {
-    url: uploadResponse.secure_url || uploadResponse.url,
-    filename: file.originalname || file.filename,
-    mimeType: file.mimetype || "application/octet-stream",
-    sizeBytes: Number(file.size || 0),
-  };
-};
-
-const ML_SCORE_TTL_MS = 10 * 60 * 1000;
-const mlPredictionCache = new Map();
-const RANKED_RESULTS_TTL_MS = 20 * 1000;
-const rankedResultsCache = new Map();
-
-/* ================= META ================= */
 export const getServiceMeta = async (_req, res) => {
   return res.json({
     success: true,
@@ -167,7 +40,6 @@ export const getServiceMeta = async (_req, res) => {
   });
 };
 
-/* ================= CREATE ================= */
 export const createService = async (req, res) => {
   try {
     const body = req.body || {};
@@ -182,12 +54,14 @@ export const createService = async (req, res) => {
     const availabilitySlots = parseJsonMaybe(body.availabilitySlots, []);
     const incomingWorkSamples = parseJsonMaybe(body.workSamples, []);
     const pricePerHour = toNumber(body.pricePerHour, 0);
+    
     if (pricePerHour > 10000) {
       return res.status(400).json({
         success: false,
         error: "you cant add more than 10000",
       });
     }
+
     const uploadedFiles = Array.isArray(req.files) ? req.files : [];
     const uploadedWorkSamples = (
       await Promise.all(
@@ -216,6 +90,15 @@ export const createService = async (req, res) => {
       workSamples: normalizedWorkSamples,
     });
 
+    await notify({
+      userId: ownerId,
+      type: 'service_added',
+      title: 'Service Published!',
+      body: `Your service "${doc.title}" is now live and visible to others.`,
+      metadata: { serviceId: doc._id, url: `/services/${doc._id}` }
+    });
+
+
     return res.status(201).json({
       success: true,
       message: "Service created",
@@ -229,7 +112,6 @@ export const createService = async (req, res) => {
   }
 };
 
-/* ================= READ ALL ================= */
 export const getAllServices = async (req, res) => {
   try {
     const { category, locationMode, ownerId, page = 1, limit = 24 } = req.query;
@@ -301,179 +183,103 @@ export const getAllServices = async (req, res) => {
   }
 };
 
-/* ================= RANKED ================= */
 export const getRankedServices = async (req, res) => {
   try {
     const { category, location, minRating, minPrice, maxPrice, limit = 12, page = 1 } = req.query;
+
     const safePage = Math.max(1, toNumber(page, 1));
-    const safeLimit = Math.min(100, Math.max(1, toNumber(limit, 60)));
+    const safeLimit = Math.min(100, Math.max(1, toNumber(limit, 12)));
 
     const filter = { isPublished: true };
     if (category && category !== "All") filter.category = category;
+
     if (location && location !== "all") {
       filter.locationMode = location === "on-campus" ? "On-Campus" : "Online";
     }
+
     if (minPrice || maxPrice) {
       filter.pricePerHour = {};
-      if (minPrice !== undefined && minPrice !== "") filter.pricePerHour.$gte = toNumber(minPrice, 0);
-      if (maxPrice !== undefined && maxPrice !== "") filter.pricePerHour.$lte = toNumber(maxPrice, 10000);
+      if (minPrice) filter.pricePerHour.$gte = toNumber(minPrice, 0);
+      if (maxPrice) filter.pricePerHour.$lte = toNumber(maxPrice, 10000);
     }
 
-    const cacheKey = JSON.stringify({
-      category: category || "All",
-      location: location || "all",
-      minRating: minRating ?? "",
-      minPrice: minPrice ?? "",
-      maxPrice: maxPrice ?? "",
-      page: safePage,
-      limit: safeLimit,
-    });
-    const cachedRankedResults = rankedResultsCache.get(cacheKey);
-    if (cachedRankedResults && Date.now() - cachedRankedResults.ts < RANKED_RESULTS_TTL_MS) {
-      return res.json(cachedRankedResults.value);
-    }
+    const cacheKey = JSON.stringify({ category, location, minRating, minPrice, maxPrice, page: safePage, limit: safeLimit });
 
-    const totalCount = await Service.countDocuments(filter);
-    const candidateLimit = Math.min(240, Math.max(safeLimit * safePage * 4, safeLimit));
+    const cached = rankedResultsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < RANKED_RESULTS_TTL_MS) {
+      return res.json(cached.value);
+    }
 
     let services = await Service.find(filter)
-      .select(
-        "_id ownerId title category pricePerHour description locationMode reviews.rating reviewCount viewCount bookingCount responseTimeMin completionRate updatedAt createdAt publishedAt isPublished"
-      )
-      .populate({
-        path: "ownerId",
-        model: "Users",
-        select: "fullname university_name verification_status",
-      })
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .limit(candidateLimit)
+      .populate("ownerId", "fullname university_name verification_status")
       .lean();
 
-    if (minRating !== undefined && minRating !== "") {
+    if (minRating) {
       const threshold = toNumber(minRating, 0);
-      services = services.filter((svc) => {
-        const avg = toNumber(svc.average_rating, averageRatingFromReviews(svc.reviews || []));
-        return avg >= threshold;
-      });
-    }
-
-    const ownerIds = services
-      .map((s) => s?.ownerId?._id || s?.ownerId)
-      .filter(Boolean)
-      .map((id) => String(id));
-
-    let ownerPictureMap = new Map();
-    if (ownerIds.length > 0) {
-      const ownerProfiles = await Profile.find({ user_id: { $in: ownerIds } })
-        .select("user_id profile_picture")
-        .lean();
-      ownerPictureMap = new Map(
-        ownerProfiles.map((p) => [String(p.user_id), p.profile_picture || null])
+      services = services.filter(s =>
+        averageRatingFromReviews(s.reviews || []) >= threshold
       );
     }
 
-    const mlBase = String(process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
-    const defaultResponseTimeMin = toNumber(process.env.DEFAULT_RESPONSE_TIME_MIN, 1440);
-    const defaultCompletionRate = toNumber(process.env.DEFAULT_COMPLETION_RATE, 0.8);
 
     const scored = await Promise.all(
       services.map(async (service) => {
-        const reviews = Array.isArray(service.reviews) ? service.reviews : [];
-        const features = {
-          average_rating: toNumber(
-            service.average_rating ?? service.averageRating,
-            averageRatingFromReviews(reviews)
-          ),
-          review_count: toNumber(service.reviewCount ?? reviews.length, 0),
-          view_count: toNumber(service.viewCount, 0),
-          price_per_hour: toNumber(service.pricePerHour, 0),
-          category: normalizeCategoryForMl(service.category),
-          location: normalizeLocationForMl(service.locationMode),
-          booking_count: toNumber(service.bookingCount, 0),
-          response_time_min: toNumber(service.responseTimeMin, defaultResponseTimeMin),
-          completion_rate: toNumber(service.completionRate, defaultCompletionRate),
-        };
+        const cacheKey = `${service._id}:${service.updatedAt}`;
+        const cachedScore = mlPredictionCache.get(cacheKey);
 
-        const cacheKey = `${String(service?._id || "")}:${String(service?.updatedAt || "")}`;
-        const cached = mlPredictionCache.get(cacheKey);
-        if (cached && Date.now() - cached.ts < ML_SCORE_TTL_MS) {
-          const ownerKey = service?.ownerId?._id || service?.ownerId;
-          return {
-            ...service,
-            rawPrediction: toNumber(cached.value, 0),
-            ownerProfilePicture: ownerKey
-              ? ownerPictureMap.get(String(ownerKey)) || null
-              : null,
-          };
+        if (cachedScore && Date.now() - cachedScore.ts < ML_SCORE_TTL_MS) {
+          return { ...service, rankingScore: cachedScore.value };
         }
 
-        let rawPrediction = 0;
+        let score = 0;
+
         try {
-          const response = await fetch(`${mlBase}/predict`, {
+          const resML = await fetch(`${process.env.ML_SERVICE_URL}/predict`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(features),
+            body: JSON.stringify({
+              rating: averageRatingFromReviews(service.reviews || []),
+              price: toNumber(service.pricePerHour),
+              views: toNumber(service.viewCount),
+            }),
           });
-          const json = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(json?.detail || "Predict failed");
-          rawPrediction = toNumber(json?.prediction, 0);
-          mlPredictionCache.set(cacheKey, { value: rawPrediction, ts: Date.now() });
-          if (mlPredictionCache.size > 2000) {
-            const oldestKey = mlPredictionCache.keys().next().value;
-            if (oldestKey) mlPredictionCache.delete(oldestKey);
-          }
-        } catch (error) {
-          rawPrediction = 0;
+
+          const json = await resML.json();
+          score = toNumber(json.prediction, 0);
+        } catch {
+          score = 0; 
         }
 
-        const ownerKey = service?.ownerId?._id || service?.ownerId;
-        return {
-          ...service,
-          rawPrediction,
-          ownerProfilePicture: ownerKey
-            ? ownerPictureMap.get(String(ownerKey)) || null
-            : null,
-        };
+        mlPredictionCache.set(cacheKey, { value: score, ts: Date.now() });
+
+        return { ...service, rankingScore: score };
       })
     );
 
-    const ranked = scored.map((item) => ({
-      ...item,
-      // Use direct ML output as ranking score (no normalization).
-      rankingScore: Number(toNumber(item.rawPrediction, 0).toFixed(2)),
-    }));
+    scored.sort((a, b) => b.rankingScore - a.rankingScore);
 
-    ranked.sort((a, b) => toNumber(b.rankingScore, 0) - toNumber(a.rankingScore, 0));
+    const start = (safePage - 1) * safeLimit;
+    const paginated = scored.slice(start, start + safeLimit);
 
-    const startIndex = (safePage - 1) * safeLimit;
-    const paginatedRanked = ranked.slice(startIndex, startIndex + safeLimit);
-
-    const responsePayload = {
+    const response = {
       success: true,
-      count: paginatedRanked.length,
-      totalCount,
-      page: safePage,
-      limit: safeLimit,
-      totalPages: Math.max(1, Math.ceil(totalCount / safeLimit)),
-      data: paginatedRanked,
+      count: paginated.length,
+      data: paginated,
     };
-    rankedResultsCache.set(cacheKey, { value: responsePayload, ts: Date.now() });
-    if (rankedResultsCache.size > 250) {
-      const oldestKey = rankedResultsCache.keys().next().value;
-      if (oldestKey) rankedResultsCache.delete(oldestKey);
-    }
 
-    return res.json(responsePayload);
+    rankedResultsCache.set(cacheKey, { value: response, ts: Date.now() });
+
+    return res.json(response);
+
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch ranked services",
+      message: "Ranking failed",
       error: error.message,
     });
   }
 };
 
-/* ================= OWNER VIEW ANALYTICS ================= */
 export const getOwnerViewsAnalytics = async (req, res) => {
   try {
     const ownerId = req.userId || req.query.ownerId;
@@ -530,7 +336,7 @@ export const getOwnerViewsAnalytics = async (req, res) => {
     let points = [];
 
     if (mode === "week") {
-      const monthParam = String(req.query.month || "").trim(); // YYYY-MM
+      const monthParam = String(req.query.month || "").trim(); 
       const validMonth = /^\d{4}-\d{2}$/.test(monthParam);
 
       const monthDate = validMonth
@@ -671,7 +477,7 @@ export const getOwnerViewsAnalytics = async (req, res) => {
   }
 };
 
-/* ================= READ ONE ================= */
+
 export const getServiceById = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id).populate({
@@ -684,7 +490,7 @@ export const getServiceById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
-    // Postman fallback for ownership checks
+
     const requesterId = req.userId || req.query.ownerId || req.body?.ownerId;
 
     const ownerIdValue = doc?.ownerId?._id || doc?.ownerId;
@@ -694,7 +500,6 @@ export const getServiceById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Not authorized to view this service" });
     }
 
-    // Count only student/other-user views, not owner self-views.
     if (!isOwner) {
       doc.viewCount = (doc.viewCount || 0) + 1;
       const todayKey = toUtcDateKey(new Date());
@@ -739,7 +544,7 @@ export const getServiceById = async (req, res) => {
   }
 };
 
-/* ================= ADD REVIEW ================= */
+
 export const addServiceReview = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id);
@@ -818,7 +623,7 @@ export const addServiceReview = async (req, res) => {
   }
 };
 
-/* ================= UPDATE ================= */
+
 export const updateService = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id);
@@ -827,7 +632,6 @@ export const updateService = async (req, res) => {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
-    // ✅ Postman fallback
     const requesterId = req.userId || req.body.ownerId;
 
     if (!requesterId) {
@@ -855,7 +659,34 @@ export const updateService = async (req, res) => {
   }
 };
 
-/* ================= DELETE ================= */
+
+
+export const getServiceViewAnalytics = async (req, res) => {
+  try {
+    const { ownerId } = req.query;
+   
+    return res.status(200).json({
+      success: true,
+      data: [] 
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getServiceRevenueAnalytics = async (req, res) => {
+  try {
+    const { ownerId } = req.query;
+    return res.status(200).json({
+      success: true,
+      data: []
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
 export const deleteService = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id);
@@ -864,7 +695,6 @@ export const deleteService = async (req, res) => {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
-    // ✅ Postman fallback
     const requesterId = req.userId || req.body.ownerId;
 
     if (!requesterId) {
@@ -889,7 +719,17 @@ export const deleteService = async (req, res) => {
   }
 };
 
-/* ================= CALCULATE PAYMENT ================= */
+const toUtcDateKey = (date = new Date()) => date.toISOString().slice(0, 10); 
+
+const startOfUtcDay = (date) =>
+  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+
+const addUtcDays = (date, days) => {
+  const copy = new Date(date.getTime());
+  copy.setUTCDate(copy.getUTCDate() + days);
+  return copy;
+};
+
 export const calculatePayment = async (req, res) => {
   try {
     const { hours, customHourlyRate } = req.body;

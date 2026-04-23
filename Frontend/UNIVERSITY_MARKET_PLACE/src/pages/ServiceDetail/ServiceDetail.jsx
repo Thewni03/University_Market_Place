@@ -31,7 +31,7 @@ export default function ServiceDetail() {
                     : "";
                 const res = await axios.get(`${API_BASE_URL}/api/services/${id}${requester}`);
                 setService(res.data.data || res.data);
-            } catch (error) {       
+            } catch (error) {
                 console.error("Error fetching service details:", error);
             } finally {
                 setLoading(false);
@@ -165,8 +165,8 @@ export default function ServiceDetail() {
                         {service.workSamples && service.workSamples.length > 0 && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                 {service.workSamples.map((sample, idx) => {
-                                    const imageUrl = sample.url?.startsWith("/") 
-                                        ? `${API_BASE_URL}${sample.url}` 
+                                    const imageUrl = sample.url?.startsWith("/")
+                                        ? `${API_BASE_URL}${sample.url}`
                                         : sample.url;
                                     return (
                                         <div key={idx} className="aspect-[4/3] bg-slate-100 rounded-2xl flex items-center justify-center border border-slate-200 overflow-hidden group">

@@ -1,6 +1,7 @@
 // src/controllers/marketplaceController.js
 import Users from "../models/RegisterModel.js";
 import Product from "../models/Product.js";
+import { notify } from "../notifications/notification.service.js";
 import {
   sendCampusMeetSeller,
   sendCampusMeetBuyer,
@@ -9,7 +10,7 @@ import {
   sendPaymentConfirmationBuyer,
 } from "../utils/marketplaceEmail.js";
 
-// ── GET all products ──────────────────────────────────────────────────────────
+
 export const getProducts = async (req, res) => {
   try {
     const { faculty, category, isFree, condition, minPrice, maxPrice, search, page = 1, limit = 20 } = req.query;
@@ -32,7 +33,7 @@ export const getProducts = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
     const [products, total] = await Promise.all([
       Product.find(filter)
-        // FIX: populate with all needed fields so seller shows correctly
+  
         .populate("seller", "fullname email university_name profile_picture student_id")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -46,7 +47,6 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// ── GET single product ────────────────────────────────────────────────────────
 export const getProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
@@ -59,21 +59,15 @@ export const getProduct = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch product" });
   }
 };
-
-// ── CREATE listing ────────────────────────────────────────────────────────────
 export const createProduct = async (req, res) => {
   try {
-    // FIX: guard against missing req.user
     if (!req.user || !req.user._id) {
       return res.status(401).json({ success: false, message: "Not authenticated" });
     }
 
     const { title, description, price, isFree, category, faculty, condition, paymentMethod } = req.body;
     const isFreeBool = isFree === true || isFree === "true";
-    //const images = req.files?.map(f => f.path) || [];
-    //const images = req.files?.map(f => f.filename) || [];
-    //better
-   const images = req.files?.map(f => `uploads/marketplace/${f.filename}`) || [];
+    const images = req.files?.map(f => `uploads/marketplace/${f.filename}`) || [];
 
     const product = await Product.create({
       title, description,
@@ -81,25 +75,19 @@ export const createProduct = async (req, res) => {
       isFree: isFreeBool,
       category, faculty, condition,
       paymentMethod: isFreeBool ? "on_campus" : (paymentMethod || "both"),
-      seller: req.user._id,   // FIX: ensure seller is always set
+      seller: req.user._id,
       images,
     });
 
-    // Populate seller before returning so frontend gets full data
     await product.populate("seller", "fullname email university_name");
 
-    const io = req.app.get("io");
-    if (io) {
-      io.emit("newMarketplaceListing", {
-        productId: product._id,
-        title: product.title,
-        price: product.price,
-        isFree: product.isFree,
-        faculty: product.faculty,
-        category: product.category,
-        seller: req.user.fullname,
-      });
-    }
+    await notify({
+      userId: req.user._id,
+      type: 'product_added',
+      title: 'Listing Published!',
+      body: `Your product "${product.title}" is now live in the marketplace.`,
+      metadata: { productId: product._id, url: `/marketplace/product/${product._id}` }
+    });
 
     res.status(201).json({ success: true, data: product });
   } catch (err) {
@@ -108,7 +96,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// ── UPDATE listing ────────────────────────────────────────────────────────────
 export const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -125,7 +112,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// ── DELETE listing ────────────────────────────────────────────────────────────
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -139,7 +125,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// ── BUY product ───────────────────────────────────────────────────────────────
+
 export const buyProduct = async (req, res) => {
   try {
     const { purchaseMethod = "on_campus" } = req.body;
@@ -154,8 +140,6 @@ export const buyProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
-
-    // FIX: handle null seller gracefully
     if (!product.seller) {
       return res.status(400).json({
         success: false,
@@ -171,12 +155,19 @@ export const buyProduct = async (req, res) => {
       return res.status(400).json({ success: false, message: "You cannot buy your own listing" });
     }
 
-    // Reserve
     product.status = "reserved";
     product.buyer = req.user._id;
     product.purchaseMethod = purchaseMethod;
     await product.save();
 
+     
+        await notify({
+          userId: product.seller._id,
+          type: 'product_booked',
+          title: 'New Product Booking!',
+          body: `${req.user.fullname} wants to buy your "${product.title}".`,
+          metadata: { productId: product._id, url: `/dashboard/sold-items` }
+        });
     // Socket
     const io = req.app.get("io");
     if (io) {
@@ -190,7 +181,7 @@ export const buyProduct = async (req, res) => {
     }
 
     if (purchaseMethod === "on_campus") {
-      // Send both emails — fire and forget, never crash the response
+      // Send both emails
       sendCampusMeetSeller({
         sellerEmail:  product.seller.email,
         sellerName:   product.seller.fullname,
@@ -259,7 +250,6 @@ export const buyProduct = async (req, res) => {
   }
 };
 
-// ── Confirm payment ───────────────────────────────────────────────────────────
 export const confirmPayment = async (req, res) => {
   try {
     const { orderId, productId, buyerName, buyerEmail, sellerName, sellerEmail, productTitle, price } = req.body;
@@ -272,7 +262,6 @@ export const confirmPayment = async (req, res) => {
   }
 };
 
-// ── MARK as sold ──────────────────────────────────────────────────────────────
 export const markSold = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -287,7 +276,6 @@ export const markSold = async (req, res) => {
   }
 };
 
-// ── TOGGLE favourite ──────────────────────────────────────────────────────────
 export const toggleFavourite = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
@@ -316,9 +304,34 @@ export const toggleFavourite = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to toggle favourite" });
   }
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: "Not found" });
+
+    const isFavorited = product.favorites.includes(req.user._id);
+    
+    if (isFavorited) {
+      product.favorites.pull(req.user._id);
+    } else {
+      product.favorites.push(req.user._id);
+      
+      await notify({
+        userId: product.seller,
+        type: 'product_like',
+        title: 'New Favorite!',
+        body: `Someone added your product "${product.title}" to their favorites.`,
+        metadata: { productId: product._id }
+      });
+    }
+
+    await product.save();
+    res.json({ success: true, favorited: !isFavorited });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Action failed" });
+  }
 };
 
-// ── My listings ───────────────────────────────────────────────────────────────
 export const getMyListings = async (req, res) => {
   try {
     const products = await Product.find({ seller: req.user._id })
@@ -331,7 +344,6 @@ export const getMyListings = async (req, res) => {
   }
 };
 
-// ── My favourites ─────────────────────────────────────────────────────────────
 export const getMyFavourites = async (req, res) => {
   try {
     const products = await Product.find({ favouritedBy: req.user._id })
@@ -343,7 +355,6 @@ export const getMyFavourites = async (req, res) => {
   }
 };
 
-// ── My purchases ──────────────────────────────────────────────────────────────
 export const getMyPurchases = async (req, res) => {
   try {
     const products = await Product.find({ buyer: req.user._id })

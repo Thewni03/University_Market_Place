@@ -1,8 +1,4 @@
-/**
- * Marketplace.jsx — Final version
- * Pay First → navigates to /marketplace/payment with order data
- * Meet on Campus → emails both parties, shows confirmation
- */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -79,7 +75,6 @@ body{font-family:'Sora',sans-serif;background:${T.bg};color:${T.text};}
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px;}
 `;
 
-// ── Product Detail Modal ───────────────────────────────────────────────────────
 function ProductModal({ product:p, onClose, onAddToCart, onToggleFav, isFav, inCart }) {
   const [imgIdx, setImgIdx] = useState(0);
   if (!p) return null;
@@ -200,7 +195,6 @@ function ProductModal({ product:p, onClose, onAddToCart, onToggleFav, isFav, inC
   );
 }
 
-// ── Cart Drawer ────────────────────────────────────────────────────────────────
 function CartDrawer({ cart, onRemove, onBuy, onClose, buying }) {
   const total = cart.reduce((s,p)=>s+(p.isFree?0:p.price),0);
   return (
@@ -287,7 +281,6 @@ function CartDrawer({ cart, onRemove, onBuy, onClose, buying }) {
   );
 }
 
-// ── Add Listing Modal ──────────────────────────────────────────────────────────
 function AddListingModal({ onClose, onSuccess }) {
   const [form,setForm]=useState({title:"",description:"",price:"",isFree:false,
     category:"Textbooks",faculty:"All",condition:"Good",paymentMethod:"both"});
@@ -394,7 +387,6 @@ function AddListingModal({ onClose, onSuccess }) {
   );
 }
 
-// ── Product Card ───────────────────────────────────────────────────────────────
 function ProductCard({ product:p, onCardClick, onAddToCart, onToggleFav, isFav, inCart }) {
   return (
     <div className="mp-card" style={{cursor:"pointer"}} onClick={()=>onCardClick(p)}>
@@ -453,7 +445,6 @@ function ProductCard({ product:p, onCardClick, onAddToCart, onToggleFav, isFav, 
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function Marketplace() {
   const navigate = useNavigate();
   const [products,    setProducts]    = useState([]);
@@ -526,7 +517,7 @@ export default function Marketplace() {
       loadProfileData();
 
       if(method==="on_campus"){
-        showNotif("✅ Reserved! Emails sent to you and the seller.");
+        showNotif("Reserved! Emails sent to you and the seller.");
       } else if(method==="pay_first"&&lastOrder){
         // Navigate to payment page with order data
         navigate("/marketplace/payment",{state:{order:lastOrder}});
@@ -617,7 +608,7 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Tabs */}
+
       <div style={{display:"flex",borderBottom:`1px solid ${T.border}`,marginBottom:24,overflowX:"auto"}}>
         {[
           {id:"browse",     icon:<Layers size={13}/>,     label:"Browse"},
@@ -631,7 +622,6 @@ export default function Marketplace() {
         ))}
       </div>
 
-      {/* Filters */}
       {(tab==="browse"||tab==="free")&&(
         <div style={{marginBottom:22}}>
           <input className="mp-input" style={{marginBottom:12}}
@@ -652,7 +642,6 @@ export default function Marketplace() {
         </div>
       )}
 
-      {/* My Listings — with buyer info when reserved */}
       {tab==="my-listings"&&(
         myListings.length===0
           ?<div style={{textAlign:"center",padding:60,color:T.textFaint}}>
@@ -736,7 +725,6 @@ export default function Marketplace() {
             </div>
       )}
 
-      {/* Purchases */}
       {tab==="purchases"&&(
         myPurchases.length===0
           ?<div style={{textAlign:"center",padding:60,color:T.textFaint}}>
@@ -782,7 +770,6 @@ export default function Marketplace() {
             </div>
       )}
 
-      {/* Product grid */}
       {(tab==="browse"||tab==="free"||tab==="favourites")&&(
         loading
           ?<div style={{textAlign:"center",padding:80}}>

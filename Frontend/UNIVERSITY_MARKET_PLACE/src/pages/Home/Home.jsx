@@ -439,13 +439,15 @@ export default function Home() {
   if (isLoggedIn) {
     return (
       <div className="min-h-screen bg-background font-sans">
+        
         {/* Welcome bar */}
         <div className="border-b border-border bg-gradient-to-r from-primary/5 via-transparent to-accent/5 pb-10">
           <div className="container mx-auto px-5 md:px-10 py-5 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-slate-900">
-                Welcome back, <span className="text-primary">{userName}</span> 👋
-              </h1>
+              
+            <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+          Welcome back, <span className="text-primary">{userName}</span> 👋
+        </h1>
               <p className="text-sm text-slate-500 mt-0.5">Find services or post what you need — your campus marketplace is ready.</p>
             </div>
             <div className="flex gap-3">

@@ -6,13 +6,16 @@ import {
   getUserPayments,
   updatePayment,
   deletePayment,
-  validateBooking
+  validateBooking,
+  getBookedSlots,
+  createBookingOnly
 } from "../controllers/paymentController.js";
 import Uploads from "../uploads/Uploads.js";
 
 const router = express.Router();
 
 router.post("/validate-booking", validateBooking);
+router.post("/create-booking", createBookingOnly);
 
 router.post("/upload", Uploads.array("documents"), (req, res) => {
   try {
@@ -30,6 +33,7 @@ router.post("/upload", Uploads.array("documents"), (req, res) => {
 
 router.post("/", createPayment);
 router.get("/", getAllPayments);
+router.get("/booked-slots", getBookedSlots);
 router.get("/user/:userId", getUserPayments);
 router.get("/:id", getPaymentById);
 router.put("/:id", updatePayment);

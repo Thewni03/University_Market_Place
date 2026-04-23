@@ -1,18 +1,16 @@
 import CampusQuestion from "../models/CampusQuestion.js";
 import CampusAnswer from "../models/CampusAnswer.js";
-
-// -- Questions --
+import { notify } from "../notifications/notification.service.js";
+//questions
 
 export const getQuestions = async (req, res) => {
   try {
-    const { sort, category } = req.query; // sort: 'new', 'top', 'unanswered'
+    const { sort, category } = req.query; 
     
     let query = {};
     if (category && category !== "All") {
       query.category = category;
     }
-
-    // Use aggregation to neatly package questions with their answer count
     let pipeline = [
       { $match: query },
       {
@@ -40,7 +38,7 @@ export const getQuestions = async (req, res) => {
       { $unwind: "$author" },
       {
         $project: {
-          answers: 0, // don't return all answers, just the count
+          answers: 0, 
           "author.password": 0,
           "author.tokens": 0,
           "author.role": 0,
@@ -54,7 +52,7 @@ export const getQuestions = async (req, res) => {
     } else if (sort === "top") {
       pipeline.push({ $sort: { upvoteCount: -1, createdAt: -1 } });
     } else {
-      pipeline.push({ $sort: { createdAt: -1 } }); // default 'new'
+      pipeline.push({ $sort: { createdAt: -1 } }); 
     }
 
     const questions = await CampusQuestion.aggregate(pipeline);
@@ -127,6 +125,15 @@ export const createQuestion = async (req, res) => {
     });
 
     await newQuestion.save();
+
+    await notify({
+      userId: authorId,
+      type: 'question_created',
+      title: 'Question Posted',
+      body: `Your question "${title}" is now live in the community forum.`,
+      metadata: { questionId: newQuestion._id, url: `/forum/question/${newQuestion._id}` }
+    });
+
     return res.status(201).json({ success: true, data: newQuestion });
   } catch (error) {
     console.error("Error creating question:", error);
@@ -185,7 +192,7 @@ export const toggleQuestionUpvote = async (req, res) => {
   }
 };
 
-// -- Answers --
+// answers
 
 export const postAnswer = async (req, res) => {
   try {
@@ -205,6 +212,17 @@ export const postAnswer = async (req, res) => {
     });
 
     await newAnswer.save();
+
+    if (String(question.authorId) !== String(authorId)) {
+      await notify({
+        userId: question.authorId,
+        type: 'qa_reply',
+        title: 'New Answer Received',
+        body: `Someone replied to your question: "${question.title}"`,
+        metadata: { questionId: question._id, url: `/forum/question/${question._id}` }
+      });
+    }
+
     return res.status(201).json({ success: true, data: newAnswer });
   } catch (error) {
     console.error("Error posting answer:", error);
@@ -276,10 +294,8 @@ export const markAnswerAccepted = async (req, res) => {
       return res.status(404).json({ success: false, message: "Valid answer not found" });
     }
 
-    // Toggle logic: if already accepted, un-accept it
     const newStatus = !answer.isAccepted;
     
-    // If accepting, un-accept all other answers for this question first
     if (newStatus) {
       await CampusAnswer.updateMany({ questionId }, { isAccepted: false });
     }
@@ -287,9 +303,18 @@ export const markAnswerAccepted = async (req, res) => {
     answer.isAccepted = newStatus;
     await answer.save();
 
-    // Mark question resolved status accordingly
     question.isResolved = newStatus;
     await question.save();
+
+     if (newStatus && String(answer.authorId) !== String(userId)) {
+      await notify({
+        userId: answer.authorId,
+        type: 'answer_accepted',
+        title: 'Answer Accepted!',
+        body: `Your answer was marked as the correct solution for: "${question.title}"`,
+        metadata: { questionId: question._id, url: `/forum/question/${question._id}` }
+      });
+    }
 
     return res.status(200).json({ success: true, isAccepted: answer.isAccepted, isResolved: question.isResolved });
   } catch (error) {

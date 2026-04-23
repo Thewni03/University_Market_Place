@@ -1,27 +1,33 @@
 import express from "express";
 import RegisterController from "../controllers/RegisterController.js";
 import upload from "../uploads/Uploads.js";
+import { protect } from "../middleware/userAuth.js"; //ensure path matches your auth middleware
+import User from "../models/RegisterModel.js";      // needed for the direct findByIdAndUpdate call
+
 const router = express.Router();
 
-// Get all users
-router.get("/", RegisterController.getAllUsers);
-
-// Login
 router.post("/login", RegisterController.loginUser);
-
-// Trust score
-router.get("/trust-score/:email", RegisterController.getTrustScore);
-
-// Register user
 router.post("/", upload.single("student_id_pic"), RegisterController.addUsers);
-
-// Get user by email
+router.get("/", RegisterController.getAllUsers);
+router.get("/trust-score/:email", RegisterController.getTrustScore);
 router.get("/:email", RegisterController.getByEmail);
-
-// Update user
 router.put("/:email", upload.single("student_id_pic"), RegisterController.updateUser);
 
-// Delete user
+
 router.delete("/:email", RegisterController.deleteUser);
+
+
+router.patch('/settings', protect, async (req, res) => {
+    try {
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: { notificationSettings: req.body.notificationSettings } },
+        { returnDocument: 'after' }
+      );
+      res.json({ success: true, notificationSettings: user.notificationSettings });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+});
 
 export default router;

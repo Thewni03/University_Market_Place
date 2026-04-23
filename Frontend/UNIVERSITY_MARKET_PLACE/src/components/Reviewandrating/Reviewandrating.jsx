@@ -21,6 +21,23 @@ const RatingReview = () => {
 
   const API_BASE_URL = 'http://localhost:5001';
 
+  // Clean avatar letters (no animal faces)
+  const getInitialAvatar = (name) => {
+    return name.charAt(0).toUpperCase();
+  };
+
+  const getRandomAvatarBg = () => {
+    const gradients = [
+      'bg-gradient-to-br from-[#667EEA] to-[#764BA2]',
+      'bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53]',
+      'bg-gradient-to-br from-[#4ECDC4] to-[#45B7D1]',
+      'bg-gradient-to-br from-[#FFB347] to-[#FF9F1C]',
+      'bg-gradient-to-br from-[#A06AB4] to-[#C06BB4]',
+      'bg-gradient-to-br from-[#5D9B9B] to-[#4A7C7C]'
+    ];
+    return gradients[Math.floor(Math.random() * gradients.length)];
+  };
+
   const fetchReviews = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/reviews`);
@@ -46,8 +63,8 @@ const RatingReview = () => {
 
   const handleReviewSubmit = async () => {
     if (newReview.trim() && newRating > 0) {
-      const animals = ['🦊', '🐼', '🦁', '🐨', '🐧', '🦉', '🐰', '🦝'];
-      const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+      const avatarLetter = getInitialAvatar('You');
+      const avatarBg = getRandomAvatarBg();
       try {
         const response = await fetch(`${API_BASE_URL}/api/reviews`, {
           method: 'POST',
@@ -56,8 +73,8 @@ const RatingReview = () => {
             rating: newRating, 
             comment: newReview, 
             name: 'You', 
-            avatar: randomAnimal, 
-            avatarBg: 'bg-gradient-to-br from-[#667EEA] to-[#764BA2]', 
+            avatar: avatarLetter, 
+            avatarBg: avatarBg, 
             isOwn: true 
           })
         });
@@ -102,8 +119,8 @@ const RatingReview = () => {
 
   const handleReplySubmit = async (reviewId) => {
     if (replyText.trim()) {
-      const animals = ['🦊', '🐼', '🦁', '🐨', '🐧', '🦉', '🐰', '🦝'];
-      const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+      const avatarLetter = getInitialAvatar('You');
+      const avatarBg = getRandomAvatarBg();
       try {
         const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}/reply`, {
           method: 'POST', 
@@ -111,8 +128,8 @@ const RatingReview = () => {
           body: JSON.stringify({ 
             comment: replyText, 
             name: 'You', 
-            avatar: randomAnimal, 
-            avatarBg: 'bg-gradient-to-br from-[#667EEA] to-[#764BA2]' 
+            avatar: avatarLetter, 
+            avatarBg: avatarBg 
           })
         });
         if (response.ok) { 
@@ -442,7 +459,7 @@ const RatingReview = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
       <FloatingParticles />
 
       {deleteConfirm && (
@@ -480,7 +497,7 @@ const RatingReview = () => {
 
               <div className="flex-1 space-y-3">
                 {[5, 4, 3, 2, 1].map((star) => {
-                  const percentage = (ratings[star] / totalReviews) * 100;
+                  const percentage = totalReviews > 0 ? (ratings[star] / totalReviews) * 100 : 0;
                   const barColor = star === 5
                     ? 'from-[#FFB347] to-[#FF9F1C]'
                     : star === 4
@@ -591,7 +608,7 @@ const RatingReview = () => {
                 )}
 
                 <div className="flex gap-4">
-                  <div className={`w-12 h-12 rounded-2xl ${review.avatarBg} flex items-center justify-center text-2xl shadow-lg transform group-hover:scale-110 transition-transform duration-300 animate-float-subtle`}>
+                  <div className={`w-12 h-12 rounded-2xl ${review.avatarBg} flex items-center justify-center text-xl font-bold text-white shadow-lg transform group-hover:scale-110 transition-transform duration-300 animate-float-subtle`}>
                     {review.avatar}
                   </div>
 
@@ -625,7 +642,7 @@ const RatingReview = () => {
                       <div className="ml-8 mt-4 space-y-3 border-l-2 border-gradient-to-b from-gray-200 to-gray-100 pl-4">
                         {review.replies.map((reply) => (
                           <div key={reply.id} className="flex gap-3 animate-slideIn">
-                            <div className={`w-8 h-8 rounded-xl ${reply.avatarBg} flex items-center justify-center text-lg shadow-md`}>
+                            <div className={`w-8 h-8 rounded-xl ${reply.avatarBg} flex items-center justify-center text-sm font-bold text-white shadow-md`}>
                               {reply.avatar}
                             </div>
                             <div className="flex-1">
@@ -646,8 +663,8 @@ const RatingReview = () => {
                     {activeReplyId === review.id && (
                       <div className="mt-4 ml-8 animate-slideIn">
                         <div className="flex gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#667EEA] to-[#764BA2] flex items-center justify-center text-lg shadow-md animate-float-subtle">
-                            🦊
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#667EEA] to-[#764BA2] flex items-center justify-center text-sm font-bold text-white shadow-md animate-float-subtle">
+                            Y
                           </div>
                           <div className="flex-1">
                             <textarea

@@ -1,4 +1,3 @@
-// src/notifications/context/NotificationContext.jsx
 import React, { Suspense, createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
@@ -12,19 +11,14 @@ const NotificationContext = createContext();
 const API_URL = 'http://localhost:5001/api';
 const SOCKET_URL = 'http://localhost:5001';
 
-// Get userId from your existing auth (localStorage token or user object)
 const getUserId = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user'));
     return user?._id || user?.id || null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 };
 
 const getToken = () => localStorage.getItem('token') || null;
-
-let socket;
 
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
@@ -32,41 +26,14 @@ export function NotificationProvider({ children }) {
   const [loading, setLoading]             = useState(true);
   const [open, setOpen]                   = useState(false);
   const [popupNotifications, setPopupNotifications] = useState([]);
+  const [settings, setSettings]           = useState({ enabled: true });
 
   const userId = getUserId();
   const location = useLocation();
   const selectedUser = useChatStore((state) => state.selectedUser);
+  
   const activeChatRef = useRef({ pathname: location.pathname, selectedUserId: selectedUser?._id || null });
-
-  // Fetch all notifications from API
-  const fetchNotifications = useCallback(async () => {
-    if (!userId) { setLoading(false); return; }
-    try {
-      const token = getToken();
-      const { data } = await axios.get(`${API_URL}/notifications`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        params: !token ? { userId } : {},
-      });
-      setNotifications(data.data || []);
-      setUnreadCount((data.data || []).filter(n => !n.isRead).length);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const markReadSilently = useCallback(async (id) => {
-    try {
-      const token = getToken();
-      await axios.patch(`${API_URL}/notifications/${id}/read`, {}, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        params: !token ? { userId } : {},
-      });
-    } catch (err) {
-      console.error('Failed to mark notification as read silently:', err);
-    }
-  }, [userId]);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     activeChatRef.current = {
@@ -75,124 +42,206 @@ export function NotificationProvider({ children }) {
     };
   }, [location.pathname, selectedUser?._id]);
 
-  // Mark one as read
+  /*
+  const fetchNotifications = useCallback(async () => {
+    const currentUserId = getUserId();
+    const token = getToken();
+
+    if (!currentUserId || !token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // 1. Fetch Notification History
+      const { data } = await axios.get(`${API_URL}/notifications`, { headers });
+      setNotifications(data.data || []);
+      setUnreadCount((data.data || []).filter(n => !n.isRead).length);
+
+      // 2. Fetch User Profile/Settings (Corrected endpoint)
+      const userRes = await axios.get(`${API_URL}/users/profile`, { headers });
+      if (userRes.data?.notificationSettings) {
+        setSettings(userRes.data.notificationSettings);
+      }
+    } catch (err) {
+      console.error('❌ Sync Error:', err.response?.data?.message || err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  */
+  const fetchNotifications = useCallback(async () => {
+    if (!userId) { setLoading(false); return; }
+    try {
+      const token = getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const { data } = await axios.get(`${API_URL}/notifications`, { headers });
+      setNotifications(data.data || []);
+      setUnreadCount((data.data || []).filter(n => !n.isRead).length);
+  
+      const localUser = JSON.parse(localStorage.getItem('user'));
+      setSettings(localUser?.notificationSettings || { enabled: true });
+  
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+const updateSettings = useCallback(async (newSettings) => {
+  try {
+    const token = getToken();
+    // CHANGED: Use /users/settings to match your server.js mount point
+    await axios.patch(`http://localhost:5001/users/settings`, { 
+      notificationSettings: newSettings 
+    }, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    setSettings(newSettings);
+  } catch (err) {
+    console.error('Failed to update settings:', err);
+  }
+}, []);
+
+
+  // --- NOTIFICATION ACTIONS ---
+  const markReadSilently = useCallback(async (id) => {
+    try {
+      const token = getToken();
+      await axios.patch(`${API_URL}/notifications/${id}/read`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch (err) { console.error(err); }
+  }, []);
+
   const markRead = useCallback(async (id) => {
     try {
       const token = getToken();
       await axios.patch(`${API_URL}/notifications/${id}/read`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        params: !token ? { userId } : {},
       });
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error('Failed to mark as read:', err);
-    }
-  }, [userId]);
+    } catch (err) { console.error(err); }
+  }, []);
 
-  // Mark all as read
   const markAllRead = useCallback(async () => {
     try {
       const token = getToken();
       await axios.patch(`${API_URL}/notifications/read-all`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        params: !token ? { userId } : {},
       });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
-    }
-  }, [userId]);
+    } catch (err) { console.error(err); }
+  }, []);
 
-  // Delete one
   const deleteNotification = useCallback(async (id) => {
     try {
       const token = getToken();
       await axios.delete(`${API_URL}/notifications/${id}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        params: !token ? { userId } : {},
       });
       setNotifications(prev => {
         const removed = prev.find(n => n._id === id);
         if (removed && !removed.isRead) setUnreadCount(c => Math.max(0, c - 1));
         return prev.filter(n => n._id !== id);
       });
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
-    }
-  }, [userId]);
-
-  const removePopupNotification = useCallback((id) => {
-    setPopupNotifications((prev) => prev.filter((notification) => notification._id !== id));
+    } catch (err) { console.error(err); }
   }, []);
 
-  // Socket.io setup
+  const removePopupNotification = useCallback((id) => {
+    setPopupNotifications((prev) => prev.filter((n) => n._id !== id));
+  }, []);
+
+//socket
   useEffect(() => {
-    if (!userId) return;
+    const currentUserId = getUserId();
+    const token = getToken();
+
+    if (!currentUserId || !token) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
+    }
 
     fetchNotifications();
 
-    // Connect socket
-    socket = io(SOCKET_URL, { withCredentials: true });
-
-    // Join private room
-    socket.on('connect', () => {
-      socket.emit('join', userId);
-    });
-
-
-    socket.on("newMarketplaceListing", (data) => {
-      addNotification({
-        type: "marketplace",
-        title: "New item listed!",
-        message: `${data.seller} listed "${data.title}" for ${data.isFree ? "FREE" : "LKR " + data.price}`,
-        link: `/marketplace`,
+    if (!socketRef.current) {
+      socketRef.current = io(SOCKET_URL, {
+        auth: { token },
+        withCredentials: true,
+        transports: ['websocket', 'polling'],
       });
-    });
-    
-    // Listen for real-time notifications
-    socket.on('new_notification', (notification) => {
-      const senderId = notification?.metadata?.senderId;
-      const isActiveChatNotification =
-        notification?.type === 'message' &&
-        senderId &&
-        activeChatRef.current.pathname === '/dashboard' &&
-        activeChatRef.current.selectedUserId?.toString() === senderId.toString();
 
-      if (isActiveChatNotification) {
-        setNotifications(prev => [{ ...notification, isRead: true }, ...prev]);
-        markReadSilently(notification._id);
-        return;
-      }
+      socketRef.current.on('connect', () => {
+        console.log('Notification Socket Connected');
 
-      setNotifications(prev => [notification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      setPopupNotifications((prev) => [
-        notification,
-        ...prev.filter((item) => item._id !== notification._id).slice(0, 2),
-      ]);
-    });
+        socketRef.current.emit('setup', currentUserId);
+        socketRef.current.emit('join', currentUserId);
+      });
+
+      socketRef.current.on('new_notification', (notification) => {
+        const senderId = notification?.metadata?.senderId;
+        const isCurrentChat = 
+          notification.type === 'message' && 
+          senderId && 
+          activeChatRef.current.selectedUserId === senderId;
+
+        if (isCurrentChat) {
+          setNotifications(prev => [{ ...notification, isRead: true }, ...prev]);
+          markReadSilently(notification._id);
+          return;
+        }
+
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+        
+
+        if (settings.enabled) {
+          setPopupNotifications((prev) => {
+            const filtered = prev.filter((item) => item._id !== notification._id);
+            return [notification, ...filtered].slice(0, 3);
+          });
+        }
+      });
+    }
 
     return () => {
-      socket?.disconnect();
+      if (socketRef.current && (!currentUserId || userId !== currentUserId)) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
-  }, [userId, fetchNotifications, markReadSilently]);
+  }, [userId, fetchNotifications, markReadSilently, settings.enabled]);
 
   return (
     <NotificationContext.Provider value={{
       notifications, unreadCount, loading, open, setOpen,
       popupNotifications, removePopupNotification,
       markRead, markAllRead, deleteNotification,
+      settings, updateSettings
     }}>
       {children}
-      {popupNotifications.length > 0 ? (
+      {settings.enabled && popupNotifications.length > 0 && (
         <Suspense fallback={null}>
           <NotificationPopupStack />
         </Suspense>
-      ) : null}
+      )}
     </NotificationContext.Provider>
   );
 }
 
-export const useNotifications = () => useContext(NotificationContext);
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error("useNotifications must be used within a NotificationProvider");
+  }
+  return context;
+};
