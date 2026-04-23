@@ -186,8 +186,16 @@ export const createPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
 
-    const payment = new PaymentModel(req.body);
-    const savedPayment = await payment.save();
+    let savedPayment;
+    const existingPayment = await PaymentModel.findOne({ bookingId });
+    
+    if (existingPayment) {
+      Object.assign(existingPayment, req.body);
+      savedPayment = await existingPayment.save();
+    } else {
+      const payment = new PaymentModel(req.body);
+      savedPayment = await payment.save();
+    }
 
 
     if (sellerId) {
