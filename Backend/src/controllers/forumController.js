@@ -1,6 +1,6 @@
 import CampusQuestion from "../models/CampusQuestion.js";
 import CampusAnswer from "../models/CampusAnswer.js";
-
+import { notify } from "../notifications/notification.service.js";
 // -- Questions --
 
 export const getQuestions = async (req, res) => {
@@ -105,6 +105,16 @@ export const createQuestion = async (req, res) => {
     });
 
     await newQuestion.save();
+
+    // NOTIFY: Confirmation to author
+    await notify({
+      userId: authorId,
+      type: 'question_created',
+      title: 'Question Posted',
+      body: `Your question "${title}" is now live in the community forum.`,
+      metadata: { questionId: newQuestion._id, url: `/forum/question/${newQuestion._id}` }
+    });
+
     return res.status(201).json({ success: true, data: newQuestion });
   } catch (error) {
     console.error("Error creating question:", error);
@@ -154,6 +164,18 @@ export const postAnswer = async (req, res) => {
     });
 
     await newAnswer.save();
+
+    // NOTIFY: The Question Author that someone replied (unless they replied to themselves)
+    if (String(question.authorId) !== String(authorId)) {
+      await notify({
+        userId: question.authorId,
+        type: 'qa_reply',
+        title: 'New Answer Received',
+        body: `Someone replied to your question: "${question.title}"`,
+        metadata: { questionId: question._id, url: `/forum/question/${question._id}` }
+      });
+    }
+
     return res.status(201).json({ success: true, data: newAnswer });
   } catch (error) {
     console.error("Error posting answer:", error);
@@ -214,6 +236,17 @@ export const markAnswerAccepted = async (req, res) => {
     // Mark question resolved status accordingly
     question.isResolved = newStatus;
     await question.save();
+
+     // NOTIFY: The Answerer that their answer was accepted
+     if (newStatus && String(answer.authorId) !== String(userId)) {
+      await notify({
+        userId: answer.authorId,
+        type: 'answer_accepted',
+        title: 'Answer Accepted!',
+        body: `Your answer was marked as the correct solution for: "${question.title}"`,
+        metadata: { questionId: question._id, url: `/forum/question/${question._id}` }
+      });
+    }
 
     return res.status(200).json({ success: true, isAccepted: answer.isAccepted, isResolved: question.isResolved });
   } catch (error) {

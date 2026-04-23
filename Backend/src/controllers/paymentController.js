@@ -1,4 +1,6 @@
 import Payment from "../models/payment.js";
+import PaymentModel from "../models/payment.js"; 
+import { notify } from "../notifications/notification.service.js";
 
 // VALIDATE Booking Form (Moved from frontend)
 export const validateBooking = (req, res) => {
@@ -49,8 +51,6 @@ export const validateBooking = (req, res) => {
     errors.nic = 'NIC number must be exactly 10 digits';
   }
 
-
-
   if (Object.keys(errors).length > 0) {
     return res.status(400).json({ success: false, errors });
   }
@@ -72,7 +72,9 @@ export const createPayment = async (req, res) => {
       cardNumber,
       name,
       expiry,
-      cvv
+      cvv,
+      sellerId, // Destructured for notification
+      userId    // Destructured for notification
     } = req.body;
 
     const errors = {};
@@ -131,8 +133,32 @@ export const createPayment = async (req, res) => {
     }
 
     // 5. Create and save payment
-    const payment = new Payment(req.body);
+    const payment = new PaymentModel(req.body);
     const savedPayment = await payment.save();
+
+    // --- ADDED NOTIFICATION PARTS ---
+    if (sellerId) {
+      await notify({
+        userId: sellerId,
+        type: 'payment_received',
+        title: 'Payment Received!',
+        body: `You received a payment of LKR ${amount} for ${serviceName}.`,
+        metadata: { bookingId, paymentId: savedPayment._id }
+      });
+    }
+
+    const buyerId = userId || req.user?._id; 
+    if (buyerId) {
+      await notify({
+        userId: buyerId,
+        type: 'payment_success',
+        title: 'Payment Successful',
+        body: `Your payment of LKR ${amount} for ${serviceName} was successful.`,
+        metadata: { bookingId, paymentId: savedPayment._id }
+      });
+    }
+    // --------------------------------
+
     res.status(201).json({ success: true, data: savedPayment });
   } catch (error) {
     if (error.code === 11000) {
@@ -145,7 +171,7 @@ export const createPayment = async (req, res) => {
 // GET All Payments
 export const getAllPayments = async (req, res) => {
   try {
-    const payments = await Payment.find().sort({ createdAt: -1 });
+    const payments = await PaymentModel.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: payments.length, data: payments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -155,7 +181,7 @@ export const getAllPayments = async (req, res) => {
 // GET Payment by ID
 export const getPaymentById = async (req, res) => {
   try {
-    const payment = await Payment.findById(req.params.id);
+    const payment = await PaymentModel.findById(req.params.id);
     if (!payment) {
       return res.status(404).json({ success: false, message: "Payment not found" });
     }
@@ -168,7 +194,7 @@ export const getPaymentById = async (req, res) => {
 // GET Payments by User ID
 export const getUserPayments = async (req, res) => {
   try {
-    const payments = await Payment.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+    const payments = await PaymentModel.find({ userId: req.params.userId }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: payments.length, data: payments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -178,7 +204,7 @@ export const getUserPayments = async (req, res) => {
 // UPDATE Payment
 export const updatePayment = async (req, res) => {
   try {
-    const payment = await Payment.findByIdAndUpdate(
+    const payment = await PaymentModel.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
       { new: true, runValidators: true }
@@ -195,7 +221,7 @@ export const updatePayment = async (req, res) => {
 // DELETE Payment
 export const deletePayment = async (req, res) => {
   try {
-    const payment = await Payment.findByIdAndDelete(req.params.id);
+    const payment = await PaymentModel.findByIdAndDelete(req.params.id);
     if (!payment) {
       return res.status(404).json({ success: false, message: "Payment not found" });
     }

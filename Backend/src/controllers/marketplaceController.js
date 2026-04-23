@@ -1,6 +1,7 @@
 // src/controllers/marketplaceController.js
 import Users from "../models/RegisterModel.js";
 import Product from "../models/Product.js";
+import { notify } from "../notifications/notification.service.js";
 import {
   sendCampusMeetSeller,
   sendCampusMeetBuyer,
@@ -59,21 +60,16 @@ export const getProduct = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch product" });
   }
 };
-
 // ── CREATE listing ────────────────────────────────────────────────────────────
 export const createProduct = async (req, res) => {
   try {
-    // FIX: guard against missing req.user
     if (!req.user || !req.user._id) {
       return res.status(401).json({ success: false, message: "Not authenticated" });
     }
 
     const { title, description, price, isFree, category, faculty, condition, paymentMethod } = req.body;
     const isFreeBool = isFree === true || isFree === "true";
-    //const images = req.files?.map(f => f.path) || [];
-    //const images = req.files?.map(f => f.filename) || [];
-    //better
-   const images = req.files?.map(f => `uploads/marketplace/${f.filename}`) || [];
+    const images = req.files?.map(f => `uploads/marketplace/${f.filename}`) || [];
 
     const product = await Product.create({
       title, description,
@@ -81,25 +77,20 @@ export const createProduct = async (req, res) => {
       isFree: isFreeBool,
       category, faculty, condition,
       paymentMethod: isFreeBool ? "on_campus" : (paymentMethod || "both"),
-      seller: req.user._id,   // FIX: ensure seller is always set
+      seller: req.user._id,
       images,
     });
 
-    // Populate seller before returning so frontend gets full data
     await product.populate("seller", "fullname email university_name");
 
-    const io = req.app.get("io");
-    if (io) {
-      io.emit("newMarketplaceListing", {
-        productId: product._id,
-        title: product.title,
-        price: product.price,
-        isFree: product.isFree,
-        faculty: product.faculty,
-        category: product.category,
-        seller: req.user.fullname,
-      });
-    }
+    // NOTIFY: Creator that listing is live
+    await notify({
+      userId: req.user._id,
+      type: 'product_added',
+      title: 'Listing Published!',
+      body: `Your product "${product.title}" is now live in the marketplace.`,
+      metadata: { productId: product._id, url: `/marketplace/product/${product._id}` }
+    });
 
     res.status(201).json({ success: true, data: product });
   } catch (err) {
@@ -177,6 +168,14 @@ export const buyProduct = async (req, res) => {
     product.purchaseMethod = purchaseMethod;
     await product.save();
 
+        // NOTIFY: Seller that someone booked their product
+        await notify({
+          userId: product.seller._id,
+          type: 'product_booked',
+          title: 'New Product Booking!',
+          body: `${req.user.fullname} wants to buy your "${product.title}".`,
+          metadata: { productId: product._id, url: `/dashboard/sold-items` }
+        });
     // Socket
     const io = req.app.get("io");
     if (io) {
@@ -315,6 +314,33 @@ export const toggleFavourite = async (req, res) => {
     res.json({ success: true, favourited: !already, count: product.favouritedBy.length });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to toggle favourite" });
+  }
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: "Not found" });
+
+    const isFavorited = product.favorites.includes(req.user._id);
+    
+    if (isFavorited) {
+      product.favorites.pull(req.user._id);
+    } else {
+      product.favorites.push(req.user._id);
+      
+      // NOTIFY: Seller that someone liked their product
+      await notify({
+        userId: product.seller,
+        type: 'product_like',
+        title: 'New Favorite!',
+        body: `Someone added your product "${product.title}" to their favorites.`,
+        metadata: { productId: product._id }
+      });
+    }
+
+    await product.save();
+    res.json({ success: true, favorited: !isFavorited });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Action failed" });
   }
 };
 

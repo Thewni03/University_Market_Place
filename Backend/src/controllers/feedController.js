@@ -1,6 +1,6 @@
 import FeedPost from "../models/FeedPost.js";
 import Profile from "../models/profile.js";
-
+import { notify } from "../notifications/notification.service.js";
 // Utility to populate author profiles
 const populateProfiles = async (posts) => {
   if (!posts || posts.length === 0) return posts;
@@ -47,6 +47,60 @@ export const getFeedPosts = async (req, res) => {
   }
 };
 
+// ... (populateProfiles remains exactly the same)
+
+export const createFeedPost = async (req, res) => {
+  try {
+    const { content } = req.body;
+    const authorId = req.userId; 
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Content is required" });
+    }
+
+    if (!authorId) {
+       return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const newPost = new FeedPost({
+      authorId,
+      content: content.trim(),
+    });
+
+    await newPost.save();
+
+    const populatedObj = await FeedPost.findById(newPost._id)
+      .populate({ path: "authorId", select: "fullname username name" })
+      .lean();
+
+    const [postWithProfile] = await populateProfiles([populatedObj]);
+
+    // --- NEW NOTIFICATION LOGIC ---
+    // 1. Notify the Author that their post is live
+    await notify({
+      userId: authorId,
+      type: 'feed_post_created',
+      title: 'Post Shared',
+      body: 'Your post was successfully added to the campus feed.',
+      metadata: { postId: newPost._id, url: '/feed' }
+    });
+
+    // 2. OPTIONAL: Notify followers or broadcast 
+    // This is handled by your socket io.emit below for real-time UI updates
+    // ------------------------------
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("new-feed-post", postWithProfile);
+    }
+
+    return res.status(201).json({ success: true, data: postWithProfile });
+  } catch (error) {
+    console.error("Error creating feed post:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+/*
 export const createFeedPost = async (req, res) => {
   try {
     const { content } = req.body;
@@ -92,7 +146,7 @@ export const createFeedPost = async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
+*/
 export const toggleFeedPostUpvote = async (req, res) => {
   try {
     const { id } = req.params;
@@ -108,6 +162,17 @@ export const toggleFeedPostUpvote = async (req, res) => {
       post.upvotes.push(userId);
       const flagIndex = post.flags.indexOf(userId);
       if (flagIndex > -1) post.flags.splice(flagIndex, 1); // Mutually exclusive
+
+          // Notify the Author that someone liked/upvoted their post
+          if (String(post.authorId) !== String(userId)) {
+            await notify({
+              userId: post.authorId,
+              type: 'feed_post_upvote',
+              title: 'New Upvote!',
+              body: `Someone upvoted your post: "${post.content.substring(0, 20)}..."`,
+              metadata: { postId: post._id, url: '/feed' }
+            });
+          }
     } else {
       post.upvotes.splice(index, 1);
     }
