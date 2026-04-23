@@ -325,8 +325,8 @@ const Payment = () => {
               {/* Credit Card */}
               <div
                 className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${selectedMethod === 'credit'
-                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
-                    : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
+                  ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
+                  : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
                   }`}
                 onClick={() => { setSelectedMethod('credit'); setErrors({}); }}
               >
@@ -343,8 +343,8 @@ const Payment = () => {
               {/* Paypal */}
               <div
                 className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${selectedMethod === 'paypal'
-                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
-                    : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
+                  ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
+                  : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
                   }`}
                 onClick={() => { setSelectedMethod('paypal'); setErrors({}); }}
               >
@@ -358,8 +358,8 @@ const Payment = () => {
               {/* Other */}
               <div
                 className={`flex justify-between items-center p-4 cursor-pointer rounded-xl transition-all duration-300 ${selectedMethod === 'other'
-                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
-                    : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
+                  ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 border-2 border-[#3B82F6]/30 shadow-md'
+                  : 'bg-gray-50/50 border border-gray-200 hover:border-[#3B82F6]/30 hover:shadow-md'
                   }`}
                 onClick={() => { setSelectedMethod('other'); setErrors({}); }}
               >

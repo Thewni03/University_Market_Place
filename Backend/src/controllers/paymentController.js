@@ -2,6 +2,27 @@ import Payment from "../models/payment.js";
 import PaymentModel from "../models/payment.js"; 
 import { notify } from "../notifications/notification.service.js";
 
+// GET Booked Slots
+export const getBookedSlots = async (req, res) => {
+  try {
+    const { serviceName, date } = req.query;
+    if (!serviceName || !date) {
+      return res.status(400).json({ success: false, message: "serviceName and date are required" });
+    }
+
+    const bookings = await Payment.find({
+      serviceName,
+      bookingDate: date,
+      status: { $nin: ['cancelled', 'refunded', 'failed'] }
+    });
+
+    const bookedSlots = bookings.map(b => b.bookingTime);
+    res.status(200).json({ success: true, data: bookedSlots });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // VALIDATE Booking Form (Moved from frontend)
 export const validateBooking = (req, res) => {
   const { fullName, email, contact, address, nic, date } = req.body;
@@ -56,6 +77,48 @@ export const validateBooking = (req, res) => {
   }
 
   return res.status(200).json({ success: true });
+};
+
+// CREATE Pending Booking Only
+export const createBookingOnly = async (req, res) => {
+  try {
+    const {
+      bookingId,
+      userId,
+      customerName,
+      customerEmail,
+      serviceName,
+      amount,
+      serviceFee,
+      platformFee,
+      tax,
+      bookingDate,
+      bookingTime,
+      attachments,
+      status
+    } = req.body;
+
+    const newPayment = new Payment({
+      bookingId,
+      userId,
+      customerName,
+      customerEmail,
+      serviceName,
+      amount,
+      serviceFee,
+      platformFee,
+      tax,
+      bookingDate,
+      bookingTime,
+      attachments,
+      status: status || 'Pending',
+    });
+
+    const savedPayment = await newPayment.save();
+    res.status(201).json({ success: true, data: savedPayment });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
 };
 
 // CREATE Payment

@@ -10,8 +10,8 @@ const BookingForm = () => {
   const serviceTitle = location.state?.serviceTitle || 'Premium Package';
   const hourlyRate = Number(location.state?.pricePerHour) || 299;
   const initialSlot = location.state?.selectedSlot
-    ? `${location.state.selectedSlot.day} at ${location.state.selectedSlot.time}`
-    : '9:00 AM - 11:00 AM';
+    ? location.state.selectedSlot.time
+    : '9:00 AM';
 
   const [formData, setFormData] = useState({
     fullName: authUser?.fullName || authUser?.fullname || '',
@@ -20,7 +20,7 @@ const BookingForm = () => {
     address: '',
     nic: '',
     service: serviceTitle,
-    date: '',
+    date: location.state?.selectedDate || '',
     timeSlot: initialSlot,
     persons: 1, // Using persons to represent hours in the UI as per current state
     specialRequests: '',
@@ -59,9 +59,37 @@ const BookingForm = () => {
   const [dragActive, setDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [bookedSlots, setBookedSlots] = useState([]);
+
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (formData.date && formData.service) {
+        try {
+          const res = await fetch(`http://localhost:5001/api/payments/booked-slots?serviceName=${encodeURIComponent(formData.service)}&date=${formData.date}`);
+          const result = await res.json();
+          if (result.success) {
+            setBookedSlots(result.data);
+          } else {
+            setBookedSlots([]);
+          }
+        } catch (error) {
+          console.error("Error fetching booked slots:", error);
+          setBookedSlots([]);
+        }
+      } else {
+        setBookedSlots([]);
+      }
+    };
+    fetchBookedSlots();
+  }, [formData.date, formData.service]);
 
   const validateForm = async () => {
     try {
+      if (!formData.timeSlot) {
+        setErrors(prev => ({ ...prev, timeSlot: 'Please select a time slot' }));
+        return false;
+      }
+      
       const response = await fetch('http://localhost:5001/api/payments/validate-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,8 +97,14 @@ const BookingForm = () => {
       });
       const result = await response.json();
       
-      if (!result.success && result.errors) {
-        setErrors(result.errors);
+      let validationErrors = result.errors || {};
+      
+      if (bookedSlots.some(b => b.includes(formData.timeSlot))) {
+        validationErrors.timeSlot = 'This time slot is already booked for the selected date.';
+      }
+      
+      if (!result.success || Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
         return false;
       }
       
@@ -94,7 +128,13 @@ const BookingForm = () => {
       value = value.replace(/[^a-zA-Z\s]/g, '');
     }
 
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      if (name === 'date') {
+        newData.timeSlot = '';
+      }
+      return newData;
+    });
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -213,10 +253,40 @@ const BookingForm = () => {
         }
       }
 
+      // 1. Generate booking ID
+      const newBookingId = 'UNI-' + Math.floor(Math.random() * 1000000);
+
+      // 2. Create the pending booking in DB
+      const bookingRes = await fetch('http://localhost:5001/api/payments/create-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: newBookingId,
+          userId: authUser?._id,
+          customerName: formData.fullName,
+          customerEmail: formData.email,
+          serviceName: formData.service,
+          amount: paymentSummary.totalAmount,
+          serviceFee: paymentSummary.serviceFee,
+          platformFee: paymentSummary.platformFee,
+          tax: paymentSummary.tax,
+          bookingDate: formData.date,
+          bookingTime: formData.timeSlot,
+          attachments: uploadedDocuments,
+          status: 'Pending'
+        })
+      });
+
+      const bookingResult = await bookingRes.json();
+      if (!bookingResult.success) {
+        throw new Error(bookingResult.message || 'Failed to create booking in database');
+      }
+
       // After successful booking & upload, navigate to booking success page
       navigate('/booking-success', {
         state: {
-          bookingId: 'UNI-' + Math.floor(Math.random() * 1000000),
+          bookingId: newBookingId,
+          dbId: bookingResult.data._id,
           amount: paymentSummary.totalAmount.toFixed(2),
           serviceName: formData.service,
           customerName: formData.fullName,
@@ -397,6 +467,11 @@ const BookingForm = () => {
     </div>
   );
 
+  const timeOptions = ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM'];
+  if (initialSlot && !timeOptions.includes(initialSlot)) {
+    timeOptions.push(initialSlot);
+  }
+
   return (
     <div className="min-h-screen w-full bg-background font-sans py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Page Header */}
@@ -545,13 +620,31 @@ const BookingForm = () => {
                       <input type="hidden" name="service" value={formData.service} />
                     </div>
 
-                    {/* Time Slot - Auto populated, read-only */}
+                    {/* Time Slot - Selectable */}
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10"></span>
-                      <div className="w-full py-3.5 pl-12 pr-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl text-[#1F2937] text-sm font-semibold">
-                        {formData.timeSlot}
-                      </div>
-                      <input type="hidden" name="timeSlot" value={formData.timeSlot} />
+                      <select
+                        name="timeSlot"
+                        value={formData.timeSlot}
+                        onChange={handleInputChange}
+                        className={`w-full py-3.5 pl-12 pr-4 bg-gray-50/80 border rounded-xl text-[#1F2937] text-sm focus:outline-none focus:ring-2 transition-all ${errors.timeSlot
+                            ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500'
+                            : 'border-gray-200 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]'
+                          }`}
+                      >
+                        <option value="">Select a time slot</option>
+                        {timeOptions.map((slot) => {
+                          const isBooked = bookedSlots.some(b => b.includes(slot));
+                          return (
+                            <option key={slot} value={slot} disabled={isBooked} className={isBooked ? 'text-gray-400 bg-gray-50' : ''}>
+                              {slot} {isBooked ? '(Booked)' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {errors.timeSlot && (
+                        <p className="text-red-500 text-xs mt-1 ml-4 animate-shake">{errors.timeSlot}</p>
+                      )}
                     </div>
                   </div>
 
