@@ -7,13 +7,15 @@ import {
   updatePayment,
   deletePayment,
   validateBooking,
-  getBookedSlots
+  getBookedSlots,
+  createBookingOnly
 } from "../controllers/paymentController.js";
 import Uploads from "../uploads/Uploads.js";
 
 const router = express.Router();
 
 router.post("/validate-booking", validateBooking);
+router.post("/create-booking", createBookingOnly);
 
 router.post("/upload", Uploads.array("documents"), (req, res) => {
   try {
