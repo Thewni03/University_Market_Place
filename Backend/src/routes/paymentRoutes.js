@@ -6,7 +6,8 @@ import {
   getUserPayments,
   updatePayment,
   deletePayment,
-  validateBooking
+  validateBooking,
+  getBookedSlots
 } from "../controllers/paymentController.js";
 import Uploads from "../uploads/Uploads.js";
 
@@ -30,6 +31,7 @@ router.post("/upload", Uploads.array("documents"), (req, res) => {
 
 router.post("/", createPayment);
 router.get("/", getAllPayments);
+router.get("/booked-slots", getBookedSlots);
 router.get("/user/:userId", getUserPayments);
 router.get("/:id", getPaymentById);
 router.put("/:id", updatePayment);

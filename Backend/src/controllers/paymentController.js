@@ -1,5 +1,26 @@
 import Payment from "../models/payment.js";
 
+// GET Booked Slots
+export const getBookedSlots = async (req, res) => {
+  try {
+    const { serviceName, date } = req.query;
+    if (!serviceName || !date) {
+      return res.status(400).json({ success: false, message: "serviceName and date are required" });
+    }
+
+    const bookings = await Payment.find({
+      serviceName,
+      bookingDate: date,
+      status: { $nin: ['cancelled', 'refunded', 'failed'] }
+    });
+
+    const bookedSlots = bookings.map(b => b.bookingTime);
+    res.status(200).json({ success: true, data: bookedSlots });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // VALIDATE Booking Form (Moved from frontend)
 export const validateBooking = (req, res) => {
   const { fullName, email, contact, address, nic, date } = req.body;
@@ -146,7 +167,13 @@ export const createPayment = async (req, res) => {
 export const getAllPayments = async (req, res) => {
   try {
     const payments = await Payment.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: payments.length, data: payments });
+    const totalAmount = payments.reduce((sum, payment) => {
+      if (['Completed', 'Pending', 'completed', 'pending'].includes(payment.status)) {
+        return sum + (payment.amount || 0);
+      }
+      return sum;
+    }, 0);
+    res.status(200).json({ success: true, count: payments.length, totalAmount, data: payments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -169,7 +196,13 @@ export const getPaymentById = async (req, res) => {
 export const getUserPayments = async (req, res) => {
   try {
     const payments = await Payment.find({ userId: req.params.userId }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: payments.length, data: payments });
+    const totalAmount = payments.reduce((sum, payment) => {
+      if (['Completed', 'Pending', 'completed', 'pending'].includes(payment.status)) {
+        return sum + (payment.amount || 0);
+      }
+      return sum;
+    }, 0);
+    res.status(200).json({ success: true, count: payments.length, totalAmount, data: payments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

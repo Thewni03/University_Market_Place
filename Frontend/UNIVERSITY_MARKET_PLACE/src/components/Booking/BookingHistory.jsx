@@ -2,18 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 
-const BookingHistory = () => {
+const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBookingIds = new Set(), isProviderView = false }) => {
   const { authUser } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showFilePreview, setShowFilePreview] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [cancellationReason, setCancellationReason] = useState('');
+  const [bookedSlots, setBookedSlots] = useState([]);
 
   const [bookingHistory, setBookingHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +48,9 @@ const BookingHistory = () => {
             timeSlots: ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM']
           }));
           setBookingHistory(formattedBookings);
+          if (onDataLoaded) {
+            onDataLoaded(result.data, result.totalAmount || 0);
+          }
         }
       } catch (error) {
         console.error("Error fetching payment history:", error);
@@ -56,6 +61,29 @@ const BookingHistory = () => {
 
     fetchPayments();
   }, [authUser]);
+
+  // Fetch Booked Slots when rescheduling
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (showRescheduleModal && selectedBooking && newDate) {
+        try {
+          const res = await fetch(`http://localhost:5001/api/payments/booked-slots?serviceName=${encodeURIComponent(selectedBooking.type)}&date=${newDate}`);
+          const result = await res.json();
+          if (result.success) {
+            setBookedSlots(result.data);
+          } else {
+            setBookedSlots([]);
+          }
+        } catch (error) {
+          console.error("Error fetching booked slots:", error);
+          setBookedSlots([]);
+        }
+      } else {
+        setBookedSlots([]);
+      }
+    };
+    fetchBookedSlots();
+  }, [newDate, showRescheduleModal, selectedBooking]);
 
   // Filter bookings
   const getFilteredBookings = () => {
@@ -167,6 +195,14 @@ const BookingHistory = () => {
       default:
         return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
     }
+  };
+
+  const isPast24Hours = (createdAt) => {
+    if (!createdAt) return false;
+    const now = new Date();
+    const createdDate = new Date(createdAt);
+    const diffHours = (now - createdDate) / (1000 * 60 * 60);
+    return diffHours > 24;
   };
 
   return (
@@ -301,21 +337,23 @@ const BookingHistory = () => {
                   </td>
                   <td className="py-4 px-2">
                     <div className="flex gap-2">
-                      {booking.status !== 'cancelled' && booking.status !== 'refunded' && (
+                      {!isProviderView && booking.status !== 'cancelled' && booking.status !== 'refunded' && (
                         <>
                           <button
-                            onClick={() => handleReschedule(booking)}
-                            className="p-2 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg text-blue-400 transition-all hover:scale-110"
-                            title="Reschedule"
+                            onClick={() => !isPast24Hours(booking.createdAt) && handleReschedule(booking)}
+                            disabled={isPast24Hours(booking.createdAt)}
+                            className={`p-2 rounded-lg transition-all ${isPast24Hours(booking.createdAt) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:scale-110'}`}
+                            title={isPast24Hours(booking.createdAt) ? "Cannot reschedule after 24 hours" : "Reschedule"}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                           </button>
                           <button
-                            onClick={() => handleCancellation(booking)}
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400 transition-all hover:scale-110"
-                            title="Cancel Booking"
+                            onClick={() => !isPast24Hours(booking.createdAt) && handleCancellation(booking)}
+                            disabled={isPast24Hours(booking.createdAt)}
+                            className={`p-2 rounded-lg transition-all ${isPast24Hours(booking.createdAt) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:scale-110'}`}
+                            title={isPast24Hours(booking.createdAt) ? "Cannot cancel after 24 hours" : "Cancel Booking"}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -323,15 +361,47 @@ const BookingHistory = () => {
                           </button>
                         </>
                       )}
-                      <button
-                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-slate-600 transition-all hover:scale-110"
-                        title="View Details"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </button>
+                      
+                      {isProviderView && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedBooking(booking);
+                              setShowViewModal(true);
+                              if (onViewBooking) onViewBooking(booking);
+                            }}
+                            className={`p-2 rounded-lg transition-all hover:scale-110 flex items-center justify-center ${viewedBookingIds.has(booking.id) ? 'bg-green-100 text-green-600' : 'bg-gray-100 hover:bg-gray-200 text-slate-600'}`}
+                            title={viewedBookingIds.has(booking.id) ? "Viewed" : "View Details"}
+                          >
+                            {viewedBookingIds.has(booking.id) ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )}
+                          </button>
+                          
+                          {/* Un-view button */}
+                          {viewedBookingIds.has(booking.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onUnviewBooking) onUnviewBooking(booking.id);
+                              }}
+                              className="p-2 bg-gray-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-lg transition-all hover:scale-110"
+                              title="Mark as Unread"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -422,6 +492,59 @@ const BookingHistory = () => {
         </div>
       )}
 
+      {/* View Booking Details Modal */}
+      {showViewModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full border border-gray-100 shadow-2xl">
+            <h3 className="font-display text-xl font-bold text-slate-800 mb-4">Booking Details</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-slate-500">Booking ID</p>
+                <p className="font-medium text-slate-800">{selectedBooking.id}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Customer Name</p>
+                <p className="font-medium text-slate-800">{selectedBooking.customerName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Service / Type</p>
+                <p className="font-medium text-slate-800">{selectedBooking.type}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Amount</p>
+                <p className="font-medium text-slate-800">LKR {selectedBooking.amount?.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Scheduled For</p>
+                <p className="font-medium text-slate-800">
+                  {new Date(selectedBooking.date).toLocaleDateString()} at {selectedBooking.time}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Status</p>
+                <span className={`inline-block mt-1 text-xs px-2 py-1 rounded-full border ${getStatusBadge(selectedBooking.status)}`}>
+                  {selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)}
+                </span>
+              </div>
+              {selectedBooking.cancellationReason && (
+                <div>
+                  <p className="text-sm text-slate-500">Cancellation Reason</p>
+                  <p className="font-medium text-red-500">{selectedBooking.cancellationReason}</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cancellation Modal */}
       {showCancellationModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -481,7 +604,10 @@ const BookingHistory = () => {
                 <input
                   type="date"
                   value={newDate}
-                  onChange={(e) => setNewDate(e.target.value)}
+                  onChange={(e) => {
+                    setNewDate(e.target.value);
+                    setNewTime('');
+                  }}
                   min={new Date().toISOString().split('T')[0]}
                   className="w-full p-3 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
@@ -495,9 +621,16 @@ const BookingHistory = () => {
                   className="w-full p-3 bg-white border border-gray-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 >
                   <option value="">Select a time slot</option>
-                  {selectedBooking.timeSlots.map((slot) => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
+                  {selectedBooking.timeSlots.map((slot) => {
+                    const isBooked = bookedSlots.some(b => b.includes(slot));
+                    const isCurrentSlot = selectedBooking.date === newDate && (selectedBooking.time === slot || (typeof selectedBooking.time === 'string' && selectedBooking.time.includes(slot)));
+                    const isDisabled = isBooked && !isCurrentSlot;
+                    return (
+                      <option key={slot} value={slot} disabled={isDisabled} className={isDisabled ? 'text-gray-400 bg-gray-50' : ''}>
+                        {slot} {isDisabled ? '(Booked)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
