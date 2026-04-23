@@ -79,6 +79,48 @@ export const validateBooking = (req, res) => {
   return res.status(200).json({ success: true });
 };
 
+// CREATE Pending Booking Only
+export const createBookingOnly = async (req, res) => {
+  try {
+    const {
+      bookingId,
+      userId,
+      customerName,
+      customerEmail,
+      serviceName,
+      amount,
+      serviceFee,
+      platformFee,
+      tax,
+      bookingDate,
+      bookingTime,
+      attachments,
+      status
+    } = req.body;
+
+    const newPayment = new Payment({
+      bookingId,
+      userId,
+      customerName,
+      customerEmail,
+      serviceName,
+      amount,
+      serviceFee,
+      platformFee,
+      tax,
+      bookingDate,
+      bookingTime,
+      attachments,
+      status: status || 'Pending',
+    });
+
+    const savedPayment = await newPayment.save();
+    res.status(201).json({ success: true, data: savedPayment });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 // CREATE Payment
 export const createPayment = async (req, res) => {
   try {
@@ -151,9 +193,23 @@ export const createPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
 
-    // 5. Create and save payment
-    const payment = new Payment(req.body);
-    const savedPayment = await payment.save();
+    // 5. Update existing pending payment or create new
+    let savedPayment;
+    const existingPayment = await Payment.findOne({ bookingId });
+    
+    if (existingPayment) {
+      existingPayment.paymentMethod = paymentMethod || existingPayment.paymentMethod;
+      existingPayment.cardLast4 = cardLast4 || existingPayment.cardLast4;
+      existingPayment.status = 'Completed';
+      savedPayment = await existingPayment.save();
+    } else {
+      const payment = new Payment({
+        ...req.body,
+        status: 'Completed'
+      });
+      savedPayment = await payment.save();
+    }
+    
     res.status(201).json({ success: true, data: savedPayment });
   } catch (error) {
     if (error.code === 11000) {
