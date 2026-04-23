@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowUp, CheckCircle, Clock } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowUp, CheckCircle, Clock, Trash2, Edit3 } from "lucide-react";
 import axios from "axios";
 import { useAuthStore } from "../../store/useAuthStore";
 import toast from "react-hot-toast";
@@ -9,10 +9,17 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001
 
 export default function ForumThread() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [threadData, setThreadData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [answerContent, setAnswerContent] = useState("");
   const authUser = useAuthStore(state => state.authUser);
+
+  const [editingQuestion, setEditingQuestion] = useState(false);
+  const [editQData, setEditQData] = useState({ title: "", description: "", category: "General" });
+  
+  const [editingAnswerId, setEditingAnswerId] = useState(null);
+  const [editAContent, setEditAContent] = useState("");
 
   const fetchThread = async () => {
     try {
@@ -31,7 +38,9 @@ export default function ForumThread() {
 
   const handlePostAnswer = async (e) => {
     e.preventDefault();
-    if (!answerContent.trim()) return;
+    if (!answerContent.trim()) return toast.error("Answer cannot be empty.");
+    if (answerContent.trim().length < 10) return toast.error("Your answer must be at least 10 characters long.");
+    
     try {
       const token = localStorage.getItem("token");
       await axios.post(
@@ -44,6 +53,48 @@ export default function ForumThread() {
       fetchThread();
     } catch (error) {
       toast.error("Failed to post answer");
+    }
+  };
+
+  const handleEditQuestion = async () => {
+    if (editQData.title.trim().length < 10) return toast.error("Title must be at least 10 chars");
+    if (editQData.description.trim().length < 20) return toast.error("Description must be at least 20 chars");
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_BASE_URL}/api/forum/${id}`, editQData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Question updated!");
+      setEditingQuestion(false);
+      fetchThread();
+    } catch (e) { toast.error("Failed to update question"); }
+  };
+
+  const handleEditAnswer = async (answerId) => {
+    if (editAContent.trim().length < 10) return toast.error("Answer must be 10 chars long");
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_BASE_URL}/api/forum/answer/${answerId}`, { content: editAContent }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Answer updated!");
+      setEditingAnswerId(null);
+      fetchThread();
+    } catch (e) { toast.error("Failed to update answer"); }
+  };
+
+  const deleteQuestion = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this question? It will erase all answers as well.")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE_URL}/api/forum/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+      toast.success("Question deleted");
+      navigate("/forum");
+    } catch (error) {
+      toast.error("Failed to delete question");
     }
   };
 
@@ -94,9 +145,32 @@ export default function ForumThread() {
     <div className="min-h-screen bg-slate-50 pb-20">
       <div className="max-w-5xl mx-auto px-5 lg:px-8 py-8">
         
-        <Link to="/forum" className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-700 font-semibold mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Q&A
-        </Link>
+        <div className="flex justify-between items-center mb-6">
+          <Link to="/forum" className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-700 font-semibold transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Q&A
+          </Link>
+
+          {isQuestionOwner && (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  setEditQData({ title: question.title, description: question.description, category: question.category });
+                  setEditingQuestion(true);
+                }}
+                className="text-indigo-500 hover:text-indigo-600 font-bold text-sm flex items-center gap-1.5 bg-white hover:bg-indigo-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-indigo-200 shadow-sm transition-colors"
+                title="Edit Question"
+              >
+                <Edit3 className="w-4 h-4" /> Edit
+              </button>
+              <button 
+                onClick={deleteQuestion}
+                className="text-rose-500 hover:text-rose-600 font-bold text-sm flex items-center gap-1.5 bg-white hover:bg-rose-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-200 shadow-sm transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Thread
+              </button>
+            </div>
+          )}
+        </div>
         
         {/* Main Question Block */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-10">
@@ -111,13 +185,43 @@ export default function ForumThread() {
               <span className="font-bold text-slate-700 mt-2 text-xl">{qUpvotes.length}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-4">{question.title}</h1>
-              <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">
-                {question.description}
-              </div>
-              <div className="flex flex-wrap gap-2 mt-6">
-                <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-md text-sm font-semibold">{question.category}</span>
-              </div>
+              {editingQuestion ? (
+                <div className="flex flex-col gap-3">
+                  <input 
+                    className="text-2xl sm:text-3xl font-extrabold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={editQData.title}
+                    onChange={e => setEditQData({ ...editQData, title: e.target.value })}
+                  />
+                  <textarea 
+                    className="w-full text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={editQData.description}
+                    onChange={e => setEditQData({ ...editQData, description: e.target.value })}
+                  />
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={editQData.category}
+                    onChange={e => setEditQData({ ...editQData, category: e.target.value })}
+                  >
+                    {["Academics", "Campus Life", "Career & Internships", "Tech Support", "Roommates & Housing", "General"].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button onClick={handleEditQuestion} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-4 rounded-lg transition-colors">Save Changes</button>
+                    <button onClick={() => setEditingQuestion(false)} className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1.5 px-4 rounded-lg transition-colors">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-4">{question.title}</h1>
+                  <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    {question.description}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-6">
+                    <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-md text-sm font-semibold">{question.category}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="bg-slate-50 px-6 py-4 flex items-center gap-3">
@@ -157,13 +261,27 @@ export default function ForumThread() {
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">
-                    {ans.content}
-                  </div>
+                  {editingAnswerId === ans._id ? (
+                    <div className="mt-1">
+                      <textarea 
+                        className="w-full text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={editAContent}
+                        onChange={e => setEditAContent(e.target.value)}
+                      />
+                      <div className="flex items-center gap-2 mt-3">
+                        <button onClick={() => handleEditAnswer(ans._id)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-4 rounded-lg text-sm transition-colors">Save Answer</button>
+                        <button onClick={() => setEditingAnswerId(null)} className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1.5 px-4 rounded-lg text-sm transition-colors">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {ans.content}
+                    </div>
+                  )}
                   
                   <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-100">
                     {/* Mark as accepted logic */}
-                    <div>
+                    <div className="flex items-center gap-3">
                       {isQuestionOwner && (
                         <button 
                           onClick={() => acceptAnswer(ans._id)}
@@ -171,6 +289,16 @@ export default function ForumThread() {
                         >
                           {ans.isAccepted ? "Unmark Solution" : "Mark as Solution"}
                         </button>
+                      )}
+
+                      {authUser && String(authUser._id) === String(ans.authorId._id) && (
+                         <button 
+                           onClick={() => { setEditAContent(ans.content); setEditingAnswerId(ans._id); }}
+                           className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-md transition-colors"
+                           title="Edit Your Answer"
+                         >
+                           <Edit3 className="w-4 h-4" />
+                         </button>
                       )}
                     </div>
                     
@@ -193,10 +321,12 @@ export default function ForumThread() {
             <form onSubmit={handlePostAnswer}>
               <textarea 
                 className="w-full border border-slate-300 px-4 py-3 rounded-xl min-h-[150px] resize-y focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow outline-none mb-4"
-                placeholder="Write your definitive answer here..."
+                placeholder="Write your definitive answer here... (Min 10 characters)"
                 value={answerContent}
                 onChange={e => setAnswerContent(e.target.value)}
                 required
+                minLength={10}
+                maxLength={3000}
               />
               <button 
                 type="submit" 

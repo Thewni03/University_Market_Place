@@ -22,6 +22,25 @@ const FeedPostSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Users",
     }],
+    replies: [
+      {
+        authorId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Users",
+          required: true
+        },
+        content: {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: 500
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ]
   },
   { timestamps: true }
 );
@@ -29,7 +48,7 @@ const FeedPostSchema = new mongoose.Schema(
 // Optimize for fetching recent posts
 FeedPostSchema.index({ createdAt: -1 });
 
-// Automatically delete posts after 30 days (2592000 seconds)
-FeedPostSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
+// Automatically delete posts after 7 days (604800 seconds)
+FeedPostSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
 
 export default mongoose.model("FeedPost", FeedPostSchema);

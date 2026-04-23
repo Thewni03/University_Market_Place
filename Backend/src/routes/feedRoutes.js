@@ -5,7 +5,9 @@ import {
   toggleFeedPostUpvote, 
   toggleFeedPostFlag, 
   getTrendingFeedPosts,
-  deleteFeedPost
+  deleteFeedPost,
+  updateFeedPost,
+  replyToFeedPost
 } from "../controllers/feedController.js";
 import { protectRoute } from "../middleware/userAuth.js";
 
@@ -17,5 +19,7 @@ router.post("/", protectRoute, createFeedPost);
 router.post("/:id/upvote", protectRoute, toggleFeedPostUpvote);
 router.post("/:id/flag", protectRoute, toggleFeedPostFlag);
 router.delete("/:id", protectRoute, deleteFeedPost);
+router.put("/:id", protectRoute, updateFeedPost);
+router.post("/:id/reply", protectRoute, replyToFeedPost);
 
 export default router;

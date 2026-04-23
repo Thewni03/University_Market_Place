@@ -188,46 +188,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Search - desktop */}
-        <div className="hidden md:flex flex-1 max-w-md" ref={searchBoxRef}> {/* ← KEPT: ref for outside-click detection */}
-          <form className="relative w-full" onSubmit={handleSearchSubmit}>
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search services, tutors, skills..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setShowSearchResults(true)}
-              className="w-full rounded-lg border border-input bg-secondary/50 py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            {/* ← KEPT: live search results dropdown */}
-            {showSearchResults && (
-              <div className="absolute top-full mt-2 w-full rounded-lg border border-border bg-card shadow-lg z-50 max-h-72 overflow-y-auto">
-                {searchLoading ? (
-                  <p className="px-3 py-2 text-sm text-muted-foreground">Searching...</p>
-                ) : searchResults.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-muted-foreground">
-                    {searchTerm.trim().length < 2 ? "Type at least 2 letters" : "No matching services"}
-                  </p>
-                ) : (
-                  searchResults.map((item) => (
-                    <button
-                      key={item._id}
-                      type="button"
-                      onClick={() => handleSelectResult(item._id)}
-                      className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors"
-                    >
-                      <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {item.category} • LKR {Number(item.pricePerHour || 0).toLocaleString()}
-                      </p>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </form>
-        </div>
+        {/* Search - removed per request */}
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1">
@@ -317,43 +278,7 @@ export default function Navbar() {
         <div className="md:hidden border-t border-border bg-card animate-fade-in">
           <div className="page-container py-3 space-y-1"> {/* ← KEPT: page-container from file 1 */}
 
-            {/* ← KEPT: mobile search with live results dropdown */}
-            <form className="relative mb-3" onSubmit={handleSearchSubmit}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search services..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => setShowSearchResults(true)}
-                className="w-full rounded-lg border border-input bg-secondary/50 py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              {showSearchResults && (
-                <div className="absolute top-full mt-2 w-full rounded-lg border border-border bg-card shadow-lg z-50 max-h-72 overflow-y-auto">
-                  {searchLoading ? (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">Searching...</p>
-                  ) : searchResults.length === 0 ? (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">
-                      {searchTerm.trim().length < 2 ? "Type at least 2 letters" : "No matching services"}
-                    </p>
-                  ) : (
-                    searchResults.map((item) => (
-                      <button
-                        key={item._id}
-                        type="button"
-                        onClick={() => handleSelectResult(item._id)}
-                        className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors"
-                      >
-                        <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {item.category} • LKR {Number(item.pricePerHour || 0).toLocaleString()}
-                        </p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </form>
+            {/* Search - mobile removed per request */}
 
             {navLinks.map((link) => (
               <Link
