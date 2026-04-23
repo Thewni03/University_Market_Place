@@ -9,8 +9,8 @@ const Payment = () => {
   const state = location.state || {};
 
   const [selectedMethod, setSelectedMethod] = useState('credit');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
+  const [cardNumber, setCardNumber] = useState(''); 
+  const [expiry, setExpiry] = useState('');    
   const [name, setName] = useState(state.customerName || '');
   const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
