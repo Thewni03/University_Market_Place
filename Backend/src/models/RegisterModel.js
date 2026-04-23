@@ -48,17 +48,15 @@ const userSchema = new Schema({
     type: String,
     default: ""
   },
-  // --- NEW FIELDS FOR NOTIFICATIONS ---
   notificationSettings: {
-    enabled: { type: Boolean, default: true }, // The main "Switch Off" toggle
+    enabled: { type: Boolean, default: true }, // switch off
     pushNotify: { type: Boolean, default: true },
     emailNotify: { type: Boolean, default: false }
   },
   pushSubscription: {
-    type: Object, // Stores the browser push endpoint/keys
+    type: Object, 
     default: null
   },
-  // -------------------------------------
   reset_token: {
     type: String,
     default: null

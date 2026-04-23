@@ -1,7 +1,6 @@
 import Review from '../models/ReviewModel.js';
 import { containsBadWords } from '../Utils/badWords.js';
 
-// Get all reviews
 export const getReviews = async (req, res) => {
     try {
         const reviews = await Review.find().sort({ createdAt: -1 });
@@ -11,7 +10,7 @@ export const getReviews = async (req, res) => {
     }
 };
 
-// Create a new review
+
 export const createReview = async (req, res) => {
     try {
         const { rating, comment, name, avatar, avatarBg, date, verified, isOwn } = req.body;
@@ -32,7 +31,6 @@ export const createReview = async (req, res) => {
         });
 
         const savedReview = await newReview.save();
-// --- NOTIFY: The person being reviewed ---
 if (targetUserId) {
     await notify({
         userId: targetUserId,
@@ -48,7 +46,7 @@ if (targetUserId) {
     }
 };
 
-// Update a review (e.g., editing comment or rating)
+
 export const updateReview = async (req, res) => {
     try {
         const { id } = req.params;
@@ -78,7 +76,7 @@ export const updateReview = async (req, res) => {
     }
 };
 
-// Delete a review
+
 export const deleteReview = async (req, res) => {
     try {
         const { id } = req.params;
@@ -94,11 +92,10 @@ export const deleteReview = async (req, res) => {
     }
 };
 
-// Like or unlike a review
 export const likeReview = async (req, res) => {
     try {
         const { id } = req.params;
-        const { increment } = req.body; // Expecting { increment: true/false }
+        const { increment } = req.body; 
 
         const updateOperation = increment
             ? { $inc: { likes: 1 } }
@@ -113,7 +110,6 @@ export const likeReview = async (req, res) => {
         if (!updatedReview) {
             return res.status(404).json({ message: 'Review not found' });
         }
-// --- NOTIFY: The reviewer that someone liked their feedback ---
 if (increment && updatedReview.reviewerId) {
     await notify({
         userId: updatedReview.reviewerId,
@@ -124,7 +120,6 @@ if (increment && updatedReview.reviewerId) {
     });
 }
 
-        // Just making sure likes never drops below 0 due to some race condition
         if (updatedReview.likes < 0) {
             updatedReview.likes = 0;
             await updatedReview.save();
@@ -136,7 +131,7 @@ if (increment && updatedReview.reviewerId) {
     }
 };
 
-// Add a reply to a review
+
 export const replyToReview = async (req, res) => {
     try {
         const { id } = req.params;
@@ -164,7 +159,6 @@ export const replyToReview = async (req, res) => {
             return res.status(404).json({ message: 'Review not found' });
         }
 
-         // --- NOTIFY: The original reviewer that someone replied ---
          if (updatedReview.reviewerId) {
             await notify({
                 userId: updatedReview.reviewerId,

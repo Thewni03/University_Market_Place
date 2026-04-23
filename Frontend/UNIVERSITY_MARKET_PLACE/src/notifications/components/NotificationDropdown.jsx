@@ -7,7 +7,7 @@ export default function NotificationDropdown({ onClose }) {
   const { notifications, loading, markAllRead, unreadCount, settings, updateSettings } = useNotifications();
   const ref = useRef();
 
-  // Close when clicking outside
+
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) onClose();
@@ -26,7 +26,7 @@ export default function NotificationDropdown({ onClose }) {
       ref={ref}
       className="absolute right-0 top-12 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in duration-200"
     >
-      {/* Header */}
+
       <div className="flex flex-col border-b border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
@@ -48,7 +48,6 @@ export default function NotificationDropdown({ onClose }) {
           )}
         </div>
 
-        {/* --- TOGGLE ROW: "Switch Off" logic --- */}
         <div className="flex items-center justify-between px-4 py-2 bg-gray-100/50 dark:bg-zinc-800/50 border-t border-gray-200 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             {settings?.enabled ? (
@@ -61,7 +60,7 @@ export default function NotificationDropdown({ onClose }) {
             </span>
           </div>
           
-          {/* Tailwind Toggle Switch */}
+
           <button
             onClick={handleToggleMute}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
@@ -77,7 +76,7 @@ export default function NotificationDropdown({ onClose }) {
         </div>
       </div>
 
-      {/* Notification list */}
+
       <div className="max-h-[28rem] overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-12">

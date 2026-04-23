@@ -60,7 +60,6 @@ const wrap = (content) => `
   </div>
 </div>`;
 
-// ── 1. Email to SELLER when buyer clicks Meet on Campus ──────────────────────
 export const sendCampusMeetSeller = async ({
   sellerEmail, sellerName, buyerName, buyerEmail,
   productTitle, price, category = "—", condition = "—", faculty = "—"
@@ -77,16 +76,16 @@ export const sendCampusMeetSeller = async ({
       </div>
     </div>
   `);
-  await send(sellerEmail, `🏫 ${buyerName} wants to buy "${productTitle}"`, html);
+  await send(sellerEmail, `${buyerName} wants to buy "${productTitle}"`, html);
 };
 
-// ── 2. Email to BUYER when they click Meet on Campus ────────────────────────
+
 export const sendCampusMeetBuyer = async ({
   buyerEmail, buyerName, sellerName, sellerEmail,
   productTitle, price, category = "—", condition = "—", faculty = "—"
 }) => {
   const html = wrap(`
-    ${header("✅", "Request Sent!", "Your campus meeting request is on its way")}
+    ${header("Request Sent!", "Your campus meeting request is on its way")}
     <div style="padding:24px 28px;">
       <p style="font-size:15px;color:#0f172a;margin:0 0 4px;">Hi <strong>${buyerName}</strong>,</p>
       <p style="font-size:14px;color:#475569;margin:0 0 16px;">Your request to buy the following item has been sent to the seller. They will contact you soon to arrange a campus meetup.</p>
@@ -97,13 +96,13 @@ export const sendCampusMeetBuyer = async ({
       </div>
     </div>
   `);
-  await send(buyerEmail, `✅ Campus meeting request sent for "${productTitle}"`, html);
+  await send(buyerEmail, `Campus meeting request sent for "${productTitle}"`, html);
 };
 
-// ── 3. Email to SELLER when someone favourites their item ────────────────────
+
 export const sendFavouriteNotification = async ({ sellerEmail, sellerName, buyerName, productTitle }) => {
   const html = wrap(`
-    ${header("❤️", "Someone Saved Your Listing!", "You might have a buyer soon")}
+    ${header("Someone Saved Your Listing!", "You might have a buyer soon")}
     <div style="padding:24px 28px;">
       <p style="font-size:15px;color:#0f172a;margin:0 0 4px;">Hi <strong>${sellerName}</strong>,</p>
       <p style="font-size:14px;color:#475569;margin:0 0 16px;"><strong>${buyerName}</strong> just saved your listing <strong>"${productTitle}"</strong> to their favourites. They might reach out soon!</p>
@@ -115,12 +114,12 @@ export const sendFavouriteNotification = async ({ sellerEmail, sellerName, buyer
   await send(sellerEmail, `❤️ "${productTitle}" was saved by ${buyerName}`, html);
 };
 
-// ── 4. Email to SELLER when pay_first is chosen ──────────────────────────────
+
 export const sendPaymentInitiatedSeller = async ({
   sellerEmail, sellerName, buyerName, buyerEmail, productTitle, price
 }) => {
   const html = wrap(`
-    ${header("💳", "Payment In Progress", "A buyer is completing payment for your item")}
+    ${header("Payment In Progress", "A buyer is completing payment for your item")}
     <div style="padding:24px 28px;">
       <p style="font-size:15px;color:#0f172a;margin:0 0 4px;">Hi <strong>${sellerName}</strong>,</p>
       <p style="font-size:14px;color:#475569;margin:0 0 16px;"><strong>${buyerName}</strong> is in the process of paying for your item.</p>
@@ -134,15 +133,15 @@ export const sendPaymentInitiatedSeller = async ({
       </div>
     </div>
   `);
-  await send(sellerEmail, `💳 Payment initiated for "${productTitle}"`, html);
+  await send(sellerEmail, `Payment initiated for "${productTitle}"`, html);
 };
 
-// ── 5. Email to BUYER confirming payment ─────────────────────────────────────
+
 export const sendPaymentConfirmationBuyer = async ({
   buyerEmail, buyerName, sellerName, sellerEmail, productTitle, price, orderId
 }) => {
   const html = wrap(`
-    ${header("🎉", "Payment Confirmed!", "Your purchase is complete")}
+    ${header("Payment Confirmed!", "Your purchase is complete")}
     <div style="padding:24px 28px;">
       <p style="font-size:15px;color:#0f172a;margin:0 0 4px;">Hi <strong>${buyerName}</strong>,</p>
       <p style="font-size:14px;color:#475569;margin:0 0 16px;">Your payment has been received. Order reference: <strong>#${orderId?.slice(-8)}</strong></p>
@@ -156,5 +155,5 @@ export const sendPaymentConfirmationBuyer = async ({
       </div>
     </div>
   `);
-  await send(buyerEmail, `🎉 Payment confirmed for "${productTitle}"`, html);
+  await send(buyerEmail, `Payment confirmed for "${productTitle}"`, html);
 };

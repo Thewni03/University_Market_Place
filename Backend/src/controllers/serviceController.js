@@ -89,7 +89,7 @@ export const createService = async (req, res) => {
       availabilitySlots: Array.isArray(availabilitySlots) ? availabilitySlots : [],
       workSamples: normalizedWorkSamples,
     });
-    // This notifies the user that their service has been successfully posted.
+
     await notify({
       userId: ownerId,
       type: 'service_added',
@@ -214,7 +214,6 @@ export const getRankedServices = async (req, res) => {
       .populate("ownerId", "fullname university_name verification_status")
       .lean();
 
-    // ⭐ Apply rating filter
     if (minRating) {
       const threshold = toNumber(minRating, 0);
       services = services.filter(s =>
@@ -222,7 +221,7 @@ export const getRankedServices = async (req, res) => {
       );
     }
 
-    // ⭐ ML scoring (SAFE fallback)
+
     const scored = await Promise.all(
       services.map(async (service) => {
         const cacheKey = `${service._id}:${service.updatedAt}`;
@@ -248,7 +247,7 @@ export const getRankedServices = async (req, res) => {
           const json = await resML.json();
           score = toNumber(json.prediction, 0);
         } catch {
-          score = 0; // fallback
+          score = 0; 
         }
 
         mlPredictionCache.set(cacheKey, { value: score, ts: Date.now() });
@@ -337,7 +336,7 @@ export const getOwnerViewsAnalytics = async (req, res) => {
     let points = [];
 
     if (mode === "week") {
-      const monthParam = String(req.query.month || "").trim(); // YYYY-MM
+      const monthParam = String(req.query.month || "").trim(); 
       const validMonth = /^\d{4}-\d{2}$/.test(monthParam);
 
       const monthDate = validMonth
@@ -491,7 +490,7 @@ export const getServiceById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
-    // Postman fallback for ownership checks
+
     const requesterId = req.userId || req.query.ownerId || req.body?.ownerId;
 
     const ownerIdValue = doc?.ownerId?._id || doc?.ownerId;
@@ -501,7 +500,6 @@ export const getServiceById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Not authorized to view this service" });
     }
 
-    // Count only student/other-user views, not owner self-views.
     if (!isOwner) {
       doc.viewCount = (doc.viewCount || 0) + 1;
       const todayKey = toUtcDateKey(new Date());
@@ -634,7 +632,6 @@ export const updateService = async (req, res) => {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
-    // ✅ Postman fallback
     const requesterId = req.userId || req.body.ownerId;
 
     if (!requesterId) {
@@ -667,7 +664,7 @@ export const updateService = async (req, res) => {
 export const getServiceViewAnalytics = async (req, res) => {
   try {
     const { ownerId } = req.query;
-    // For now, return empty data so the charts don't crash
+   
     return res.status(200).json({
       success: true,
       data: [] 
@@ -698,7 +695,6 @@ export const deleteService = async (req, res) => {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
-    // ✅ Postman fallback
     const requesterId = req.userId || req.body.ownerId;
 
     if (!requesterId) {
@@ -722,7 +718,7 @@ export const deleteService = async (req, res) => {
     return res.status(400).json({ success: false, error: error.message });
   }
 };
-// Fixes the ReferenceError in getServiceById
+
 const toUtcDateKey = (date = new Date()) => date.toISOString().slice(0, 10); 
 
 const startOfUtcDay = (date) =>

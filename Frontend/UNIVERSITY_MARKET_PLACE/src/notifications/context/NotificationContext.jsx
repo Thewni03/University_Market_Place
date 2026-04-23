@@ -11,7 +11,6 @@ const NotificationContext = createContext();
 const API_URL = 'http://localhost:5001/api';
 const SOCKET_URL = 'http://localhost:5001';
 
-// --- HELPERS ---
 const getUserId = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -36,7 +35,6 @@ export function NotificationProvider({ children }) {
   const activeChatRef = useRef({ pathname: location.pathname, selectedUserId: selectedUser?._id || null });
   const socketRef = useRef(null);
 
-  // Sync active chat ref for auto-read logic
   useEffect(() => {
     activeChatRef.current = {
       pathname: location.pathname,
@@ -44,7 +42,6 @@ export function NotificationProvider({ children }) {
     };
   }, [location.pathname, selectedUser?._id]);
 
-  // --- FETCH DATA (Fixes 404 by using /users/profile) ---
   /*
   const fetchNotifications = useCallback(async () => {
     const currentUserId = getUserId();
@@ -80,13 +77,11 @@ export function NotificationProvider({ children }) {
     try {
       const token = getToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  
-      // 1. Fetch History
+
       const { data } = await axios.get(`${API_URL}/notifications`, { headers });
       setNotifications(data.data || []);
       setUnreadCount((data.data || []).filter(n => !n.isRead).length);
   
-      // 2. Fix: Get settings from localStorage instead of a broken API route
       const localUser = JSON.parse(localStorage.getItem('user'));
       setSettings(localUser?.notificationSettings || { enabled: true });
   
@@ -96,9 +91,6 @@ export function NotificationProvider({ children }) {
       setLoading(false);
     }
   }, [userId]);
-  
-  // --- SETTINGS UPDATE ---
-// src/notifications/context/NotificationContext.jsx
 
 const updateSettings = useCallback(async (newSettings) => {
   try {
@@ -166,7 +158,7 @@ const updateSettings = useCallback(async (newSettings) => {
     setPopupNotifications((prev) => prev.filter((n) => n._id !== id));
   }, []);
 
-  // --- SOCKET CONNECTION ---
+//socket
   useEffect(() => {
     const currentUserId = getUserId();
     const token = getToken();
@@ -189,8 +181,8 @@ const updateSettings = useCallback(async (newSettings) => {
       });
 
       socketRef.current.on('connect', () => {
-        console.log('✅ Notification Socket Connected');
-        // Multi-emit handshake to ensure room join
+        console.log('Notification Socket Connected');
+
         socketRef.current.emit('setup', currentUserId);
         socketRef.current.emit('join', currentUserId);
       });
@@ -202,18 +194,16 @@ const updateSettings = useCallback(async (newSettings) => {
           senderId && 
           activeChatRef.current.selectedUserId === senderId;
 
-        // 1. Logic for notifications within active chat
         if (isCurrentChat) {
           setNotifications(prev => [{ ...notification, isRead: true }, ...prev]);
           markReadSilently(notification._id);
           return;
         }
 
-        // 2. Standard update
         setNotifications(prev => [notification, ...prev]);
         setUnreadCount(prev => prev + 1);
         
-        // 3. Show Popup ONLY if settings are enabled
+
         if (settings.enabled) {
           setPopupNotifications((prev) => {
             const filtered = prev.filter((item) => item._id !== notification._id);

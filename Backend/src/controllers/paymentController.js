@@ -2,7 +2,6 @@ import Payment from "../models/payment.js";
 import PaymentModel from "../models/payment.js"; 
 import { notify } from "../notifications/notification.service.js";
 
-// GET Booked Slots
 export const getBookedSlots = async (req, res) => {
   try {
     const { serviceName, date } = req.query;
@@ -23,12 +22,10 @@ export const getBookedSlots = async (req, res) => {
   }
 };
 
-// VALIDATE Booking Form (Moved from frontend)
 export const validateBooking = (req, res) => {
   const { fullName, email, contact, address, nic, date } = req.body;
   const errors = {};
 
-  // Full Name validation
   const safeFullName = fullName || '';
   if (!safeFullName.trim()) {
     errors.fullName = 'Full name is required';
@@ -38,7 +35,6 @@ export const validateBooking = (req, res) => {
     errors.fullName = 'Full name should only contain letters and spaces';
   }
 
-  // Email validation
   const safeEmail = email || '';
   if (!safeEmail.trim()) {
     errors.email = 'Email is required';
@@ -46,7 +42,6 @@ export const validateBooking = (req, res) => {
     errors.email = 'Please enter a valid email address';
   }
 
-  // Contact number validation
   const safeContact = contact || '';
   if (!safeContact.trim()) {
     errors.contact = 'Contact number is required';
@@ -54,7 +49,6 @@ export const validateBooking = (req, res) => {
     errors.contact = 'Please enter a valid phone number (10-12 digits)';
   }
 
-  // Address validation
   const safeAddress = address || '';
   if (!safeAddress.trim()) {
     errors.address = 'Address is required';
@@ -64,7 +58,6 @@ export const validateBooking = (req, res) => {
     errors.address = 'Address should only contain letters and spaces';
   }
 
-  // NIC validation
   const safeNic = nic || '';
   if (!safeNic.trim()) {
     errors.nic = 'NIC number is required';
@@ -79,7 +72,6 @@ export const validateBooking = (req, res) => {
   return res.status(200).json({ success: true });
 };
 
-// CREATE Pending Booking Only
 export const createBookingOnly = async (req, res) => {
   try {
     const {
@@ -121,7 +113,6 @@ export const createBookingOnly = async (req, res) => {
   }
 };
 
-// CREATE Payment
 export const createPayment = async (req, res) => {
   try {
     const {
@@ -136,30 +127,30 @@ export const createPayment = async (req, res) => {
       name,
       expiry,
       cvv,
-      sellerId, // Destructured for notification
-      userId    // Destructured for notification
+      sellerId, 
+      userId    
     } = req.body;
 
     const errors = {};
 
-    // 1. Check required fields
+
     if (!bookingId) errors.general = "Booking ID is missing.";
     if (!customerEmail) errors.general = "Customer email is missing.";
     if (!serviceName) errors.general = "Service name is missing.";
     if (amount === undefined) errors.general = "Amount is missing.";
 
-    // 2. Validate email format
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (customerEmail && !emailRegex.test(customerEmail)) {
       errors.general = "Invalid email format.";
     }
 
-    // 3. Validate amount
+
     if (amount !== undefined && (typeof amount !== 'number' || isNaN(amount) || amount < 0)) {
       errors.general = "Amount must be a valid positive number.";
     }
 
-    // 4. Validate payment method specifics
+
     if (paymentMethod === "Credit Card") {
       const cleanCardNumber = cardNumber ? cardNumber.replace(/\s/g, '') : '';
       if (!cleanCardNumber || cleanCardNumber.length !== 16) {
@@ -195,11 +186,10 @@ export const createPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
 
-    // 5. Create and save payment
     const payment = new PaymentModel(req.body);
     const savedPayment = await payment.save();
 
-    // --- ADDED NOTIFICATION PARTS ---
+
     if (sellerId) {
       await notify({
         userId: sellerId,
@@ -220,7 +210,7 @@ export const createPayment = async (req, res) => {
         metadata: { bookingId, paymentId: savedPayment._id }
       });
     }
-    // --------------------------------
+
 
     res.status(201).json({ success: true, data: savedPayment });
   } catch (error) {
@@ -231,7 +221,7 @@ export const createPayment = async (req, res) => {
   }
 };
 
-// GET All Payments
+
 export const getAllPayments = async (req, res) => {
   try {
     const payments = await PaymentModel.find().sort({ createdAt: -1 });
@@ -241,7 +231,7 @@ export const getAllPayments = async (req, res) => {
   }
 };
 
-// GET Payment by ID
+
 export const getPaymentById = async (req, res) => {
   try {
     const payment = await PaymentModel.findById(req.params.id);
@@ -254,7 +244,7 @@ export const getPaymentById = async (req, res) => {
   }
 };
 
-// GET Payments by User ID
+
 export const getUserPayments = async (req, res) => {
   try {
     const payments = await PaymentModel.find({ userId: req.params.userId }).sort({ createdAt: -1 });
@@ -264,7 +254,7 @@ export const getUserPayments = async (req, res) => {
   }
 };
 
-// UPDATE Payment
+
 export const updatePayment = async (req, res) => {
   try {
     const payment = await PaymentModel.findByIdAndUpdate(
@@ -281,7 +271,7 @@ export const updatePayment = async (req, res) => {
   }
 };
 
-// DELETE Payment
+
 export const deletePayment = async (req, res) => {
   try {
     const payment = await PaymentModel.findByIdAndDelete(req.params.id);

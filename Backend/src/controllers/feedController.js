@@ -1,7 +1,7 @@
 import FeedPost from "../models/FeedPost.js";
 import Profile from "../models/profile.js";
 import { notify } from "../notifications/notification.service.js";
-// Utility to populate author profiles
+
 const populateProfiles = async (posts) => {
   if (!posts || posts.length === 0) return posts;
 
@@ -47,7 +47,6 @@ export const getFeedPosts = async (req, res) => {
   }
 };
 
-// ... (populateProfiles remains exactly the same)
 
 export const createFeedPost = async (req, res) => {
   try {
@@ -75,8 +74,7 @@ export const createFeedPost = async (req, res) => {
 
     const [postWithProfile] = await populateProfiles([populatedObj]);
 
-    // --- NEW NOTIFICATION LOGIC ---
-    // 1. Notify the Author that their post is live
+  
     await notify({
       userId: authorId,
       type: 'feed_post_created',
@@ -84,10 +82,6 @@ export const createFeedPost = async (req, res) => {
       body: 'Your post was successfully added to the campus feed.',
       metadata: { postId: newPost._id, url: '/feed' }
     });
-
-    // 2. OPTIONAL: Notify followers or broadcast 
-    // This is handled by your socket io.emit below for real-time UI updates
-    // ------------------------------
 
     const io = req.app.get("io");
     if (io) {
@@ -205,7 +199,7 @@ export const toggleFeedPostFlag = async (req, res) => {
     if (index === -1) {
       post.flags.push(userId);
       const upvoteIndex = post.upvotes.indexOf(userId);
-      if (upvoteIndex > -1) post.upvotes.splice(upvoteIndex, 1); // Mutually exclusive
+      if (upvoteIndex > -1) post.upvotes.splice(upvoteIndex, 1); 
     } else {
       post.flags.splice(index, 1);
     }
@@ -266,14 +260,13 @@ export const deleteFeedPost = async (req, res) => {
     const post = await FeedPost.findById(id);
     if (!post) return res.status(404).json({ success: false, message: "Post not found" });
 
-    // Explicit Ownership Security Check
+
     if (String(post.authorId) !== String(userId)) {
       return res.status(403).json({ success: false, message: "You can only delete your own posts" });
     }
 
     await FeedPost.findByIdAndDelete(id);
 
-    // Blast remote clients so the post disappears visually
     const io = req.app.get("io");
     if (io) {
       io.emit("feed-post-deleted", { postId: id });
