@@ -1,5 +1,6 @@
 import Review from '../models/ReviewModel.js';
 import { containsBadWords } from '../Utils/badWords.js';
+import { notify } from '../notifications/notification.service.js';
 
 export const getReviews = async (req, res) => {
     try {
@@ -13,7 +14,7 @@ export const getReviews = async (req, res) => {
 
 export const createReview = async (req, res) => {
     try {
-        const { rating, comment, name, avatar, avatarBg, date, verified, isOwn } = req.body;
+        const { rating, comment, name, avatar, avatarBg, date, verified, isOwn, targetUserId } = req.body;
 
         if (containsBadWords(comment)) {
             return res.status(400).json({ message: 'Your review contains inappropriate language and was rejected.' });
