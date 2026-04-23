@@ -23,6 +23,81 @@ import StatsCard from "../../components/StatusCard";
 import { useAuthStore } from "../../store/useAuthStore";
 import toast from "react-hot-toast";
 
+// Helper function to aggregate payments into chart buckets
+const aggregatePayments = (payments, mode, selectedMonthStr, extractor) => {
+  const now = new Date();
+  let points = [];
+
+  const validPayments = payments.filter(p => ['Completed', 'Pending', 'completed', 'pending'].includes(p.status));
+  const total = validPayments.reduce((sum, p) => sum + extractor(p), 0);
+  
+  const dailyMap = new Map();
+  for (const p of validPayments) {
+    const d = new Date(p.createdAt || Date.now());
+    const key = d.toISOString().slice(0, 10);
+    dailyMap.set(key, (dailyMap.get(key) || 0) + extractor(p));
+  }
+
+  if (mode === "week") {
+    const monthDate = selectedMonthStr ? new Date(`${selectedMonthStr}-01T00:00:00.000Z`) : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthYear = monthDate.getUTCFullYear();
+    const monthIdx = monthDate.getUTCMonth();
+    const lastDay = new Date(Date.UTC(monthYear, monthIdx + 1, 0)).getUTCDate();
+    const bucketRanges = [
+      [1, Math.min(7, lastDay)],
+      [8, Math.min(14, lastDay)],
+      [15, Math.min(21, lastDay)],
+      [22, lastDay],
+    ];
+
+    points = bucketRanges.map(([startDay, endDay], idx) => {
+      let value = 0;
+      for (let d = startDay; d <= endDay; d++) {
+        const dateStr = new Date(Date.UTC(monthYear, monthIdx, d)).toISOString().slice(0, 10);
+        value += dailyMap.get(dateStr) || 0;
+      }
+      const startDate = new Date(Date.UTC(monthYear, monthIdx, startDay));
+      const endDate = new Date(Date.UTC(monthYear, monthIdx, endDay));
+      return {
+        key: `w${idx + 1}`,
+        label: `W${idx + 1}`,
+        range: `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
+        value
+      };
+    });
+  } else if (mode === "month") {
+    const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    points = Array.from({ length: 6 }).map((_, idx) => {
+      const monthStart = new Date(Date.UTC(currentMonthStart.getUTCFullYear(), currentMonthStart.getUTCMonth() - (5 - idx), 1));
+      const monthEnd = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0));
+      let value = 0;
+      for (let d = new Date(monthStart.getTime()); d <= monthEnd; d.setUTCDate(d.getUTCDate() + 1)) {
+        const dateStr = d.toISOString().slice(0, 10);
+        value += dailyMap.get(dateStr) || 0;
+      }
+      return {
+        key: monthStart.toISOString().slice(0, 7),
+        label: monthStart.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }),
+        value
+      };
+    });
+  } else {
+    const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 6));
+    points = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date(weekStart.getTime());
+      d.setUTCDate(d.getUTCDate() + idx);
+      const dateStr = d.toISOString().slice(0, 10);
+      return {
+        key: dateStr,
+        label: d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+        value: dailyMap.get(dateStr) || 0
+      };
+    });
+  }
+
+  return { total, points };
+};
+
 export default function Profile() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
   const navigate = useNavigate(); // ← ADDED: for logout redirect
@@ -87,6 +162,27 @@ export default function Profile() {
   });
   const [selectedChartIndex, setSelectedChartIndex] = useState(null);
   const [selectedRevenueIndex, setSelectedRevenueIndex] = useState(null);
+
+  const [bookingPayments, setBookingPayments] = useState([]);
+  const [bookingTotalAmount, setBookingTotalAmount] = useState(0);
+
+  const [reviewStats, setReviewStats] = useState({ avgRating: 0, totalReviews: 0 });
+  
+  const [viewedBookingIds, setViewedBookingIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem('viewedBookingIds');
+      if (stored) {
+        return new Set(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Error loading viewed bookings:', e);
+    }
+    return new Set();
+  });
+
+  useEffect(() => {
+    localStorage.setItem('viewedBookingIds', JSON.stringify(Array.from(viewedBookingIds)));
+  }, [viewedBookingIds]);
 
   const [name, setName] = useState(defaultName);
   const [education, setEducation] = useState(defaultEducation);
@@ -217,8 +313,27 @@ export default function Profile() {
     }
   };
 
+  const fetchReviewStats = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reviews`);
+      if (response.ok) {
+        const data = await response.json();
+        let totalRating = 0;
+        data.forEach(r => {
+          totalRating += (r.rating || 0);
+        });
+        const totalReviews = data.length;
+        const avgRating = totalReviews > 0 ? (totalRating / totalReviews) : 0;
+        setReviewStats({ avgRating, totalReviews });
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
+  };
+
   useEffect(() => {
     fetchOwnerServices();
+    fetchReviewStats();
   }, [API_BASE_URL, profileUserId]);
 
   const fetchOwnerViewAnalytics = async (mode, options = {}) => {
@@ -253,53 +368,57 @@ export default function Profile() {
     }
   };
 
-  // ← ADDED: dedicated revenue analytics fetcher (independent mode/month from views chart)
-  const fetchOwnerRevenueAnalytics = async (mode, options = {}) => {
-    if (!options.silent) setRevenueLoading(true);
-    try {
-      const monthParam = mode === "week" ? `&month=${encodeURIComponent(selectedRevenueMonth)}` : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/services/analytics/views?ownerId=${encodeURIComponent(profileUserId)}&mode=${encodeURIComponent(mode)}${monthParam}`
-      );
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || result.message || "Failed to load revenue analytics.");
-      setRevenueAnalytics({
-        totalViews: Number(result?.data?.totalViews || 0),
-        totalBookings: Number(result?.data?.totalBookings || 0),
-        totalRevenue: Number(result?.data?.totalRevenue || 0),
-        points: Array.isArray(result?.data?.points)
-          ? result.data.points.map((p) => ({
-              key: p.key, label: p.label, range: p.range,
-              views: Number(p.views || 0),
-              bookings: Number(p.bookings || 0),
-              revenue: Number(p.revenue || 0),
-            }))
-          : [],
-      });
-      setSelectedRevenueIndex(null);
-    } catch (error) {
-      if (!options.silent) {
-        toast.error(error.message || "Unable to load revenue analytics.");
-      }
-    } finally {
-      if (!options.silent) setRevenueLoading(false);
+  // Revenue chart generated from Booking History data
+  useEffect(() => {
+    if (!bookingPayments || bookingPayments.length === 0) {
+      setRevenueAnalytics({ totalViews: 0, totalBookings: 0, totalRevenue: bookingTotalAmount || 0, points: [] });
+      setRevenueLoading(false);
+      return;
     }
-  };
+
+    setRevenueLoading(true);
+    const result = aggregatePayments(bookingPayments, revenueMode, selectedRevenueMonth, p => p.amount || 0);
+
+    setRevenueAnalytics({
+      totalViews: 0,
+      totalBookings: 0,
+      totalRevenue: bookingTotalAmount || result.total,
+      points: result.points.map(p => ({
+        key: p.key, label: p.label, range: p.range, revenue: p.value
+      }))
+    });
+    setRevenueLoading(false);
+  }, [bookingPayments, bookingTotalAmount, revenueMode, selectedRevenueMonth]);
+
+  // Derived state to merge backend viewAnalytics with frontend bookings count
+  const computedViewAnalytics = React.useMemo(() => {
+    if (!viewAnalytics) return viewAnalytics;
+    if (!bookingPayments || bookingPayments.length === 0) {
+      return { ...viewAnalytics, totalBookings: 0, points: viewAnalytics.points.map(p => ({ ...p, bookings: 0 })) };
+    }
+
+    // Get bookings aggregated based on current viewMode & selectedMonth
+    const result = aggregatePayments(bookingPayments, viewMode, selectedMonth, p => 1);
+
+    return {
+      ...viewAnalytics,
+      totalBookings: result.total,
+      points: viewAnalytics.points.map((p, index) => {
+        const overrideValue = result.points[index]?.value || 0;
+        return { ...p, bookings: overrideValue };
+      })
+    };
+  }, [viewAnalytics, bookingPayments, viewMode, selectedMonth]);
 
   useEffect(() => {
     fetchOwnerViewAnalytics(viewMode);
   }, [API_BASE_URL, profileUserId, viewMode, selectedMonth]);
 
   useEffect(() => {
-    fetchOwnerRevenueAnalytics(revenueMode);
-  }, [API_BASE_URL, profileUserId, revenueMode, selectedRevenueMonth]);
-
-  useEffect(() => {
     if (!profileUserId) return;
 
     const intervalId = setInterval(() => {
       fetchOwnerViewAnalytics(viewMode, { silent: true });
-      fetchOwnerRevenueAnalytics(revenueMode, { silent: true });
     }, 15000);
 
     return () => clearInterval(intervalId);
@@ -307,8 +426,6 @@ export default function Profile() {
     profileUserId,
     viewMode,
     selectedMonth,
-    revenueMode,
-    selectedRevenueMonth,
   ]);
 
   const saveEdit = async () => {
@@ -644,10 +761,10 @@ export default function Profile() {
         {/* Stats */}
         <h2 className="font-display text-2xl font-bold text-slate-900 mb-4">Provider Dashboard</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatsCard icon={<DollarSign className="h-5 w-5" />} label="Revenue" value={`LKR ${viewAnalytics.totalRevenue.toLocaleString()}`} change="Current total" positive iconToneClass="bg-emerald-500/10 text-emerald-600" />
-          <StatsCard icon={<Calendar className="h-5 w-5" />} label="Bookings" value={viewAnalytics.totalBookings.toLocaleString()} change="Current total" positive iconToneClass="bg-cyan-500/10 text-cyan-600" />
-          <StatsCard icon={<Eye className="h-5 w-5" />} label="Total Views" value={viewAnalytics.totalViews.toLocaleString()} change={viewMode === "week" ? "Weekly chart active" : viewMode === "month" ? "Monthly chart active" : "Daily chart active"} positive iconToneClass="bg-violet-500/10 text-violet-600" />
-          <StatsCard icon={<Star className="h-5 w-5" />} label="Rating" value={profileStats.avgRating > 0 ? profileStats.avgRating.toFixed(1) : "0.0"} change={`${profileStats.totalReviews} review${profileStats.totalReviews === 1 ? "" : "s"}`} positive={profileStats.avgRating > 0} iconToneClass="bg-amber-500/10 text-amber-600" />
+          <StatsCard icon={<DollarSign className="h-5 w-5" />} label="Revenue" value={`LKR ${revenueAnalytics.totalRevenue.toLocaleString()}`} change="Current total" positive iconToneClass="bg-emerald-500/10 text-emerald-600" />
+          <StatsCard icon={<Calendar className="h-5 w-5" />} label="Bookings" value={computedViewAnalytics.totalBookings.toLocaleString()} change="Current total" positive iconToneClass="bg-cyan-500/10 text-cyan-600" />
+          <StatsCard icon={<Eye className="h-5 w-5" />} label="Total Views" value={((computedViewAnalytics?.totalViews || 0) + viewedBookingIds.size).toLocaleString()} change={viewMode === "week" ? "Weekly chart active" : viewMode === "month" ? "Monthly chart active" : "Daily chart active"} positive iconToneClass="bg-violet-500/10 text-violet-600" />
+          <StatsCard icon={<Star className="h-5 w-5" />} label="Rating" value={reviewStats.avgRating > 0 ? reviewStats.avgRating.toFixed(1) : "0.0"} change={`${reviewStats.totalReviews} review${reviewStats.totalReviews === 1 ? "" : "s"}`} positive={reviewStats.avgRating > 0} iconToneClass="bg-amber-500/10 text-amber-600" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
@@ -681,17 +798,17 @@ export default function Profile() {
             ) : (
               <div>
                 <div className="mb-4">
-                  <p className="text-4xl font-display font-bold text-slate-900">{viewAnalytics.totalViews.toLocaleString()}</p>
+                  <p className="text-4xl font-display font-bold text-slate-900">{((computedViewAnalytics?.totalViews || 0) + viewedBookingIds.size).toLocaleString()}</p>
                   <p className="text-sm text-slate-500">Views</p>
-                  <p className="text-sm text-slate-500 mt-1">Bookings: {viewAnalytics.totalBookings.toLocaleString()}</p>
+                  <p className="text-sm text-slate-500 mt-1">Bookings: {computedViewAnalytics.totalBookings.toLocaleString()}</p>
                 </div>
 
-                {viewAnalytics.points.length === 0 ? (
+                {computedViewAnalytics.points.length === 0 ? ( 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No view data yet.</div>
                 ) : (
                   <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     {(() => {
-                      const points = viewAnalytics.points;
+                      const points = computedViewAnalytics.points;
                       const maxValue = Math.max(1, ...points.map((p) => Math.max(p.views, p.bookings || 0)));
                       // ← CHANGED: getX uses 8–92% range to avoid clipping edges (from file 2)
                       const getX = (index) => points.length === 1 ? 50 : 8 + (index / (points.length - 1)) * 84;
@@ -793,7 +910,6 @@ export default function Profile() {
             ) : (
               <div>
                 <div className="mb-4">
-                  {/* ← CHANGED: now reads from revenueAnalytics instead of viewAnalytics */}
                   <p className="text-4xl font-display font-bold text-slate-900">LKR {revenueAnalytics.totalRevenue.toLocaleString()}</p>
                   <p className="text-sm text-slate-500">Revenue</p>
                 </div>
@@ -803,7 +919,7 @@ export default function Profile() {
                 ) : (
                   <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     {(() => {
-                      const points = revenueAnalytics.points; // ← CHANGED: uses revenueAnalytics
+                      const points = revenueAnalytics.points;
                       const maxValue = Math.max(1, ...points.map((p) => p.revenue || 0));
                       const getX = (index) => points.length === 1 ? 50 : 8 + (index / (points.length - 1)) * 84;
                       const getY = (value) => 100 - (Number(value || 0) / maxValue) * 92;
@@ -912,7 +1028,36 @@ export default function Profile() {
 
         {/* Booking History Section */}
         <div className="mt-10 animate-fade-in">
-          <BookingHistory />
+          <BookingHistory 
+            isProviderView={true}
+            onDataLoaded={(payments, totalAmount) => {
+              setBookingPayments(payments);
+              setBookingTotalAmount(totalAmount);
+            }} 
+            viewedBookingIds={viewedBookingIds}
+            onViewBooking={(booking) => {
+              if (booking && booking.id) {
+                // Determine if it was already viewed BEFORE setting state
+                const isViewed = viewedBookingIds.has(booking.id);
+                if (!isViewed) {
+                  setViewedBookingIds(prevSet => {
+                    const newSet = new Set(prevSet);
+                    newSet.add(booking.id);
+                    return newSet;
+                  });
+                }
+              }
+            }}
+            onUnviewBooking={(bookingId) => {
+              if (bookingId) {
+                setViewedBookingIds(prevSet => {
+                  const newSet = new Set(prevSet);
+                  newSet.delete(bookingId);
+                  return newSet;
+                });
+              }
+            }}
+          />
         </div>
       </div>
     </div>
