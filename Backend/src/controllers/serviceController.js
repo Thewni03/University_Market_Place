@@ -12,7 +12,6 @@ const RANKED_RESULTS_TTL_MS = 20 * 1000;
 
 const mlPredictionCache = new Map();
 const ML_SCORE_TTL_MS = 60 * 1000;
-// Add these at the top if they are missing
 const toNumber = (value, fallback = 0) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -30,8 +29,6 @@ const parseJsonMaybe = (value, fallback) => {
   catch { return fallback; }
 };
 
-// ... (keep all your utility functions: toUtcDateKey, resolveReviewerName, etc. exactly as they are)
-/* ================= META ================= */
 export const getServiceMeta = async (_req, res) => {
   return res.json({
     success: true,
@@ -42,7 +39,7 @@ export const getServiceMeta = async (_req, res) => {
     },
   });
 };
-/* ================= CREATE ================= */
+
 export const createService = async (req, res) => {
   try {
     const body = req.body || {};
@@ -92,8 +89,6 @@ export const createService = async (req, res) => {
       availabilitySlots: Array.isArray(availabilitySlots) ? availabilitySlots : [],
       workSamples: normalizedWorkSamples,
     });
-
-    // --- NEW NOTIFICATION LOGIC ---
     // This notifies the user that their service has been successfully posted.
     await notify({
       userId: ownerId,
@@ -102,7 +97,7 @@ export const createService = async (req, res) => {
       body: `Your service "${doc.title}" is now live and visible to others.`,
       metadata: { serviceId: doc._id, url: `/services/${doc._id}` }
     });
-    // ------------------------------
+
 
     return res.status(201).json({
       success: true,
@@ -117,10 +112,6 @@ export const createService = async (req, res) => {
   }
 };
 
-/* ================= READ ALL ================= */
-// ... (rest of your getAllServices code continues here)
-
-/* ================= READ ALL ================= */
 export const getAllServices = async (req, res) => {
   try {
     const { category, locationMode, ownerId, page = 1, limit = 24 } = req.query;
@@ -192,7 +183,6 @@ export const getAllServices = async (req, res) => {
   }
 };
 
-/* ================= RANKED ================= */
 export const getRankedServices = async (req, res) => {
   try {
     const { category, location, minRating, minPrice, maxPrice, limit = 12, page = 1 } = req.query;
@@ -291,7 +281,6 @@ export const getRankedServices = async (req, res) => {
   }
 };
 
-/* ================= OWNER VIEW ANALYTICS ================= */
 export const getOwnerViewsAnalytics = async (req, res) => {
   try {
     const ownerId = req.userId || req.query.ownerId;
@@ -489,7 +478,7 @@ export const getOwnerViewsAnalytics = async (req, res) => {
   }
 };
 
-/* ================= READ ONE ================= */
+
 export const getServiceById = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id).populate({
@@ -557,7 +546,7 @@ export const getServiceById = async (req, res) => {
   }
 };
 
-/* ================= ADD REVIEW ================= */
+
 export const addServiceReview = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id);
@@ -636,7 +625,7 @@ export const addServiceReview = async (req, res) => {
   }
 };
 
-/* ================= UPDATE ================= */
+
 export const updateService = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id);
@@ -672,9 +661,9 @@ export const updateService = async (req, res) => {
     return res.status(400).json({ success: false, error: error.message });
   }
 };
-/* ================= ANALYTICS ================= */
 
-// Fixes the 500 error for /api/services/analytics/views
+
+
 export const getServiceViewAnalytics = async (req, res) => {
   try {
     const { ownerId } = req.query;
@@ -688,7 +677,6 @@ export const getServiceViewAnalytics = async (req, res) => {
   }
 };
 
-// Fixes the 500 error for revenue analytics calls
 export const getServiceRevenueAnalytics = async (req, res) => {
   try {
     const { ownerId } = req.query;
@@ -702,8 +690,6 @@ export const getServiceRevenueAnalytics = async (req, res) => {
 };
 
 
-
-/* ================= DELETE ================= */
 export const deleteService = async (req, res) => {
   try {
     const doc = await Service.findById(req.params.id);
@@ -736,8 +722,18 @@ export const deleteService = async (req, res) => {
     return res.status(400).json({ success: false, error: error.message });
   }
 };
+// Fixes the ReferenceError in getServiceById
+const toUtcDateKey = (date = new Date()) => date.toISOString().slice(0, 10); 
 
-/* ================= CALCULATE PAYMENT ================= */
+const startOfUtcDay = (date) =>
+  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+
+const addUtcDays = (date, days) => {
+  const copy = new Date(date.getTime());
+  copy.setUTCDate(copy.getUTCDate() + days);
+  return copy;
+};
+
 export const calculatePayment = async (req, res) => {
   try {
     const { hours, customHourlyRate } = req.body;
