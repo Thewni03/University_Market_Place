@@ -1,5 +1,6 @@
+import mongoose from "mongoose";
 import Payment from "../models/payment.js";
-import PaymentModel from "../models/payment.js"; 
+import PaymentModel from "../models/payment.js";
 import { notify } from "../notifications/notification.service.js";
 
 export const getBookedSlots = async (req, res) => {
@@ -127,8 +128,8 @@ export const createPayment = async (req, res) => {
       name,
       expiry,
       cvv,
-      sellerId, 
-      userId    
+      sellerId,
+      userId
     } = req.body;
 
     const errors = {};
@@ -188,7 +189,7 @@ export const createPayment = async (req, res) => {
 
     let savedPayment;
     const existingPayment = await PaymentModel.findOne({ bookingId });
-    
+
     if (existingPayment) {
       Object.assign(existingPayment, req.body);
       savedPayment = await existingPayment.save();
@@ -208,7 +209,7 @@ export const createPayment = async (req, res) => {
       });
     }
 
-    const buyerId = userId || req.user?._id; 
+    const buyerId = userId || req.user?._id;
     if (buyerId) {
       await notify({
         userId: buyerId,
@@ -242,7 +243,14 @@ export const getAllPayments = async (req, res) => {
 
 export const getPaymentById = async (req, res) => {
   try {
-    const payment = await PaymentModel.findById(req.params.id);
+    let payment;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      payment = await PaymentModel.findById(req.params.id);
+    }
+    if (!payment) {
+      payment = await PaymentModel.findOne({ bookingId: req.params.id });
+    }
+
     if (!payment) {
       return res.status(404).json({ success: false, message: "Payment not found" });
     }
@@ -265,11 +273,24 @@ export const getUserPayments = async (req, res) => {
 
 export const updatePayment = async (req, res) => {
   try {
-    const payment = await PaymentModel.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    let payment;
+    const updateOptions = { new: true, runValidators: true };
+
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      payment = await PaymentModel.findByIdAndUpdate(
+        req.params.id,
+        { $set: req.body },
+        updateOptions
+      );
+    }
+    if (!payment) {
+      payment = await PaymentModel.findOneAndUpdate(
+        { bookingId: req.params.id },
+        { $set: req.body },
+        updateOptions
+      );
+    }
+
     if (!payment) {
       return res.status(404).json({ success: false, message: "Payment not found" });
     }
@@ -282,7 +303,14 @@ export const updatePayment = async (req, res) => {
 
 export const deletePayment = async (req, res) => {
   try {
-    const payment = await PaymentModel.findByIdAndDelete(req.params.id);
+    let payment;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      payment = await PaymentModel.findByIdAndDelete(req.params.id);
+    }
+    if (!payment) {
+      payment = await PaymentModel.findOneAndDelete({ bookingId: req.params.id });
+    }
+
     if (!payment) {
       return res.status(404).json({ success: false, message: "Payment not found" });
     }
