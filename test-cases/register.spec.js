@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Register Page Tests", () => {
   test.beforeEach(async ({ page }) => {
-    // Mock API call
     await page.route("**/users", async (route) => {
       route.fulfill({
         status: 200,
@@ -57,7 +56,6 @@ test.describe("Register Page Tests", () => {
     await page.fill('input[name="phone"]', "0771234567");
     await page.fill('input[name="graduate_year"]', "2025");
 
-    // fake file upload (important for test stability)
     const fileInput = page.locator('input[name="student_id_pic"]');
     await fileInput.setInputFiles({
       name: "test.png",
@@ -67,7 +65,6 @@ test.describe("Register Page Tests", () => {
 
     await page.getByRole("button", { name: /create account/i }).click();
 
-    // should navigate after success
     await expect(page).toHaveURL(/\/$/);
   });
 
