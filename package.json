@@ -1,0 +1,25 @@
+{
+  "name": "university_market_place",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {  "start": "react-scripts start",
+  "test": "playwright test"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Thewni03/University_Market_Place.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Thewni03/University_Market_Place/issues"
+  },
+  "homepage": "https://github.com/Thewni03/University_Market_Place#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "concurrently": "^9.2.1"
+  }
+}
