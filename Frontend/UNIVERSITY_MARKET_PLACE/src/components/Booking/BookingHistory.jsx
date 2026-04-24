@@ -63,7 +63,7 @@ const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBo
     };
 
     fetchPayments();
-  }, [authUser, isProviderView, providerId, onDataLoaded]);
+  }, [authUser?._id, isProviderView, providerId]);
 
   // Fetch Booked Slots when rescheduling
   useEffect(() => {

@@ -73,10 +73,15 @@ export function NotificationProvider({ children }) {
   }, []);
   */
   const fetchNotifications = useCallback(async () => {
-    if (!userId) { setLoading(false); return; }
+    const token = getToken();
+    if (!userId || !token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
     try {
-      const token = getToken();
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers = { Authorization: `Bearer ${token}` };
 
       const { data } = await axios.get(`${API_URL}/notifications`, { headers });
       setNotifications(data.data || []);
@@ -86,7 +91,12 @@ export function NotificationProvider({ children }) {
       setSettings(localUser?.notificationSettings || { enabled: true });
   
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      if (err.response?.status === 401) {
+        setNotifications([]);
+        setUnreadCount(0);
+      } else {
+        console.error('Failed to fetch notifications:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -164,6 +174,9 @@ const updateSettings = useCallback(async (newSettings) => {
     const token = getToken();
 
     if (!currentUserId || !token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;

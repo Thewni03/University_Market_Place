@@ -93,7 +93,6 @@ export const useChatStore = create((set, get) => ({
 
             usersRequestPromise = axiosInstance.get('/messages/users', {
                 params: { userId },
-                skipAuth: true,
                 withCredentials: false,
             });
 
@@ -126,7 +125,6 @@ export const useChatStore = create((set, get) => ({
             const currentUserId = getCurrentUserId();
             const response = await axiosInstance.get(`/messages/${userId}`, {
                 params: currentUserId ? { userId: currentUserId } : undefined,
-                skipAuth: true,
                 withCredentials: false,
             });
             const lastMessage = response.data[response.data.length - 1];
@@ -161,7 +159,6 @@ export const useChatStore = create((set, get) => ({
                 `/messages/sent/${selectedUser._id}`,
                 currentUserId ? { ...messageData, userId: currentUserId } : messageData,
                 {
-                    skipAuth: true,
                     withCredentials: false,
                 }
             );
