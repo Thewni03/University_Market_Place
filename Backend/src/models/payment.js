@@ -12,6 +12,18 @@ const paymentSchema = new mongoose.Schema(
       ref: "Users",
       required: false,
     },
+    providerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Users",
+      required: false,
+      index: true,
+    },
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      required: false,
+      index: true,
+    },
     customerName: {
       type: String,
       required: true,

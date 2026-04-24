@@ -237,6 +237,7 @@ export default function ServiceDetail() {
                                     navigate('/booking-form', {
                                         state: {
                                             serviceId: id,
+                                            providerId: ownerId,
                                             serviceTitle: service?.title || "",
                                             pricePerHour: service?.pricePerHour || service?.price || 0,
                                             selectedSlot: selectedSlot || null,

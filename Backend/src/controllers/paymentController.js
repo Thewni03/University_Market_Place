@@ -1,19 +1,26 @@
 import Payment from "../models/payment.js";
 import PaymentModel from "../models/payment.js"; 
+import Service from "../models/service.js";
 import { notify } from "../notifications/notification.service.js";
 
 export const getBookedSlots = async (req, res) => {
   try {
-    const { serviceName, date } = req.query;
-    if (!serviceName || !date) {
-      return res.status(400).json({ success: false, message: "serviceName and date are required" });
+    const { serviceId, serviceName, date } = req.query;
+    if ((!serviceId && !serviceName) || !date) {
+      return res.status(400).json({ success: false, message: "serviceId or serviceName and date are required" });
     }
 
-    const bookings = await Payment.find({
-      serviceName,
+    const filter = {
       bookingDate: date,
-      status: { $nin: ['cancelled', 'refunded', 'failed'] }
-    });
+      status: { $nin: ['cancelled', 'refunded', 'failed', 'Cancelled', 'Refunded', 'Failed'] }
+    };
+    if (serviceId) {
+      filter.serviceId = serviceId;
+    } else {
+      filter.serviceName = serviceName;
+    }
+
+    const bookings = await Payment.find(filter);
 
     const bookedSlots = bookings.map(b => b.bookingTime);
     res.status(200).json({ success: true, data: bookedSlots });
@@ -77,6 +84,8 @@ export const createBookingOnly = async (req, res) => {
     const {
       bookingId,
       userId,
+      providerId,
+      serviceId,
       customerName,
       customerEmail,
       serviceName,
@@ -93,6 +102,8 @@ export const createBookingOnly = async (req, res) => {
     const newPayment = new Payment({
       bookingId,
       userId,
+      providerId,
+      serviceId,
       customerName,
       customerEmail,
       serviceName,
@@ -128,7 +139,9 @@ export const createPayment = async (req, res) => {
       expiry,
       cvv,
       sellerId, 
-      userId    
+      userId,
+      providerId,
+      serviceId,
     } = req.body;
 
     const errors = {};
@@ -198,9 +211,11 @@ export const createPayment = async (req, res) => {
     }
 
 
-    if (sellerId) {
+    const effectiveProviderId = providerId || sellerId;
+
+    if (effectiveProviderId) {
       await notify({
-        userId: sellerId,
+        userId: effectiveProviderId,
         type: 'payment_received',
         title: 'Payment Received!',
         body: `You received a payment of LKR ${amount} for ${serviceName}.`,
@@ -233,7 +248,10 @@ export const createPayment = async (req, res) => {
 export const getAllPayments = async (req, res) => {
   try {
     const payments = await PaymentModel.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: payments.length, data: payments });
+    const totalAmount = payments
+      .filter((payment) => !["cancelled", "refunded", "failed", "Cancelled", "Refunded", "Failed"].includes(payment.status))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    res.status(200).json({ success: true, count: payments.length, totalAmount, data: payments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -256,7 +274,40 @@ export const getPaymentById = async (req, res) => {
 export const getUserPayments = async (req, res) => {
   try {
     const payments = await PaymentModel.find({ userId: req.params.userId }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: payments.length, data: payments });
+    const totalAmount = payments
+      .filter((payment) => !["cancelled", "refunded", "failed", "Cancelled", "Refunded", "Failed"].includes(payment.status))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    res.status(200).json({ success: true, count: payments.length, totalAmount, data: payments });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getProviderPayments = async (req, res) => {
+  try {
+    const services = await Service.find({ ownerId: req.params.providerId })
+      .select("_id title")
+      .lean();
+    const serviceIds = services.map((service) => service?._id).filter(Boolean);
+    const serviceTitles = services
+      .map((service) => String(service?.title || "").trim())
+      .filter(Boolean);
+
+    const filter = serviceIds.length > 0 || serviceTitles.length > 0
+      ? {
+          $or: [
+            { providerId: req.params.providerId },
+            ...(serviceIds.length > 0 ? [{ serviceId: { $in: serviceIds } }] : []),
+            ...(serviceTitles.length > 0 ? [{ serviceName: { $in: serviceTitles } }] : []),
+          ],
+        }
+      : { providerId: req.params.providerId };
+
+    const payments = await PaymentModel.find(filter).sort({ createdAt: -1 });
+    const totalAmount = payments
+      .filter((payment) => ["completed", "Completed"].includes(payment.status))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    res.status(200).json({ success: true, count: payments.length, totalAmount, data: payments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

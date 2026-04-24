@@ -51,6 +51,9 @@ const Payment = () => {
         body: JSON.stringify({
           bookingId: bookingDetails.bookingId,
           userId: authUser?._id || null,
+          providerId: state.providerId || null,
+          sellerId: state.providerId || null,
+          serviceId: state.serviceId || null,
           customerName: bookingDetails.customerName,
           customerEmail: bookingDetails.customerEmail,
           serviceName: bookingDetails.serviceName,

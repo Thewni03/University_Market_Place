@@ -24,11 +24,11 @@ import { useAuthStore } from "../../store/useAuthStore";
 import toast from "react-hot-toast";
 
 // Helper function to aggregate payments into chart buckets
-const aggregatePayments = (payments, mode, selectedMonthStr, extractor) => {
+const aggregatePayments = (payments, mode, selectedMonthStr, extractor, statusFilter = (payment) => ['Completed', 'Pending', 'completed', 'pending'].includes(payment.status)) => {
   const now = new Date();
   let points = [];
 
-  const validPayments = payments.filter(p => ['Completed', 'Pending', 'completed', 'pending'].includes(p.status));
+  const validPayments = payments.filter(statusFilter);
   const total = validPayments.reduce((sum, p) => sum + extractor(p), 0);
   
   const dailyMap = new Map();
@@ -96,6 +96,84 @@ const aggregatePayments = (payments, mode, selectedMonthStr, extractor) => {
   }
 
   return { total, points };
+};
+
+const aggregateServiceViews = (services, mode, selectedMonthStr) => {
+  const now = new Date();
+  const dailyMap = new Map();
+
+  for (const service of services || []) {
+    for (const item of service?.viewHistory || []) {
+      if (!item?.date) continue;
+      dailyMap.set(item.date, Number(dailyMap.get(item.date) || 0) + Number(item.count || 0));
+    }
+  }
+
+  let points = [];
+
+  if (mode === "week") {
+    const monthDate = selectedMonthStr
+      ? new Date(`${selectedMonthStr}-01T00:00:00.000Z`)
+      : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthYear = monthDate.getUTCFullYear();
+    const monthIdx = monthDate.getUTCMonth();
+    const lastDay = new Date(Date.UTC(monthYear, monthIdx + 1, 0)).getUTCDate();
+    const bucketRanges = [
+      [1, Math.min(7, lastDay)],
+      [8, Math.min(14, lastDay)],
+      [15, Math.min(21, lastDay)],
+      [22, lastDay],
+    ];
+
+    points = bucketRanges.map(([startDay, endDay], idx) => {
+      let views = 0;
+      for (let d = startDay; d <= endDay; d += 1) {
+        const dateStr = new Date(Date.UTC(monthYear, monthIdx, d)).toISOString().slice(0, 10);
+        views += Number(dailyMap.get(dateStr) || 0);
+      }
+      const startDate = new Date(Date.UTC(monthYear, monthIdx, startDay));
+      const endDate = new Date(Date.UTC(monthYear, monthIdx, endDay));
+      return {
+        key: `w${idx + 1}`,
+        label: `W${idx + 1}`,
+        range: `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
+        views,
+      };
+    });
+  } else if (mode === "month") {
+    const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    points = Array.from({ length: 6 }).map((_, idx) => {
+      const monthStart = new Date(Date.UTC(currentMonthStart.getUTCFullYear(), currentMonthStart.getUTCMonth() - (5 - idx), 1));
+      const monthEnd = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0));
+      let views = 0;
+      for (let d = new Date(monthStart.getTime()); d <= monthEnd; d.setUTCDate(d.getUTCDate() + 1)) {
+        const dateStr = d.toISOString().slice(0, 10);
+        views += Number(dailyMap.get(dateStr) || 0);
+      }
+      return {
+        key: monthStart.toISOString().slice(0, 7),
+        label: monthStart.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }),
+        views,
+      };
+    });
+  } else {
+    const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 6));
+    points = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date(weekStart.getTime());
+      d.setUTCDate(d.getUTCDate() + idx);
+      const dateStr = d.toISOString().slice(0, 10);
+      return {
+        key: dateStr,
+        label: d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+        views: Number(dailyMap.get(dateStr) || 0),
+      };
+    });
+  }
+
+  return {
+    totalViews: services.reduce((sum, service) => sum + Number(service?.viewCount || 0), 0),
+    points,
+  };
 };
 
 export default function Profile() {
@@ -297,6 +375,17 @@ export default function Profile() {
     loadProfile();
   }, [API_BASE_URL, profileUserId]);
 
+  const computeServiceReviewStats = (services = []) => {
+    const allReviews = services.flatMap((service) => Array.isArray(service?.reviews) ? service.reviews : []);
+    const totalReviews = allReviews.length;
+    const totalRating = allReviews.reduce((sum, review) => sum + Number(review?.rating || 0), 0);
+
+    setReviewStats({
+      avgRating: totalReviews > 0 ? totalRating / totalReviews : 0,
+      totalReviews,
+    });
+  };
+
   const fetchOwnerServices = async () => {
     setServicesLoading(true);
     try {
@@ -305,36 +394,29 @@ export default function Profile() {
       );
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || result.message || "Failed to load services.");
-      setMyServices(Array.isArray(result.data) ? result.data : []);
+      const services = Array.isArray(result.data) ? result.data : [];
+      setMyServices(services);
+      computeServiceReviewStats(services);
     } catch (error) {
+      setReviewStats({ avgRating: 0, totalReviews: 0 });
       toast.error(error.message || "Unable to load your services.");
     } finally {
       setServicesLoading(false);
     }
   };
 
-  const fetchReviewStats = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/reviews`);
-      if (response.ok) {
-        const data = await response.json();
-        let totalRating = 0;
-        data.forEach(r => {
-          totalRating += (r.rating || 0);
-        });
-        const totalReviews = data.length;
-        const avgRating = totalReviews > 0 ? (totalRating / totalReviews) : 0;
-        setReviewStats({ avgRating, totalReviews });
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-    }
-  };
-
   useEffect(() => {
     fetchOwnerServices();
-    fetchReviewStats();
   }, [API_BASE_URL, profileUserId]);
+
+  const totalServiceViews = React.useMemo(
+    () => myServices.reduce((sum, service) => sum + Number(service?.viewCount || 0), 0),
+    [myServices]
+  );
+  const localViewAnalytics = React.useMemo(
+    () => aggregateServiceViews(myServices, viewMode, selectedMonth),
+    [myServices, viewMode, selectedMonth]
+  );
 
   const fetchOwnerViewAnalytics = async (mode, options = {}) => {
     if (!options.silent) setViewsLoading(true);
@@ -377,7 +459,13 @@ export default function Profile() {
     }
 
     setRevenueLoading(true);
-    const result = aggregatePayments(bookingPayments, revenueMode, selectedRevenueMonth, p => p.amount || 0);
+    const result = aggregatePayments(
+      bookingPayments,
+      revenueMode,
+      selectedRevenueMonth,
+      p => p.amount || 0,
+      p => ['Completed', 'completed'].includes(p.status)
+    );
 
     setRevenueAnalytics({
       totalViews: 0,
@@ -394,21 +482,43 @@ export default function Profile() {
   const computedViewAnalytics = React.useMemo(() => {
     if (!viewAnalytics) return viewAnalytics;
     if (!bookingPayments || bookingPayments.length === 0) {
-      return { ...viewAnalytics, totalBookings: 0, points: viewAnalytics.points.map(p => ({ ...p, bookings: 0 })) };
+      const fallbackPoints = Array.isArray(viewAnalytics.points) && viewAnalytics.points.some((p) => Number(p.views || 0) > 0)
+        ? viewAnalytics.points
+        : localViewAnalytics.points.map((p) => ({ ...p, bookings: 0, revenue: 0 }));
+      return {
+        ...viewAnalytics,
+        totalViews: Number(viewAnalytics.totalViews || 0) || localViewAnalytics.totalViews,
+        points: fallbackPoints,
+      };
     }
 
     // Get bookings aggregated based on current viewMode & selectedMonth
-    const result = aggregatePayments(bookingPayments, viewMode, selectedMonth, p => 1);
+    const result = aggregatePayments(
+      bookingPayments,
+      viewMode,
+      selectedMonth,
+      p => 1,
+      p => !['Cancelled', 'Refunded', 'Failed', 'cancelled', 'refunded', 'failed'].includes(p.status)
+    );
+
+    const fallbackPoints = Array.isArray(viewAnalytics.points) && viewAnalytics.points.some((p) => Number(p.views || 0) > 0)
+      ? viewAnalytics.points
+      : localViewAnalytics.points;
 
     return {
       ...viewAnalytics,
+      totalViews: Number(viewAnalytics.totalViews || 0) || localViewAnalytics.totalViews,
       totalBookings: result.total,
-      points: viewAnalytics.points.map((p, index) => {
+      points: fallbackPoints.map((p, index) => {
         const overrideValue = result.points[index]?.value || 0;
-        return { ...p, bookings: overrideValue };
+        return { ...p, views: Number(p.views || 0), bookings: overrideValue };
       })
     };
-  }, [viewAnalytics, bookingPayments, viewMode, selectedMonth]);
+  }, [viewAnalytics, bookingPayments, viewMode, selectedMonth, localViewAnalytics]);
+
+  const displayTotalViews = Number(computedViewAnalytics?.totalViews || 0) || totalServiceViews;
+  const displayAverageRating = Number(reviewStats.avgRating || 0) || Number(profileStats.avgRating || 0);
+  const displayTotalReviews = Number(reviewStats.totalReviews || 0) || Number(profileStats.totalReviews || 0);
 
   useEffect(() => {
     fetchOwnerViewAnalytics(viewMode);
@@ -763,8 +873,8 @@ export default function Profile() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatsCard icon={<DollarSign className="h-5 w-5" />} label="Revenue" value={`LKR ${revenueAnalytics.totalRevenue.toLocaleString()}`} change="Current total" positive iconToneClass="bg-emerald-500/10 text-emerald-600" />
           <StatsCard icon={<Calendar className="h-5 w-5" />} label="Bookings" value={computedViewAnalytics.totalBookings.toLocaleString()} change="Current total" positive iconToneClass="bg-cyan-500/10 text-cyan-600" />
-          <StatsCard icon={<Eye className="h-5 w-5" />} label="Total Views" value={((computedViewAnalytics?.totalViews || 0) + viewedBookingIds.size).toLocaleString()} change={viewMode === "week" ? "Weekly chart active" : viewMode === "month" ? "Monthly chart active" : "Daily chart active"} positive iconToneClass="bg-violet-500/10 text-violet-600" />
-          <StatsCard icon={<Star className="h-5 w-5" />} label="Rating" value={reviewStats.avgRating > 0 ? reviewStats.avgRating.toFixed(1) : "0.0"} change={`${reviewStats.totalReviews} review${reviewStats.totalReviews === 1 ? "" : "s"}`} positive={reviewStats.avgRating > 0} iconToneClass="bg-amber-500/10 text-amber-600" />
+          <StatsCard icon={<Eye className="h-5 w-5" />} label="Total Views" value={displayTotalViews.toLocaleString()} change={viewMode === "week" ? "Weekly chart active" : viewMode === "month" ? "Monthly chart active" : "Daily chart active"} positive iconToneClass="bg-violet-500/10 text-violet-600" />
+          <StatsCard icon={<Star className="h-5 w-5" />} label="Rating" value={displayAverageRating > 0 ? displayAverageRating.toFixed(1) : "0.0"} change={`${displayTotalReviews} review${displayTotalReviews === 1 ? "" : "s"}`} positive={displayAverageRating > 0} iconToneClass="bg-amber-500/10 text-amber-600" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
@@ -798,7 +908,7 @@ export default function Profile() {
             ) : (
               <div>
                 <div className="mb-4">
-                  <p className="text-4xl font-display font-bold text-slate-900">{((computedViewAnalytics?.totalViews || 0) + viewedBookingIds.size).toLocaleString()}</p>
+                  <p className="text-4xl font-display font-bold text-slate-900">{displayTotalViews.toLocaleString()}</p>
                   <p className="text-sm text-slate-500">Views</p>
                   <p className="text-sm text-slate-500 mt-1">Bookings: {computedViewAnalytics.totalBookings.toLocaleString()}</p>
                 </div>
@@ -1030,6 +1140,7 @@ export default function Profile() {
         <div className="mt-10 animate-fade-in">
           <BookingHistory 
             isProviderView={true}
+            providerId={profileUserId}
             onDataLoaded={(payments, totalAmount) => {
               setBookingPayments(payments);
               setBookingTotalAmount(totalAmount);

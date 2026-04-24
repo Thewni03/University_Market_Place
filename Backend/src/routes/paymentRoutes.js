@@ -4,6 +4,7 @@ import {
   getAllPayments,
   getPaymentById,
   getUserPayments,
+  getProviderPayments,
   updatePayment,
   deletePayment,
   validateBooking,
@@ -35,6 +36,7 @@ router.post("/", createPayment);
 router.get("/", getAllPayments);
 router.get("/booked-slots", getBookedSlots);
 router.get("/user/:userId", getUserPayments);
+router.get("/provider/:providerId", getProviderPayments);
 router.get("/:id", getPaymentById);
 router.put("/:id", updatePayment);
 router.delete("/:id", deletePayment);

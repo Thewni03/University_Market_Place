@@ -1,6 +1,7 @@
 // controllers/serviceController.js
 import Service, { DAYS, TIMES } from "../models/service.js";
 import Profile from "../models/profile.js";
+import Payment from "../models/payment.js";
 import mongoose from "mongoose";
 import fs from "fs/promises";
 import cloudinary from "../Utils/cloudinary.js";
@@ -12,6 +13,8 @@ const RANKED_RESULTS_TTL_MS = 20 * 1000;
 
 const mlPredictionCache = new Map();
 const ML_SCORE_TTL_MS = 60 * 1000;
+const DEFAULT_ML_SERVICE_URL = "http://127.0.0.1:8000";
+
 const toNumber = (value, fallback = 0) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -21,6 +24,29 @@ const averageRatingFromReviews = (reviews = []) => {
   if (!Array.isArray(reviews) || reviews.length === 0) return 0;
   const total = reviews.reduce((sum, item) => sum + toNumber(item?.rating, 0), 0);
   return total / reviews.length;
+};
+
+const normalizeLocation = (locationMode = "") => {
+  const value = String(locationMode || "").toLowerCase();
+  if (value === "online") return "Online";
+  if (value === "on-campus" || value === "on campus") return "On-Campus";
+  return "Online";
+};
+
+const buildMlFeaturePayload = (service = {}) => {
+  const reviews = Array.isArray(service.reviews) ? service.reviews : [];
+
+  return {
+    average_rating: toNumber(averageRatingFromReviews(reviews), 0),
+    review_count: toNumber(service.reviewCount, reviews.length),
+    view_count: toNumber(service.viewCount, 0),
+    price_per_hour: toNumber(service.pricePerHour, 0),
+    category: String(service.category || "Tutoring"),
+    location: normalizeLocation(service.locationMode || service.location),
+    booking_count: toNumber(service.bookingCount ?? service.bookingsCount, 0),
+    response_time_min: toNumber(process.env.DEFAULT_RESPONSE_TIME_MIN, 1440),
+    completion_rate: toNumber(process.env.DEFAULT_COMPLETION_RATE, 0.8),
+  };
 };
 
 const parseJsonMaybe = (value, fallback) => {
@@ -234,15 +260,16 @@ export const getRankedServices = async (req, res) => {
         let score = 0;
 
         try {
-          const resML = await fetch(`${process.env.ML_SERVICE_URL}/predict`, {
+          const mlServiceUrl = process.env.ML_SERVICE_URL || DEFAULT_ML_SERVICE_URL;
+          const resML = await fetch(`${mlServiceUrl}/predict`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rating: averageRatingFromReviews(service.reviews || []),
-              price: toNumber(service.pricePerHour),
-              views: toNumber(service.viewCount),
-            }),
+            body: JSON.stringify(buildMlFeaturePayload(service)),
           });
+
+          if (!resML.ok) {
+            throw new Error(`ML service returned ${resML.status}`);
+          }
 
           const json = await resML.json();
           score = toNumber(json.prediction, 0);
@@ -298,22 +325,43 @@ export const getOwnerViewsAnalytics = async (req, res) => {
     }
 
     const services = await Service.find({ ownerId })
-      .select("viewCount viewHistory reviews pricePerHour")
+      .select("_id title viewCount viewHistory reviews pricePerHour")
+      .lean();
+
+    const serviceIds = services.map((service) => service?._id).filter(Boolean);
+    const serviceTitles = services
+      .map((service) => String(service?.title || "").trim())
+      .filter(Boolean);
+    const bookingFilter = serviceIds.length > 0 || serviceTitles.length > 0
+      ? {
+          status: { $nin: ["cancelled", "refunded", "failed", "Cancelled", "Refunded", "Failed"] },
+          $or: [
+            { providerId: ownerId },
+            ...(serviceIds.length > 0 ? [{ serviceId: { $in: serviceIds } }] : []),
+            ...(serviceTitles.length > 0 ? [{ serviceName: { $in: serviceTitles } }] : []),
+          ],
+        }
+      : {
+          providerId: ownerId,
+          status: { $nin: ["cancelled", "refunded", "failed", "Cancelled", "Refunded", "Failed"] },
+        };
+
+    const bookings = await Payment.find(bookingFilter)
+      .select("amount bookingDate createdAt status")
       .lean();
 
     const totalViews = services.reduce(
       (sum, service) => sum + Number(service?.viewCount || 0),
       0
     );
-    const totalBookings = services.reduce(
-      (sum, service) => sum + Number((service?.reviews || []).length || 0),
+    const completedBookings = bookings.filter((booking) =>
+      ["completed", "Completed"].includes(booking?.status)
+    );
+    const totalBookings = bookings.length;
+    const totalRevenue = completedBookings.reduce(
+      (sum, booking) => sum + Number(booking?.amount || 0),
       0
     );
-    const totalRevenue = services.reduce((sum, service) => {
-      const bookingCount = Number((service?.reviews || []).length || 0);
-      const price = Number(service?.pricePerHour || 0);
-      return sum + bookingCount * price;
-    }, 0);
     const dailyMap = new Map();
     const dailyBookingMap = new Map();
     const dailyRevenueMap = new Map();
@@ -323,12 +371,16 @@ export const getOwnerViewsAnalytics = async (req, res) => {
         const prev = dailyMap.get(item.date) || 0;
         dailyMap.set(item.date, prev + Number(item.count || 0));
       }
-      for (const review of service?.reviews || []) {
-        if (!review?.createdAt) continue;
-        const key = toUtcDateKey(new Date(review.createdAt));
-        dailyBookingMap.set(key, Number(dailyBookingMap.get(key) || 0) + 1);
-        const price = Number(service?.pricePerHour || 0);
-        dailyRevenueMap.set(key, Number(dailyRevenueMap.get(key) || 0) + price);
+    }
+
+    for (const booking of bookings) {
+      const bookingDate = booking?.bookingDate
+        ? new Date(`${booking.bookingDate}T00:00:00.000Z`)
+        : new Date(booking?.createdAt || Date.now());
+      const key = toUtcDateKey(bookingDate);
+      dailyBookingMap.set(key, Number(dailyBookingMap.get(key) || 0) + 1);
+      if (["completed", "Completed"].includes(booking?.status)) {
+        dailyRevenueMap.set(key, Number(dailyRevenueMap.get(key) || 0) + Number(booking?.amount || 0));
       }
     }
 

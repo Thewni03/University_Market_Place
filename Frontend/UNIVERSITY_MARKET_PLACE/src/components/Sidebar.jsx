@@ -8,7 +8,7 @@ const getUserAvatar = (user) => user?.profilePic || user?.profile_picture || "/a
 const normalizeId = (value) => (value ? value.toString() : "");
 
 const Sidebar = ({ compact = false }) => {
-  const { getUsers, users, selectedUser, setSelecteduser, isUsersLoading } = useChatStore();
+  const { getUsers, users, selectedUser, setSelecteduser, isLoadingUsers } = useChatStore();
 
   const { authUser, onlineusers: onlineUsers = [] } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
@@ -28,7 +28,7 @@ const Sidebar = ({ compact = false }) => {
     return matchesOnline && matchesSearch;
   });
 
-  if (isUsersLoading) return <SidebarSkeleton />;
+  if (isLoadingUsers) return <SidebarSkeleton />;
 
   return (
     <aside className={`h-full border-r border-slate-200/80 bg-[linear-gradient(180deg,_#f3f7f4,_#eaf1ed)] ${compact ? "w-[156px] sm:w-[190px]" : "w-20 rounded-l-[28px] sm:w-24 lg:w-[340px]"}`}>

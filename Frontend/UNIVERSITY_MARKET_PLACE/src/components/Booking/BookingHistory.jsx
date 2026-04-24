@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 
-const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBookingIds = new Set(), isProviderView = false }) => {
+const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBookingIds = new Set(), isProviderView = false, providerId = "" }) => {
   const { authUser } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -25,7 +25,9 @@ const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBo
     const fetchPayments = async () => {
       try {
         const url = authUser && authUser._id 
-          ? `http://localhost:5001/api/payments/user/${authUser._id}`
+          ? isProviderView
+            ? `http://localhost:5001/api/payments/provider/${providerId || authUser._id}`
+            : `http://localhost:5001/api/payments/user/${authUser._id}`
           : 'http://localhost:5001/api/payments';
           
         const response = await fetch(url);
@@ -35,6 +37,7 @@ const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBo
           const formattedBookings = result.data.map((payment) => ({
             id: payment.bookingId,
             dbId: payment._id, 
+            serviceId: payment.serviceId,
             customerName: payment.customerName,
             createdAt: payment.createdAt,
             date: payment.bookingDate || new Date(payment.createdAt).toISOString().split('T')[0],
@@ -60,14 +63,17 @@ const BookingHistory = ({ onDataLoaded, onViewBooking, onUnviewBooking, viewedBo
     };
 
     fetchPayments();
-  }, [authUser]);
+  }, [authUser, isProviderView, providerId, onDataLoaded]);
 
   // Fetch Booked Slots when rescheduling
   useEffect(() => {
     const fetchBookedSlots = async () => {
       if (showRescheduleModal && selectedBooking && newDate) {
         try {
-          const res = await fetch(`http://localhost:5001/api/payments/booked-slots?serviceName=${encodeURIComponent(selectedBooking.type)}&date=${newDate}`);
+          const query = selectedBooking.serviceId
+            ? `serviceId=${encodeURIComponent(selectedBooking.serviceId)}`
+            : `serviceName=${encodeURIComponent(selectedBooking.type)}`;
+          const res = await fetch(`http://localhost:5001/api/payments/booked-slots?${query}&date=${newDate}`);
           const result = await res.json();
           if (result.success) {
             setBookedSlots(result.data);

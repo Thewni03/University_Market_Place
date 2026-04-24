@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { MessageCircleMore, Minimize2, X } from "lucide-react";
+import { Loader2, MessageCircleMore, Minimize2, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ChatWorkspace from "./ChatWorkspace";
 import { useAuthStore } from "../store/useAuthStore";
@@ -12,6 +12,7 @@ const TalkSpaceWidget = () => {
   const authUser = useAuthStore((state) => state.authUser);
   const users = useChatStore((state) => state.users);
   const getUsers = useChatStore((state) => state.getUsers);
+  const isLoadingUsers = useChatStore((state) => state.isLoadingUsers);
   const [isOpen, setIsOpen] = useState(false);
   const normalizedPath = location.pathname.replace(/\/+$/, "").toLowerCase() || "/";
   const shouldHide = HIDDEN_ROUTES.has(normalizedPath) || normalizedPath === "/dashboard" || !authUser?._id;
@@ -43,7 +44,15 @@ const TalkSpaceWidget = () => {
             <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 py-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.35em] text-slate-500">Talk Space</p>
-                <h2 className="mt-1 text-lg font-semibold text-slate-900">Quick conversations</h2>
+                <div className="mt-1 flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-slate-900">Quick conversations</h2>
+                  {isLoadingUsers ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+                      <Loader2 className="size-3 animate-spin" />
+                      Loading
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -84,21 +93,29 @@ const TalkSpaceWidget = () => {
         aria-controls="talk-space-popup"
       >
         <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.24),_transparent_42%)]" />
-        <span className="relative flex items-center gap-3">
-          <span className="flex size-12 items-center justify-center rounded-2xl border border-white/15 bg-white/12 shadow-inner shadow-white/10 backdrop-blur-sm">
-            <MessageCircleMore className="size-5" />
-          </span>
+          <span className="relative flex items-center gap-3">
+            <span className="flex size-12 items-center justify-center rounded-2xl border border-white/15 bg-white/12 shadow-inner shadow-white/10 backdrop-blur-sm">
+              {isLoadingUsers ? (
+                <Loader2 className="size-5 animate-spin" />
+              ) : (
+                <MessageCircleMore className="size-5" />
+              )}
+            </span>
 
-          <span className="flex flex-col">
-            <span className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-emerald-100/90">
-              <span className="inline-flex size-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.9)]" />
-              Live Chat
-            </span>
-            <span className="mt-1 text-sm font-semibold tracking-[0.01em]">
-              {isOpen ? "Talk Space Open" : "Open Talk Space"}
+            <span className="flex flex-col">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-emerald-100/90">
+                <span className="inline-flex size-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.9)]" />
+              {isLoadingUsers ? "Loading" : "Live Chat"}
+              </span>
+              <span className="mt-1 text-sm font-semibold tracking-[0.01em]">
+              {isLoadingUsers
+                ? "Loading conversations..."
+                : isOpen
+                  ? "Talk Space Open"
+                  : "Open Talk Space"}
+              </span>
             </span>
           </span>
-        </span>
 
         {totalUnread > 0 && !isOpen ? (
           <span className="absolute -right-1 -top-1 inline-flex min-w-7 items-center justify-center rounded-full border-2 border-white bg-[#25d366] px-2 py-1 text-[11px] font-bold leading-none text-white shadow-[0_10px_24px_rgba(37,211,102,0.45)]">

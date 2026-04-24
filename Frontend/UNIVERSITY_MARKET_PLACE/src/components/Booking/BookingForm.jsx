@@ -7,6 +7,8 @@ const BookingForm = () => {
   const location = useLocation();
   const { authUser } = useAuthStore();
 
+  const serviceId = location.state?.serviceId || '';
+  const providerId = location.state?.providerId || '';
   const serviceTitle = location.state?.serviceTitle || 'Premium Package';
   const hourlyRate = Number(location.state?.pricePerHour) || 299;
   const initialSlot = location.state?.selectedSlot
@@ -65,7 +67,10 @@ const BookingForm = () => {
     const fetchBookedSlots = async () => {
       if (formData.date && formData.service) {
         try {
-          const res = await fetch(`http://localhost:5001/api/payments/booked-slots?serviceName=${encodeURIComponent(formData.service)}&date=${formData.date}`);
+          const query = serviceId
+            ? `serviceId=${encodeURIComponent(serviceId)}`
+            : `serviceName=${encodeURIComponent(formData.service)}`;
+          const res = await fetch(`http://localhost:5001/api/payments/booked-slots?${query}&date=${formData.date}`);
           const result = await res.json();
           if (result.success) {
             setBookedSlots(result.data);
@@ -263,6 +268,8 @@ const BookingForm = () => {
         body: JSON.stringify({
           bookingId: newBookingId,
           userId: authUser?._id,
+          providerId,
+          serviceId,
           customerName: formData.fullName,
           customerEmail: formData.email,
           serviceName: formData.service,
@@ -287,6 +294,8 @@ const BookingForm = () => {
         state: {
           bookingId: newBookingId,
           dbId: bookingResult.data._id,
+          providerId,
+          serviceId,
           amount: paymentSummary.totalAmount.toFixed(2),
           serviceName: formData.service,
           customerName: formData.fullName,
