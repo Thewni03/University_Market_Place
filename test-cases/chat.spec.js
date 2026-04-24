@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const URL = "http://localhost:5173/chat"; // adjust if route differs
+const URL = "http://localhost:5173/chat"; 
 
 test.describe("Chat Page Tests", () => {
 

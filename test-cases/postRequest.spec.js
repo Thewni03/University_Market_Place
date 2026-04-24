@@ -3,7 +3,6 @@ import { test, expect } from '@playwright/test';
 test.describe('Post Request Page Tests', () => {
 
   test.beforeEach(async ({ page }) => {
-    // ✅ FIX: valid Mongo ObjectId (prevents backend crash)
     await page.addInitScript(() => {
       window.localStorage.setItem(
         'user',
@@ -14,7 +13,7 @@ test.describe('Post Request Page Tests', () => {
       );
     });
 
-    // ✅ Mock API POST request
+
     await page.route('**/api/requests', async route => {
       if (route.request().method() === 'POST') {
         return route.fulfill({
@@ -28,13 +27,6 @@ test.describe('Post Request Page Tests', () => {
 
     await page.goto('http://localhost:5173/post-request');
   });
-/*
-  test('should load Post Request page', async ({ page }) => {
-    await expect(page.getByText(/post a request/i)).toBeVisible();
-  });
-
-*/
-
   test('should render all form inputs', async ({ page }) => {
     await expect(page.locator('input[name="title"]')).toBeVisible();
     await expect(page.locator('select[name="category"]')).toBeVisible();
@@ -50,17 +42,7 @@ test.describe('Post Request Page Tests', () => {
     await expect(page.locator('select[name="category"]')).toHaveValue('Design');
     await expect(page.locator('input[name="budget"]')).toHaveValue('5000');
   });
-/*
-  test('should validate title rules', async ({ page }) => {
-    await page.locator('input[name="title"]').fill('@@invalid@@');
-    await page.locator('textarea[name="description"]').fill('Valid description that is long enough');
 
-    await page.getByRole('button', { name: /publish request/i }).click();
-
-    await expect(page.getByText(/special characters/i)).toBeVisible();
-  });
-
-  */
   test('should submit request successfully', async ({ page }) => {
     await page.locator('input[name="title"]').fill('Design Logo');
     await page.locator('select[name="category"]').selectOption('Design');
@@ -76,17 +58,36 @@ test.describe('Post Request Page Tests', () => {
     await expect(page).toBeTruthy();
   });
 
-  test('should disable button while submitting', async ({ page }) => {
-    await page.locator('input[name="title"]').fill('Test Request');
-    await page.locator('select[name="category"]').selectOption('Design');
-    await page.locator('textarea[name="description"]').fill('Valid description for testing submission');
+  // 6. Empty submit prevention
+  test('should not submit empty form', async ({ page }) => {
+    await page.getByRole('button', { name: /publish request/i }).click();
 
-    const button = page.getByRole('button', { name: /publish request/i });
-
-    await button.click();
-
-    // button should show loading state OR be disabled
-    await expect(button).toBeVisible();
+    await expect(page).toHaveURL(/post-request/);
   });
+
+  
+    // 2. Dummy Data Full Fill Validation
+    test('should fill all fields with dummy data correctly', async ({ page }) => {
+      await page.getByRole('button', { name: /fill dummy data/i }).click();
+  
+      await expect(page.locator('input[name="title"]')).not.toBeEmpty();
+      await expect(page.locator('textarea[name="description"]')).not.toBeEmpty();
+      await expect(page.locator('select[name="category"]')).toHaveValue('Design');
+    });
+  
+      // 8. Navigation after success
+  test('should navigate after successful submission', async ({ page }) => {
+    await page.locator('input[name="title"]').fill('Valid Title');
+    await page.locator('select[name="category"]').selectOption('Design');
+    await page.locator('textarea[name="description"]').fill('This is a valid description with enough characters');
+    await page.locator('input[name="budget"]').fill('3000');
+
+    await page.getByRole('button', { name: /publish request/i }).click();
+
+    await page.waitForTimeout(1500);
+
+    await expect(page).not.toHaveURL(/post-request/);
+  });
+
 
 });

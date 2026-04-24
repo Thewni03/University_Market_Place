@@ -9,7 +9,6 @@ test.describe('Booking Form Tests', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    // Mock auth user (used by useAuthStore)
     await page.addInitScript(() => {
       window.localStorage.setItem(
         'auth-storage',

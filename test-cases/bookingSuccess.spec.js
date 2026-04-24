@@ -10,7 +10,6 @@ test.describe('Booking Success Page Tests', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    // Inject router state BEFORE loading page
     await page.addInitScript((state) => {
       window.history.pushState(state, '', '/booking-success');
     }, mockState);

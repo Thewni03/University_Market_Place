@@ -25,7 +25,6 @@ test.describe("Login Page Tests", () => {
 
   test("should go to OTP screen (mocked)", async ({ page }) => {
 
-    // 🔥 MOCK API
     await page.route("**/forgot-password", async route => {
       await route.fulfill({
         status: 200,

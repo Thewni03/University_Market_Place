@@ -4,7 +4,6 @@ test.describe('Rating Review E2E', () => {
 
   test.beforeEach(async ({ page }) => {
 
-    // MOCK API
     await page.route('**/api/reviews', async route => {
       await route.fulfill({
         status: 200,
@@ -27,10 +26,8 @@ test.describe('Rating Review E2E', () => {
       });
     });
 
-    // 🔥 CHANGE THIS IF YOUR ROUTE IS DIFFERENT
     await page.goto('http://localhost:5173/reviewandrating');
 
-    // WAIT FOR ANY REAL UI ELEMENT (NOT TEXT)
     await page.waitForTimeout(2000);
   });
 
@@ -58,7 +55,6 @@ test.describe('Rating Review E2E', () => {
 
     await textarea.fill('Nice service');
 
-    // button should exist (not strict enabled check)
     await expect(button).toBeVisible();
   });
 
