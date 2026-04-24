@@ -1,110 +1,101 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
 
-test.describe("Login Page Tests", () => {
+test.describe('Login Page Tests', () => {
 
-  test("should load login page", async ({ page }) => {
-    await page.goto("/login");
-    await expect(page.locator(".lp-login-title")).toContainText("LOGIN");
-  });
+  test.beforeEach(async ({ page }) => {
 
-  test("should render login form inputs", async ({ page }) => {
-    await page.goto("/login");
+    // Mock login API
+    await page.route('**/Users/login', async route => {
+      const body = route.request().postDataJSON();
 
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-  });
+      if (body.email === 'test@mail.com' && body.password === '123456') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            token: 'fake-token',
+            user: { name: 'Test User', _id: '123' }
+          })
+        });
+      }
 
-  test("should open forgot password screen", async ({ page }) => {
-    await page.goto("/login");
-
-    await page.getByText("Forgot Password?").click();
-
-    await expect(page.locator(".lp-login-title")).toContainText("Reset");
-    await expect(page.locator("input[placeholder='Enter your email']")).toBeVisible();
-  });
-
-  test("should go to OTP screen (mocked)", async ({ page }) => {
-
-    await page.route("**/forgot-password", async route => {
-      await route.fulfill({
-        status: 200,
-        body: JSON.stringify({ success: true })
+      return route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Invalid credentials' })
       });
     });
 
-    await page.goto("/login");
-    await page.getByText("Forgot Password?").click();
+    // Mock forgot password flow
+    await page.route('**/forgot-password', route =>
+      route.fulfill({ status: 200, body: '{}' })
+    );
 
-    await page.fill("input[placeholder='Enter your email']", "test@example.com");
-    await page.getByRole("button", { name: /send code/i }).click();
+    await page.route('**/verify-otp', route =>
+      route.fulfill({ status: 200, body: '{}' })
+    );
 
-    // UI state change happens via onOTPSent()
-    await expect(page.locator(".lp-login-title")).toContainText("OTP");
+    await page.route('**/reset-password', route =>
+      route.fulfill({ status: 200, body: '{}' })
+    );
+
+    await page.goto('http://localhost:5173/login');
   });
 
-  test("should render OTP input", async ({ page }) => {
+  test('should show error on invalid login', async ({ page }) => {
+    await page.fill('input[name="email"]', 'wrong@mail.com');
+    await page.fill('input[name="password"]', 'wrong');
 
-    await page.route("**/forgot-password", route =>
-      route.fulfill({ status: 200, body: JSON.stringify({}) })
-    );
+    await page.click('button:has-text("Login")');
 
-    await page.goto("/login");
-    await page.getByText("Forgot Password?").click();
-
-    await page.fill("input[placeholder='Enter your email']", "test@example.com");
-    await page.getByRole("button", { name: /send code/i }).click();
-
-    await expect(page.locator("input[placeholder='Enter OTP']")).toBeVisible();
+    await expect(page.getByText(/invalid credentials/i)).toBeVisible();
   });
 
-  test("should go to new password screen (mocked)", async ({ page }) => {
+  // ---------------- SUCCESS LOGIN ----------------
 
-    await page.route("**/forgot-password", route =>
-      route.fulfill({ status: 200 })
-    );
+  test('should login successfully and redirect', async ({ page }) => {
+    await page.fill('input[name="email"]', 'test@mail.com');
+    await page.fill('input[name="password"]', '123456');
 
-    await page.route("**/verify-otp", route =>
-      route.fulfill({ status: 200 })
-    );
+    await page.click('button:has-text("Login")');
 
-    await page.goto("/login");
+    await page.waitForURL('**/home');
 
-    // Forgot password
-    await page.getByText("Forgot Password?").click();
-    await page.fill("input[placeholder='Enter your email']", "test@example.com");
-    await page.getByRole("button", { name: /send code/i }).click();
-
-    // OTP screen
-    await page.fill("input[placeholder='Enter OTP']", "123456");
-    await page.getByRole("button", { name: /verify/i }).click();
-
-    await expect(page.locator(".lp-login-title")).toContainText("New Password");
+    const token = await page.evaluate(() => localStorage.getItem('token'));
+    expect(token).toBe('fake-token');
   });
 
-  test("should show password input (final step)", async ({ page }) => {
 
-    await page.route("**/forgot-password", route =>
-      route.fulfill({ status: 200 })
-    );
-
-    await page.route("**/verify-otp", route =>
-      route.fulfill({ status: 200 })
-    );
-
-    await page.route("**/reset-password", route =>
-      route.fulfill({ status: 200 })
-    );
-
-    await page.goto("/login");
-
-    await page.getByText("Forgot Password?").click();
-    await page.fill("input[placeholder='Enter your email']", "test@example.com");
-    await page.getByRole("button", { name: /send code/i }).click();
-
-    await page.fill("input[placeholder='Enter OTP']", "123456");
-    await page.getByRole("button", { name: /verify/i }).click();
-
-    await expect(page.locator("input[placeholder='New Password']")).toBeVisible();
+  test('should navigate to register page', async ({ page }) => {
+    await page.getByText('SignUp').click();
+    await page.waitForURL('**/register');
   });
+
+
+  test('should go to OTP screen', async ({ page }) => {
+    await page.getByText('Forgot Password?').click();
+
+    await page.fill('input[placeholder="Enter your email"]', 'test@mail.com');
+    await page.click('button:has-text("Send Code")');
+
+    await expect(page.getByText('OTP')).toBeVisible();
+  });
+
+ 
+  test('should update password successfully', async ({ page }) => {
+    await page.getByText('Forgot Password?').click();
+
+    await page.fill('input[placeholder="Enter your email"]', 'test@mail.com');
+    await page.click('button:has-text("Send Code")');
+
+    await page.fill('input[placeholder="Enter OTP"]', '123456');
+    await page.click('button:has-text("Verify")');
+
+    await page.fill('input[placeholder="New Password"]', 'newpass123');
+    await page.click('button:has-text("Update Password")');
+
+    await expect(page.getByText('Password Updated')).toBeVisible();
+  });
+
 
 });

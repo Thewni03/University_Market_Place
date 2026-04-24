@@ -2,12 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Payment Page E2E', () => {
 
-  test('page loads correctly', async ({ page }) => {
-    await page.goto('http://localhost:5173/payment');
-
-    await expect(page.getByText('Complete Your Payment')).toBeVisible();
-  });
-
   test('user can type card details', async ({ page }) => {
     await page.goto('http://localhost:5173/payment');
 

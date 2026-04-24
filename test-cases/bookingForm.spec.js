@@ -132,6 +132,15 @@ test.describe('Booking Form Tests', () => {
     const select = page.locator('select[name="timeSlot"]');
     await select.selectOption({ index: 1 });
 
+    await page.route('**/api/bookings', async route => {
+      if (route.request().method() === 'POST') {
+        return route.fulfill({
+          status: 200,
+          body: JSON.stringify({ success: true })
+        });
+      }
+    });
+
     await page.click('button[type="submit"]');
 
     // success navigation check

@@ -1,30 +1,73 @@
-import { test, expect } from '@playwright/test';
+const { test, expect } = require("@playwright/test");
 
-test.describe('Marketplace Feature Tests', () => {
+const mockProducts = [
+  {
+    _id: "p1",
+    title: "Data Structures Book",
+    price: 1500,
+    isFree: false,
+    category: "Textbooks",
+    faculty: "Computing",
+    condition: "Good",
+    images: [],
+    seller: { fullname: "John Doe", email: "john@test.com" },
+    viewCount: 10,
+    favouritedBy: [],
+  },
+  {
+    _id: "p2",
+    title: "Free Calculator",
+    price: 0,
+    isFree: true,
+    category: "Electronics",
+    faculty: "Engineering",
+    condition: "New",
+    images: [],
+    seller: { fullname: "Jane Doe", email: "jane@test.com" },
+    viewCount: 5,
+    favouritedBy: [],
+  },
+];
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/marketplace');
+test.beforeEach(async ({ page }) => {
+  // Use a wildcard to catch all variations of the marketplace API
+  await page.route(/\/api\/marketplace/, async (route) => {
+    const url = route.request().url();
+    
+    // Log the URL to your terminal to verify it's being intercepted
+    console.log(`Intercepted: ${url}`);
+
+    if (url.includes('favourites') || url.includes('my-listings')) {
+      await route.fulfill({ json: { data: [] } });
+    } else {
+      await route.fulfill({ json: { data: mockProducts } });
+    }
   });
 
-  test('should load products', async ({ page }) => {
-    const cards = page.locator('.mp-card');
-    await expect(cards.first()).toBeVisible();
+  // Navigate and wait for the network to be idle
+  await page.goto("http://localhost:5173/marketplace", { waitUntil: 'networkidle' });
+});
+
+
+test.describe("Marketplace Page Tests", () => {
+  
+  test("Marketplace loads products correctly", async ({ page }) => {
+    await expect(page.getByText("Campus Marketplace")).toBeVisible();
+    await expect(page.getByText("Data Structures Book").first()).toBeVisible();
+    await expect(page.getByText("Free Calculator").first()).toBeVisible();
   });
 
-  test('should buy a product', async ({ page }) => {
-    const buyBtn = page.locator('button:has-text("Add to Cart")').first();
-    await buyBtn.click();
-    await expect(page.locator('body')).toBeVisible();
+
+
+  test("Search input works", async ({ page }) => {
+    const search = page.getByPlaceholder(/Search textbooks/i);
+    await search.fill("Data Structures");
+    await expect(search).toHaveValue("Data Structures");
   });
 
-  test('should search products', async ({ page }) => {
-    const search = page.locator('input[placeholder*="Search"]');
-
-    await search.fill('book');
-
-    await page.waitForTimeout(1000);
-
-    await expect(page.locator('.mp-card').first()).toBeVisible();
+  test("Free item shows FREE label", async ({ page }) => {
+    // If the label is uppercase "FREE" in the mock product card
+    await expect(page.getByText("FREE").first()).toBeVisible();
   });
 
 });
