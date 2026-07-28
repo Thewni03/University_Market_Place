@@ -137,7 +137,7 @@ This project was built as a group assignment for **IT3040 – IT Project Managem
 | **Thewni Mahathanthri** | Admin Dashboard · Accessibility Widget · Campus Marketplace · Email Notifications · Notification System |
 | **Keerthihan** | User Profile · Offer a Service · Navbar · TalkSpace Live Chat · ML Integration |
 | **Dileepa** | Booking System · Payment Gateway · Payment UI · Reviews & Ratings |
-| **Dulaj Rathnayake** | Q&A Forum · Service Requests · Campus Feed · Home UI · Search & Filters · ML Trending Engine |
+| **Dulaj Sanmith** | Q&A Forum · Service Requests · Campus Feed · Home UI · Search & Filters · ML Trending Engine |
 
 
 ## License
